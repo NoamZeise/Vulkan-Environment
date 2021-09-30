@@ -50,7 +50,7 @@ struct FrameData
 
 struct SwapChain
 {
-	VkSwapchainKHR swapChain;
+	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkSurfaceFormatKHR format;
 	VkExtent2D extent;
 	std::vector<FrameData> frameData;

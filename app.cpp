@@ -69,6 +69,7 @@ void App::draw()
 	mRender->startDraw();
 
 	//TODO draw app
+	mRender->DrawSquare(glm::vec4(10, 10, 100, 100), 0, 0);
 
 	mRender->endDraw();
 }
