@@ -263,22 +263,30 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
 	if(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to get physical device surface present modes!");
-	bool modeChosen = false;
-	for (const auto& mode : presentModes)
+	if(VSYNC)
 	{
-		if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
+		bool modeChosen = false;
+		for (const auto& mode : presentModes)
 		{
-			presentMode = mode;
-			modeChosen = true;
+			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
+			{
+				presentMode = mode;
+				modeChosen = true;
+			}
+			else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+			{
+				presentMode = mode;//for low stuttering
+				modeChosen = true;
+			}
 		}
-		else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
-		{
-			presentMode = mode;//for low stuttering
-			modeChosen = true;
+		if (!modeChosen)
+			presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
 		}
 	}
-	if (!modeChosen)
-		presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
+	else
+	{
+		presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	}	
 
 	//find a supporte transform
 	VkSurfaceTransformFlagBitsKHR preTransform;

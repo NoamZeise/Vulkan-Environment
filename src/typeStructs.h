@@ -25,6 +25,7 @@ const bool PIXELATED = false; //for pixelated
 const int TARGET_WIDTH = 800;
 const int TARGET_HEIGHT = 600;
 const bool FIXED_RATIO = false;
+const bool VSYNC = true;
 #ifndef NDEBUG
 const bool ERROR_ONLY = false;
 #endif
