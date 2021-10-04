@@ -17,9 +17,18 @@ if (UNIX)
     find_package(Freetype REQUIRED)
 endif()
 
-SET(CMAKE_CXX_FLAGS "-O2 -std=c++11")
 
-SET(CMAKE_EXE_LINKER_FLAGS "-v")
+
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_DEBUG_INIT "/D_DEBUG /MTd /Zi /Ob0 /Od /RTC1")
+  set(CMAKE_CXX_FLAGS_MINSIZEREL_INIT     "/MT /O1 /Ob1 /D NDEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE_INIT        "/MT /O2 /Ob2 /D NDEBUG")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO_INIT "/MT /Zi /O2 /Ob1 /D NDEBUG")
+else()
+  SET(CMAKE_CXX_FLAGS "-O2 -std=c++11")
+  SET(CMAKE_EXE_LINKER_FLAGS "-v")
+endif()
+
 
 #add executables
 file(GLOB SOURCES src/*)
@@ -32,7 +41,6 @@ if(UNIX)
                                                  PUBLIC ${VULKAN_INCLUDE_DIRS}
                                                  PUBLIC ${FREETYPE_INCLUDE_DIRS}
                                                  PUBLIC ${PROJECT_BINARY_DIR})
-
     target_link_libraries(2D-Vulkan-Environment glfw)
     target_link_libraries(2D-Vulkan-Environment Vulkan::Vulkan)
     target_link_libraries(2D-Vulkan-Environment ${FREETYPE_LIBRARIES})
