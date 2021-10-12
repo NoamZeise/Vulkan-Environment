@@ -41,7 +41,7 @@ void Render::initRender(GLFWwindow* window)
 	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 	bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	bindings[1].binding = 1;
-	bindings[1].descriptorCount = MAX_TEXTURES_SUPPORTED;
+	bindings[1].descriptorCount = Resource::MAX_TEXTURES_SUPPORTED;
 	bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -72,7 +72,7 @@ void Render::initRender(GLFWwindow* window)
 
 	loadDataToGpu();
 	copyDataToLocalGPUMemory();
-	mTextureLoader = TextureLoader(mBase, mGeneralCommandPool);
+	mTextureLoader = Resource::TextureLoader(mBase, mGeneralCommandPool);
 	mTextureLoader.loadTexture("textures/error.png");
 }
 
@@ -97,131 +97,21 @@ Render::~Render()
 
 }
 
-void Render::loadDataToGpu()
-{
 
-	size_t vertexSize = sizeof(mQuadVerts[0]) * mQuadVerts.size();
-	size_t indexSize = sizeof(mQuadInds[0]) * mQuadInds.size();
-
-	VkBufferCreateInfo stagingBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	stagingBufferInfo.size = vertexSize + indexSize;
-	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferInfo.queueFamilyIndexCount = 1;
-	stagingBufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &stagingBufferInfo, nullptr, &mMemory.stagingBuffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create vertex buffer!");
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, mMemory.stagingBuffer, &memRequirements);
-
-	uint32_t memIndex = vkhelper::findMemoryIndex(mBase.physicalDevice, memRequirements.memoryTypeBits,
-		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
-
-	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	memInfo.allocationSize = memRequirements.size;
-	memInfo.memoryTypeIndex = memIndex;
-	if (vkAllocateMemory(mBase.device, &memInfo, nullptr, &mMemory.stagingMemory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory");
-
-	vkBindBufferMemory(mBase.device, mMemory.stagingBuffer, mMemory.stagingMemory, 0);
-
-	void* data;
-	vkMapMemory(mBase.device, mMemory.stagingMemory, 0, memRequirements.size, 0, &data);
-	std::memcpy(data, mQuadVerts.data(), vertexSize);
-	std::memcpy(static_cast<char*>(data) + vertexSize, mQuadInds.data(), indexSize);
-}
-
-void Render::copyDataToLocalGPUMemory()
-{
-	size_t vertexSize = sizeof(mQuadVerts[0]) * mQuadVerts.size();
-	size_t indexSize = sizeof(mQuadInds[0]) * mQuadInds.size();
-
-	VkBufferCreateInfo vbufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	vbufferInfo.size = vertexSize;
-	vbufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	vbufferInfo.queueFamilyIndexCount = 1;
-	vbufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	vbufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &vbufferInfo, nullptr, &mMemory.vertexBuffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create vertex buffer!");
-	VkMemoryRequirements vmemRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, mMemory.vertexBuffer, &vmemRequirements);
-
-	VkBufferCreateInfo ibufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	ibufferInfo.size = indexSize;
-	ibufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	ibufferInfo.queueFamilyIndexCount = 1;
-	ibufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	ibufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &ibufferInfo, nullptr, &mMemory.indexBuffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create vertex buffer!");
-	VkMemoryRequirements imemRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, mMemory.indexBuffer, &imemRequirements);
-
-	uint32_t memIndex = vkhelper::findMemoryIndex(
-		mBase.physicalDevice,imemRequirements.memoryTypeBits & vmemRequirements.memoryTypeBits,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VkMemoryAllocateInfo memInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-	memInfo.allocationSize = vmemRequirements.size + imemRequirements.size;
-	memInfo.memoryTypeIndex = memIndex;
-	if (vkAllocateMemory(mBase.device, &memInfo, nullptr, &mMemory.memory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory");
-
-	vkBindBufferMemory(mBase.device, mMemory.vertexBuffer, mMemory.memory, 0);
-	//begin command recording
-	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(mTransferCommandBuffer, &beginInfo);
-
-	VkBufferCopy copyRegion{};
-	copyRegion.srcOffset = 0;
-	copyRegion.dstOffset = 0;
-	copyRegion.size = vertexSize;
-	vkCmdCopyBuffer(mTransferCommandBuffer, mMemory.stagingBuffer, mMemory.vertexBuffer,1, &copyRegion);
-
-	vkEndCommandBuffer(mTransferCommandBuffer);
-	//submit commands for execution
-	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &mTransferCommandBuffer;
-	vkQueueSubmit(mBase.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
-
-	vkResetCommandPool(mBase.device, mGeneralCommandPool, 0);
-
-	vkBindBufferMemory(mBase.device, mMemory.indexBuffer, mMemory.memory, vmemRequirements.size);
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(mTransferCommandBuffer, &beginInfo);
-
-	copyRegion.srcOffset = vertexSize;
-	copyRegion.size = indexSize;
-	vkCmdCopyBuffer(mTransferCommandBuffer, mMemory.stagingBuffer, mMemory.indexBuffer, 1, &copyRegion);
-
-	vkEndCommandBuffer(mTransferCommandBuffer);
-	//submit commands for execution
-	submitInfo.pCommandBuffers = &mTransferCommandBuffer;
-	vkQueueSubmit(mBase.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
-
-	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
-	vkResetCommandPool(mBase.device, mGeneralCommandPool, 0);
-
-}
-
-uint32_t Render::LoadTexture(std::string filepath)
+Resource::Texture Render::LoadTexture(std::string filepath)
 {
 	if (mFinishedLoadingTextures)
 		throw std::runtime_error("texture loading has finished already");
 	return mTextureLoader.loadTexture(filepath);
 }
 
-TexFont* Render::LoadFont(std::string filepath)
+Resource::Font* Render::LoadFont(std::string filepath)
 {
 	if (mFinishedLoadingTextures)
 		throw std::runtime_error("texture loading has finished already");
 	try
 	{
-		return new TexFont(filepath, &mTextureLoader);
+		return new Resource::Font(filepath, &mTextureLoader);
 	}
 	catch (const std::exception& e)
 	{
@@ -289,7 +179,7 @@ void Render::startDraw()
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = mSwapchain.extent;
 	//clear colour -> values for VK_ATTACHMENT_LOAD_OP_CLEAR load operation in colour attachment
-	VkClearValue clearColour = { { { 0.15f, 0.5f, 0.4f, 1.0f } } };
+	VkClearValue clearColour = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
 	renderPassInfo.clearValueCount = 1;
 	renderPassInfo.pClearValues = &clearColour;
 
@@ -380,7 +270,7 @@ void Render::resize()
 	bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 	bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	bindings[1].binding = 1;
-	bindings[1].descriptorCount = MAX_TEXTURES_SUPPORTED;
+	bindings[1].descriptorCount = Resource::MAX_TEXTURES_SUPPORTED;
 	bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 	bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -413,7 +303,7 @@ void Render::DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm:
 	//push constants
 	vectPushConstants vps{};
 	vps.model = glm::mat4(1.0f);
-	vps.model = vkhelper::getModel(drawRect, rotate);
+	vps.model = vkhelper::getModelMatrix(drawRect, rotate);
 	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
 		0, sizeof(vectPushConstants), &vps);
 
@@ -432,7 +322,7 @@ void Render::DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm:
 }
 
 
-void Render::DrawString(TexFont* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour)
+void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour)
 {
 	if (font == nullptr)
 	{
@@ -441,7 +331,7 @@ void Render::DrawString(TexFont* font, std::string text, glm::vec2 position, flo
 	}
 	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
 	{
-		Character* cTex = font->getChar(*c);
+		Resource::Character* cTex = font->getChar(*c);
 		if (cTex == nullptr)
 			continue;
 		else if (cTex->TextureID != 0) //if character is added but no texture loaded for it (eg space)
@@ -462,12 +352,12 @@ void Render::DrawString(TexFont* font, std::string text, glm::vec2 position, flo
 	}
 }
 
-float Render::MeasureString(TexFont* font, std::string text, float size)
+float Render::MeasureString(Resource::Font* font, std::string text, float size)
 {
 	float sz = 0;
 	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
 	{
-		Character* cTex = font->getChar(*c);
+		Resource::Character* cTex = font->getChar(*c);
 		if (cTex == nullptr)
 			continue;
 		sz += cTex->Advance * size;
@@ -576,7 +466,7 @@ void Render::prepareFragmentDescriptorSets()
 	std::vector<VkDescriptorPoolSize> sizes =
 	{
 		{VK_DESCRIPTOR_TYPE_SAMPLER, 1},
-		{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES_SUPPORTED}
+		{VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, Resource::MAX_TEXTURES_SUPPORTED}
 	};
 	mTexturesDS.sets.resize(mSwapchain.frameData.size());
 
@@ -600,8 +490,8 @@ void Render::prepareFragmentDescriptorSets()
 	}
 
 
-	std::vector<VkDescriptorImageInfo> texInfos(MAX_TEXTURES_SUPPORTED);
-	for (uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
+	std::vector<VkDescriptorImageInfo> texInfos(Resource::MAX_TEXTURES_SUPPORTED);
+	for (uint32_t i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++)
 	{
 		texInfos[i].sampler = nullptr;
 		texInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -629,7 +519,7 @@ void Render::prepareFragmentDescriptorSets()
 		sampDSWrite[i + 1].dstBinding = 1;
 		sampDSWrite[i + 1].dstArrayElement = 0;
 		sampDSWrite[i + 1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		sampDSWrite[i + 1].descriptorCount = MAX_TEXTURES_SUPPORTED;
+		sampDSWrite[i + 1].descriptorCount = Resource::MAX_TEXTURES_SUPPORTED;
 		sampDSWrite[i + 1].pImageInfo = texInfos.data();
 		index++;
 	}

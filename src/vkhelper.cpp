@@ -15,7 +15,7 @@ uint32_t vkhelper::findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t mem
 	throw std::runtime_error("failed to find suitable memory type");
 }
 
-glm::mat4 vkhelper::getModel(glm::vec4 drawRect, float rotate)
+glm::mat4 vkhelper::getModelMatrix(glm::vec4 drawRect, float rotate)
 {
 	glm::mat4 model = glm::mat4(1.0f);
 

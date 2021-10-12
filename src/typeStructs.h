@@ -17,18 +17,19 @@
 #include <array>
 #include <string>
 
-//#define NDEBUG //uncomment for release mode
+#define NDEBUG //uncomment for release mode
 
 const bool USE_SRGB = false;
 const bool ENABLE_MIP = false;
-const bool PIXELATED = false; //for pixelated
-const int TARGET_WIDTH = 800;
-const int TARGET_HEIGHT = 600;
-const bool FIXED_RATIO = false;
+const bool PIXELATED = true; //for pixelated
+const bool FIXED_RATIO = true;
 const bool VSYNC = true;
 #ifndef NDEBUG
 const bool ERROR_ONLY = false;
 #endif
+
+const int TARGET_WIDTH = 256;
+const int TARGET_HEIGHT = 224;
 
 struct QueueFamilies
 {
@@ -75,8 +76,9 @@ struct Pipeline
 
 struct Vertex
 {
-	glm::vec2 position;
-	glm::vec2 texCoord;
+	glm::vec3 Position;
+	glm::vec3 Normal;
+	glm::vec2 TexCoord;
 
 	static std::array<VkVertexInputBindingDescription, 1> bindingDescriptions()
 	{
@@ -88,19 +90,23 @@ struct Vertex
 		return bindingDescriptions;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions()
+	static std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
 		//position
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
-		attributeDescriptions[0].offset = offsetof(Vertex, position);
+		attributeDescriptions[0].offset = offsetof(Vertex, Position);
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
-		attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
+		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
+		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
 
 		return attributeDescriptions;
 	}

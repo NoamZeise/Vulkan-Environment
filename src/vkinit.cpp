@@ -263,30 +263,22 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
 	if(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to get physical device surface present modes!");
-	if(VSYNC)
+	bool modeChosen = false;
+	for (const auto& mode : presentModes)
 	{
-		bool modeChosen = false;
-		for (const auto& mode : presentModes)
+		if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
 		{
-			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
-			{
-				presentMode = mode;
-				modeChosen = true;
-			}
-			else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
-			{
-				presentMode = mode;//for low stuttering
-				modeChosen = true;
-			}
+			presentMode = mode;
+			modeChosen = true;
 		}
-		if (!modeChosen)
-			presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
+		else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+		{
+			presentMode = mode;//for low stuttering
+			modeChosen = true;
 		}
 	}
-	else
-	{
-		presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	}	
+	if (!modeChosen || VSYNC)
+		presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
 
 	//find a supporte transform
 	VkSurfaceTransformFlagBitsKHR preTransform;
@@ -514,9 +506,9 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	VkPipelineRasterizationStateCreateInfo rasterizationInfo{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 	rasterizationInfo.depthClampEnable = VK_FALSE;
 	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+	rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizationInfo.lineWidth = 1.0f;
-	rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	//fragment shader
 	VkPipelineShaderStageCreateInfo fragmentStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };

@@ -31,16 +31,16 @@ public:
 	Render(GLFWwindow* window, glm::vec2 target);
 	void updateProjectionMatrix();
 	~Render();
-	uint32_t LoadTexture(std::string filepath);
-	TexFont* LoadFont(std::string filepath);
+	Resource::Texture LoadTexture(std::string filepath);
+	Resource::Font* LoadFont(std::string filepath);
 	void endTextureLoad();
 	void startDraw();
 	void endDraw();
 	void DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, uint32_t texID);
 	void DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm::vec4 textureOffsetRect, uint32_t texID);
 	void DrawSquare(glm::vec4 drawRect, float rotate, uint32_t texID);
-	void DrawString(TexFont* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
-  float MeasureString(TexFont* font, std::string text, float size);
+	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
+  float MeasureString(Resource::Font* font, std::string text, float size);
 	void setCameraOffset(glm::vec2 offset);
 	bool framebufferResized = false;
 private:
@@ -60,21 +60,13 @@ private:
 	DescriptorSets mViewprojDS;
 	VkSampler mTexFragSampler;
 	DescriptorSets mTexturesDS;
-	TextureLoader mTextureLoader;
+	Resource::TextureLoader mTextureLoader;
 
 	bool mBegunDraw = false;
 	bool mFinishedLoadingTextures = false;
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
 	viewProjectionBufferObj mUbo;
-
-	std::vector<Vertex> mQuadVerts = {
-		{{0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{1.0f, 1.0f}, {1.0f, 1.0f}},
-		{{0.0f, 1.0f}, {0.0f, 1.0f}},
-	};
-	std::vector<uint32_t> mQuadInds = { 0, 1, 2, 2, 3, 0 };
 
 	void loadDataToGpu();
 	void copyDataToLocalGPUMemory();

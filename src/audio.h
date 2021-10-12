@@ -90,7 +90,21 @@ public:
 		}
 	}
 
+	void oneTime(std::string path, float volume)
+	{
+		std::string cmd = "open \"" + path + "\" alias " + path + std::to_string(count);
+		mciSendStringA(cmd.c_str(), NULL, 0, 0);
+		cmd = "play " + path + std::to_string(count);
+		mciSendStringA(cmd.c_str(), NULL, 0, 0);
+		volume < 0 ? volume = 0 : volume > 1 ? volume = 1 : volume = volume;
+		int vol = volume * 1000;
+		cmd = "setaudio " + path + std::to_string(count) + " volume to " + std::to_string(vol);
+		mciSendStringA(cmd.c_str(), NULL, 0, 0);
+		count++;
+	}
+
 private:
+	int count = 0;
 	std::string filename;
 	bool playing = false;
 	bool isMp3 = false;
@@ -118,34 +132,39 @@ public:
 
 	void play()
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+		
 	}
 
 	void pause()
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+
 	}
 
 	void stop()
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+
 	}
 
 	void loop()
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+
 	}
 
 	void setVolume(float volume)
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+;
 	}
 
 
 	bool isplaying()
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+
 		return false;
+	}
+
+	void oneTime(std::string path, float volume)
+	{
+
 	}
 
 private:

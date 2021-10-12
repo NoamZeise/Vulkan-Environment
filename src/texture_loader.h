@@ -17,7 +17,33 @@
 #include "typeStructs.h"
 #include "vkhelper.h"
 
+namespace Resource
+{
+
 const int MAX_TEXTURES_SUPPORTED = 200;//match in shader
+
+enum class TextureType
+{
+	Diffuse,
+	Specular,
+	Ambient,
+	Shadow
+};
+
+struct Texture
+{
+	Texture(unsigned int ID, glm::vec2 dimentions, std::string path)
+	{
+		this->path = path;
+		this->ID = ID;
+		this->dim = dimentions;
+		type = TextureType::Diffuse;
+	}
+	std::string path;
+	unsigned int ID = 0;
+	glm::vec2 dim = glm::vec2(0, 0);
+	TextureType type;
+};
 
 struct TempTexture
 {
@@ -30,10 +56,10 @@ struct TempTexture
 	VkDeviceSize fileSize;
 };
 
-struct Texture
+struct LoadedTexture
 {
-	Texture(){}
-	Texture(TempTexture tex)
+	LoadedTexture(){}
+	LoadedTexture(TempTexture tex)
 	{
 		width = tex.width;
 		height = tex.height;
@@ -53,7 +79,7 @@ public:
 	TextureLoader() {};
 	TextureLoader(Base base, VkCommandPool pool);
 	~TextureLoader();
-	uint32_t loadTexture(std::string path);
+	Texture loadTexture(std::string path);
 	uint32_t loadTexture(unsigned char* data, int width, int height, int nrChannels);
 	VkImageView getImageView(uint32_t texID);
 	void endLoading();
@@ -65,13 +91,9 @@ private:
 	VkCommandPool pool;
 
 	std::vector<TempTexture> texToLoad;
-	std::vector<Texture> textures;
+	std::vector<LoadedTexture> textures;
 	VkDeviceMemory memory;
 };
 
-
-
-
-
-
+}
 #endif
