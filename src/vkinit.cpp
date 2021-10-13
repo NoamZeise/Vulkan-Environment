@@ -281,12 +281,11 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 		}
 		if (!modeChosen)
 			presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
-		}
 	}
 	else
 	{
 		presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	}	
+	}
 
 	//find a supporte transform
 	VkSurfaceTransformFlagBitsKHR preTransform;
@@ -713,7 +712,7 @@ void initVulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInf
 		createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 	else
 		createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-			| VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT 
+			| VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
 			| VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 	createInfo->messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT //all types
 		| VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
