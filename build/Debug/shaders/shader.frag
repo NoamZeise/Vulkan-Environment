@@ -4,6 +4,7 @@ layout(push_constant) uniform fragconstants
 {
     layout(offset = 64)vec4 colour;
     vec4 texOffset;
+    uint texID;
 } pc;
 
 layout(set = 1, binding = 0) uniform sampler texSamp;
@@ -20,5 +21,8 @@ void main()
     coord.y *= pc.texOffset.w;
     coord.x += pc.texOffset.x;
     coord.y += pc.texOffset.y;
-    outColour = texture(sampler2D(textures[inTexCoord.z], texSamp), coord) * pc.colour;
+    if(texID == 0)
+        outColour = texture(sampler2D(textures[inTexCoord.z], texSamp), coord) * pc.colour;
+    else
+        outColour = texture(sampler2D(textures[texID], texSamp), coord) * pc.colour;
 }

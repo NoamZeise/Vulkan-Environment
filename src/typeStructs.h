@@ -121,6 +121,7 @@ struct fragPushConstants
 {
 	glm::vec4 colour;
 	glm::vec4 texOffset;
+	unsigned int TexID;
 };
 
 
