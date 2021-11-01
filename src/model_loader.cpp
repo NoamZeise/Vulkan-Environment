@@ -12,7 +12,9 @@ ModelLoader::ModelLoader(Base base, VkCommandPool pool)
 
 ModelLoader::~ModelLoader()
 {
-	
+	for(auto &model: loadedModels)
+		for(size_t i = 0; i < model.meshes.size())
+			delete model.meshes[i];
 }
 
 
@@ -23,14 +25,16 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
 		currentIndex--;
-		std::cout << "failed to load model at \"" << path << "\" assimp error: " << importer.GetErrorString() << std::endl; 
+		std::cout << "failed to load model at \"" << path << "\" assimp error: " << importer.GetErrorString() << std::endl;
 	    return model;
 	}
 	LoadedModel ldModel;
 	ldModel.directory = path.substr(0, path.find_last_of('/'));
 
 	processNode(&ldModel, scene->mRootNode, scene, texLoader);
-	
+
+	loadedModels.insert(ldModel);
+
 	return model;
 }
 
@@ -39,8 +43,8 @@ void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* s
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-		model->meshes.push_back(Mesh());
-		processMesh(&model->meshes.back(), mesh, scene, texLoader);
+		model->meshes.push_back(new Mesh());
+		processMesh(model->meshes.back(), mesh, scene, texLoader);
 	}
 	for(unsigned int i = 0; i < node->mNumChildren; i++, texLoader)
 	{
@@ -58,7 +62,7 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 		loadMaterials(mesh, material, aiTextureType_AMBIENT, TextureType::Ambient, texLoader);
 	}
 
-	//vertcies 
+	//vertcies
 	for(unsigned int i = 0; i < aimesh->mNumVertices;i++)
 	{
 		Vertex vertex;
@@ -128,14 +132,18 @@ void ModelLoader::endLoading()
 
 	//load to staging buffer
 	VkDeviceSize totalDataSize = 0;
-	for(auto& model: loadedModels)
+	size_t totalVertexSize = 0;
+	for(size_t i = 0; i < loadedModels.size(); i++)
 	{
-		for(const auto& mesh: model.meshes)
+		ModelInGPU model;
+		for(auto& mesh: loadedModels[i].meshes)
 		{
-			model.vertexDataSize = sizeof(mesh.verticies[0]) * mesh.verticies.size();
-			model.indexDataSize = sizeof(mesh.indicies[0])  * mesh.indicies.size();
-			totalDataSize += model.vertexDataSize + model.indexDataSize;
+			model.vertexCount += mesh.verticies.size();
+			model.indexCount  += mesh.indicies.size();
+			totalVertexSize += sizeof(mesh.verticies[0]) * mesh.verticies.size();
+			totalDataSize += (sizeof(mesh.verticies[0]) * mesh.verticies.size()) + (sizeof(mesh.indicies[0]) * mesh.indicies.count());
 		}
+		models.insert(std::pair<unsigned int, ModelInGPU>(i, ))
 	}
 
 	VkBuffer stagingBuffer;
@@ -149,7 +157,18 @@ void ModelLoader::endLoading()
 	vkMapMemory(base.device, stagingMemory, 0, totalDataSize, 0, &pMem);
 
 	//copy each model's data to staging memory
-
+	size_t currentVertexOffset = 0;
+	size_t currentIndexOffset = totalVertexSize;
+	for(auto& model: loadedModels)
+	{
+		for(size_t i = 0; i < model.meshes.size(), i++)
+		{
+				std::memcpy(static_cast<char*>(pMem) + currentVertexOffset, model.meshes[i]->verticies.begin(), sizeof(mesh.verticies[0]) * mesh.verticies.size());
+				currentVertexOffset += sizeof(mesh.verticies[0]) * mesh.verticies.size();
+				std::memcpy(static_cast<char*>(pMem) + currentIndexOffset, model.meshes[i]->indicies.begin(), sizeof(mesh.indicies[0]) * mesh.indicies.size());
+				currentIndexOffset += sizeof(mesh.indicies[0]) * mesh.indicies.size();
+		}
+	}
 
 	//create final dest memory
 

@@ -17,6 +17,7 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <map>
 
 #include "texture_loader.h"
 #include "typeStructs.h"
@@ -37,18 +38,27 @@ struct Model
 struct Mesh
 {
 	Mesh() {}
-	std::vector<Vertex> 	  verticies;
+	std::vector<Vertex> 	    verticies;
 	std::vector<unsigned int> indicies;
 	std::vector<Texture>      textures;
+	size_t vertexDataSize = 0;
+	size_t indexDataSize = 0;
 };
 
 struct LoadedModel
 {
 	LoadedModel(){}
-	std::vector<Mesh> meshes;
-	std::string directory;
-	size_t vertexDataSize = 0;
-	size_t indexDataSize = 0;
+	unsigned int 			 ID = 0;
+	std::vector<*Mesh> meshes;
+	std::string        directory;
+};
+
+struct ModelInGPU
+{
+	unsigned int vertexCount = 0;
+	unsigned int indexCount  = 0;
+	VkBuffer vertexBuffer;
+	VkBuffer indexBuffer;
 };
 
 class ModelLoader
@@ -64,7 +74,7 @@ public:
 
 private:
 
-    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader);
+  void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader);
 	void loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype, TextureLoader &texLoader);
 
@@ -73,6 +83,7 @@ private:
 	Assimp::Importer importer;
 	std::vector<LoadedModel> loadedModels;
 	std::vector<Texture> alreadyLoaded;
+	std::map<unsigned int, ModelInGPU> models;
 	VkDeviceMemory memory;
 	unsigned int currentIndex = 0;
 };
