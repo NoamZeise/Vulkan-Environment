@@ -78,7 +78,7 @@ struct Vertex
 {
 	glm::vec3 Position;
 	glm::vec3 Normal;
-	glm::vec2 TexCoord;
+	glm::vec3 TexCoord;
 
 	static std::array<VkVertexInputBindingDescription, 1> bindingDescriptions()
 	{
@@ -97,15 +97,15 @@ struct Vertex
 		//position
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[0].offset = offsetof(Vertex, Position);
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
-		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT; 
+		attributeDescriptions[2].offset = offsetof(Vertex, Normal);
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT; 
 		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
 
 		return attributeDescriptions;
@@ -121,7 +121,6 @@ struct fragPushConstants
 {
 	glm::vec4 colour;
 	glm::vec4 texOffset;
-	uint32_t texID;
 };
 
 

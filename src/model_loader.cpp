@@ -7,6 +7,7 @@ ModelLoader::ModelLoader(Base base, VkCommandPool pool)
 {
 	this->base = base;
 	this->pool = pool;
+
 }
 
 ModelLoader::~ModelLoader()
@@ -15,36 +16,48 @@ ModelLoader::~ModelLoader()
 }
 
 
-Model ModelLoader::loadModel(std::string path)
+Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
-	Model model(0);
+	Model model(currentIndex++);
 	const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
+		currentIndex--;
 		std::cout << "failed to load model at \"" << path << "\" assimp error: " << importer.GetErrorString() << std::endl; 
 	    return model;
 	}
 	LoadedModel ldModel;
 	ldModel.directory = path.substr(0, path.find_last_of('/'));
+
+	processNode(&ldModel, scene->mRootNode, scene, texLoader);
 	
 	return model;
 }
 
-void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene)
+void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader)
 {
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 		model->meshes.push_back(Mesh());
-		processMesh(&model->meshes.back(), mesh, scene);
+		processMesh(&model->meshes.back(), mesh, scene, texLoader);
 	}
-	for(unsigned int i = 0; i < node->mNumChildren; i++)
+	for(unsigned int i = 0; i < node->mNumChildren; i++, texLoader)
 	{
-		processNode(model, node->mChildren[i], scene);
+		processNode(model, node->mChildren[i], scene, texLoader);
 	}
 }
-void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene)
+void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader)
 {
+	//textures
+	if(aimesh->mMaterialIndex >= 0)
+	{
+		aiMaterial* material = scene->mMaterials[aimesh->mMaterialIndex];
+		loadMaterials(mesh, material, aiTextureType_DIFFUSE, TextureType::Diffuse, texLoader);
+		loadMaterials(mesh, material, aiTextureType_SPECULAR, TextureType::Specular, texLoader);
+		loadMaterials(mesh, material, aiTextureType_AMBIENT, TextureType::Ambient, texLoader);
+	}
+
 	//vertcies 
 	for(unsigned int i = 0; i < aimesh->mNumVertices;i++)
 	{
@@ -62,11 +75,15 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene)
 			vertex.Normal = glm::vec3(0, 0, 0);
 		if(aimesh->mTextureCoords[0])
 		{
-			vertex.Normal.x = aimesh->mTextureCoords[0][i].x;
-			vertex.Normal.y = aimesh->mTextureCoords[0][i].y;
+			vertex.TexCoord.x = aimesh->mTextureCoords[0][i].x;
+			vertex.TexCoord.y = aimesh->mTextureCoords[0][i].y;
+			if(mesh->textures.size() > 0)
+				vertex.TexCoord.z = mesh->textures[0].ID;
+			else
+				vertex.TexCoord.z = 0;
 		}
 		else
-			vertex.TexCoord = glm::vec2(0, 0);
+			vertex.TexCoord = glm::vec3(0, 0, 0);
 
 		mesh->verticies.push_back(vertex);
 	}
@@ -77,14 +94,9 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene)
 		for(unsigned int j = 0; j < face.mNumIndices; j++)
 			mesh->indicies.push_back(face.mIndices[j]);
 	}
-	//textures
-	aiMaterial* material = scene->mMaterials[aimesh->mMaterialIndex];
-	loadMaterials(mesh, material, aiTextureType_DIFFUSE, TextureType::Diffuse);
-	loadMaterials(mesh, material, aiTextureType_SPECULAR, TextureType::Specular);
-	loadMaterials(mesh, material, aiTextureType_AMBIENT, TextureType::Ambient);
 }
 
-void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype)
+void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype, TextureLoader &texLoader)
 {
 	for(unsigned int i = 0; i < material->GetTextureCount(type); i++)
 	{
@@ -102,7 +114,7 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType 
 		}
 		if(!skip)
 		{
-			mesh->textures.push_back(texLoader->loadTexture(aistring.C_Str()));
+			mesh->textures.push_back(texLoader.loadTexture(aistring.C_Str()));
 			mesh->textures.back().type = textype;
 			alreadyLoaded.push_back(mesh->textures.back());
 		}
@@ -111,7 +123,37 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType 
 
 void ModelLoader::endLoading()
 {
+	if(currentIndex <= 0)
+		return;
 
+	//load to staging buffer
+	VkDeviceSize totalDataSize = 0;
+	for(auto& model: loadedModels)
+	{
+		for(const auto& mesh: model.meshes)
+		{
+			model.vertexDataSize = sizeof(mesh.verticies[0]) * mesh.verticies.size();
+			model.indexDataSize = sizeof(mesh.indicies[0])  * mesh.indicies.size();
+			totalDataSize += model.vertexDataSize + model.indexDataSize;
+		}
+	}
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingMemory;
+
+	vkhelper::createBufferAndMemory(base, totalDataSize, &stagingBuffer, &stagingMemory,
+		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
+	void* pMem;
+	vkMapMemory(base.device, stagingMemory, 0, totalDataSize, 0, &pMem);
+
+	//copy each model's data to staging memory
+
+
+	//create final dest memory
+
+	//copy from staging buffer to final memory location
 }
 
 

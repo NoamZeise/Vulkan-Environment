@@ -22,6 +22,7 @@
 #include "typeStructs.h"
 #include "texture_loader.h"
 #include "texfont.h"
+#include "model_loader.h"
 
 class Render
 {
@@ -33,14 +34,15 @@ public:
 	~Render();
 	Resource::Texture LoadTexture(std::string filepath);
 	Resource::Font* LoadFont(std::string filepath);
-	void endTextureLoad();
+	Resource::Model LoadModel(std::string filepath);
+	void endResourceLoad();
 	void startDraw();
 	void endDraw();
 	void DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, uint32_t texID);
 	void DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm::vec4 textureOffsetRect, uint32_t texID);
 	void DrawSquare(glm::vec4 drawRect, float rotate, uint32_t texID);
 	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
-  float MeasureString(Resource::Font* font, std::string text, float size);
+ 	float MeasureString(Resource::Font* font, std::string text, float size);
 	void setCameraOffset(glm::vec2 offset);
 	bool framebufferResized = false;
 private:
@@ -61,6 +63,7 @@ private:
 	VkSampler mTexFragSampler;
 	DescriptorSets mTexturesDS;
 	Resource::TextureLoader mTextureLoader;
+	Resource::ModelLoader mModelLoader;
 
 	bool mBegunDraw = false;
 	bool mFinishedLoadingTextures = false;

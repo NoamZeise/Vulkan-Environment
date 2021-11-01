@@ -72,6 +72,7 @@ void Render::initRender(GLFWwindow* window)
 
 	loadDataToGpu();
 	copyDataToLocalGPUMemory();
+	mModelLoader = Resource::ModelLoader(mBase, mGeneralCommandPool);
 	mTextureLoader = Resource::TextureLoader(mBase, mGeneralCommandPool);
 	mTextureLoader.loadTexture("textures/error.png");
 }
@@ -101,7 +102,7 @@ Render::~Render()
 Resource::Texture Render::LoadTexture(std::string filepath)
 {
 	if (mFinishedLoadingTextures)
-		throw std::runtime_error("texture loading has finished already");
+		throw std::runtime_error("loading has finished already");
 	return mTextureLoader.loadTexture(filepath);
 }
 
@@ -120,7 +121,15 @@ Resource::Font* Render::LoadFont(std::string filepath)
 	}
 }
 
-void Render::endTextureLoad()
+Resource::Model Render::LoadModel(std::string filepath)
+{
+	if(mFinishedLoadingTextures)
+		throw std::runtime_error("texture loading has finished already");
+	return mModelLoader.loadModel(filepath, mTextureLoader);
+}
+
+
+void Render::endResourceLoad()
 {
 	mTextureLoader.endLoading();
 	prepareFragmentDescriptorSets();
@@ -317,7 +326,7 @@ void Render::DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm:
 		sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
 	//draw verticies
-	vkCmdDrawIndexed(mSwapchain.frameData[mImg].commandBuffer, static_cast<uint32_t>(mQuadInds.size()), 1, 0, 0, 0);
+	//vkCmdDrawIndexed(mSwapchain.frameData[mImg].commandBuffer, static_cast<uint32_t>(mQuadInds.size()), 1, 0, 0, 0);
 	 //vkCmdDraw(mSwapchain.frameData[mImg].commandBuffer, 3, 1, 0, 0);
 }
 

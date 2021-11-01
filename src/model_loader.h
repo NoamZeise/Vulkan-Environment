@@ -47,32 +47,34 @@ struct LoadedModel
 	LoadedModel(){}
 	std::vector<Mesh> meshes;
 	std::string directory;
+	size_t vertexDataSize = 0;
+	size_t indexDataSize = 0;
 };
 
 class ModelLoader
 {
 public:
-	ModelLoader(TextureLoader* texLoader) { this->texLoader = texLoader; };
 	ModelLoader(Base base, VkCommandPool pool);
+	ModelLoader() {}
 	~ModelLoader();
-	Model loadModel(std::string path);
+	Model loadModel(std::string path, TextureLoader &texLoader);
 	void endLoading();
 
 	VkSampler sampler;
 
 private:
 
-    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene);
-	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene);
-	void loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype);
+    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader);
+	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader);
+	void loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype, TextureLoader &texLoader);
 
 	Base base;
 	VkCommandPool pool;
 	Assimp::Importer importer;
-	TextureLoader* texLoader;
 	std::vector<LoadedModel> loadedModels;
 	std::vector<Texture> alreadyLoaded;
 	VkDeviceMemory memory;
+	unsigned int currentIndex = 0;
 };
 
 }

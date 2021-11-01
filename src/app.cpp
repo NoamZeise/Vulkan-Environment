@@ -43,7 +43,7 @@ void App::loadAssets()
 {
 	//TODO load assets
 
-	mRender->endTextureLoad();
+	mRender->endResourceLoad();
 }
 
 void App::run()
