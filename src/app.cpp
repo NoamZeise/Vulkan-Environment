@@ -23,8 +23,10 @@ App::App()
 	glfwSetScrollCallback(mWindow, scroll_callback);
 	glfwSetKeyCallback(mWindow, key_callback);
 	glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
+	
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
+
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
 	loadAssets();
 }
@@ -42,7 +44,6 @@ App::~App()
 void App::loadAssets()
 {
 	//TODO load assets
-
 	mRender->endResourceLoad();
 }
 
@@ -77,7 +78,7 @@ void App::draw()
 	mRender->startDraw();
 
 	//TODO draw app
-	mRender->DrawSquare(glm::vec4(10, 10, 200, 150), 0, 0);
+	
 
 	mRender->endDraw();
 }

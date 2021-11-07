@@ -4,15 +4,14 @@ Render::Render(GLFWwindow* window)
 {
 	initRender(window);
 	targetResolution = glm::vec2(mSwapchain.extent.width, mSwapchain.extent.height);
-	updateProjectionMatrix();
+	updateViewProjectionMatrix();
 }
 
 Render::Render(GLFWwindow* window, glm::vec2 target)
 {
 	initRender(window);
 	targetResolution = target;
-	updateProjectionMatrix();
-	setCameraOffset(glm::vec2(0, 0));
+	updateViewProjectionMatrix();
 }
 
 
@@ -70,8 +69,6 @@ void Render::initRender(GLFWwindow* window)
 	if (vkAllocateCommandBuffers(mBase.device, &commandBufferInfo, &mTransferCommandBuffer))
 		throw std::runtime_error("failed to allocate command buffer");
 
-	loadDataToGpu();
-	copyDataToLocalGPUMemory();
 	mModelLoader = Resource::ModelLoader(mBase, mGeneralCommandPool);
 	mTextureLoader = Resource::TextureLoader(mBase, mGeneralCommandPool);
 	mTextureLoader.loadTexture("textures/error.png");
@@ -82,11 +79,6 @@ Render::~Render()
 	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
 	mTextureLoader.~TextureLoader();
 	destroySwapchainComponents();
-	vkDestroyBuffer(mBase.device, mMemory.vertexBuffer, nullptr);
-	vkDestroyBuffer(mBase.device, mMemory.indexBuffer, nullptr);
-	vkFreeMemory(mBase.device, mMemory.memory, nullptr);
-	vkDestroyBuffer(mBase.device, mMemory.stagingBuffer, nullptr);
-	vkFreeMemory(mBase.device, mMemory.stagingMemory, nullptr);
 	vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
 	initVulkan::destroySwapchain(&mSwapchain, mBase.device);
 	vkDestroyDevice(mBase.device, nullptr);
@@ -101,15 +93,15 @@ Render::~Render()
 
 Resource::Texture Render::LoadTexture(std::string filepath)
 {
-	if (mFinishedLoadingTextures)
-		throw std::runtime_error("loading has finished already");
+	if (mFinishedLoadingResources)
+		throw std::runtime_error("resource loading has finished already");
 	return mTextureLoader.loadTexture(filepath);
 }
 
 Resource::Font* Render::LoadFont(std::string filepath)
 {
-	if (mFinishedLoadingTextures)
-		throw std::runtime_error("texture loading has finished already");
+	if (mFinishedLoadingResources)
+		throw std::runtime_error("resource loading has finished already");
 	try
 	{
 		return new Resource::Font(filepath, &mTextureLoader);
@@ -123,8 +115,8 @@ Resource::Font* Render::LoadFont(std::string filepath)
 
 Resource::Model Render::LoadModel(std::string filepath)
 {
-	if(mFinishedLoadingTextures)
-		throw std::runtime_error("texture loading has finished already");
+	if(mFinishedLoadingResources)
+		throw std::runtime_error("resource loading has finished already");
 	return mModelLoader.loadModel(filepath, mTextureLoader);
 }
 
@@ -132,14 +124,15 @@ Resource::Model Render::LoadModel(std::string filepath)
 void Render::endResourceLoad()
 {
 	mTextureLoader.endLoading();
+	mModelLoader.endLoading(mTransferCommandBuffer);
 	prepareFragmentDescriptorSets();
-	mFinishedLoadingTextures = true;
+	mFinishedLoadingResources = true;
 }
 
 void Render::startDraw()
 {
-	if (!mFinishedLoadingTextures)
-		throw std::runtime_error("Finish loading textures before drawing");
+	if (!mFinishedLoadingResources)
+		throw std::runtime_error("resource loading must be finished before drawing to screen!");
 	mBegunDraw = true;
 	if (mSwapchain.imageAquireSem.empty())
 	{
@@ -205,11 +198,7 @@ void Render::startDraw()
 	//bind graphics pipeline
 	vkCmdBindPipeline(mSwapchain.frameData[mImg].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.pipeline);
 	//bind vertex buffer
-	VkBuffer vertexBuffers[] = { mMemory.vertexBuffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(mSwapchain.frameData[mImg].commandBuffer, 0, 1, vertexBuffers, offsets);
-	//bind index buffer - can only have one index buffer
-	vkCmdBindIndexBuffer(mSwapchain.frameData[mImg].commandBuffer, mMemory.indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+	mModelLoader.bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
 }
 
 void Render::endDraw()
@@ -294,87 +283,31 @@ void Render::resize()
 	prepareViewProjDS();
 	prepareFragmentDescriptorSets();
 	vkDeviceWaitIdle(mBase.device);
-	updateProjectionMatrix();
+	updateViewProjectionMatrix();
 }
 
-void Render::DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, uint32_t texID)
-{
-	DrawSquare(drawRect, rotate, colour, glm::vec4(0, 0, drawRect.z, drawRect.w), texID);
-}
-
-void Render::DrawSquare(glm::vec4 drawRect, float rotate, uint32_t texID)
-{
-	DrawSquare(drawRect, rotate, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), texID);
-}
-
-void Render::DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm::vec4 textureRect, uint32_t texID)
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix)
 {
 	//push constants
 	vectPushConstants vps{};
-	vps.model = glm::mat4(1.0f);
-	vps.model = vkhelper::getModelMatrix(drawRect, rotate);
+	vps.model = modelMatrix;
 	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
 		0, sizeof(vectPushConstants), &vps);
 
 	fragPushConstants fps{
-		colour,
-		glm::vec4(0, 0, 1, 1),
-		texID
+		glm::vec4(1, 1, 1, 1), //colour
+		glm::vec4(0, 0, 1, 1), //texOffset
+		0                      //override texture
 	};
-	fps.texOffset = vkhelper::getTextureOffset(drawRect, textureRect);
+
 	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline.layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
-	//draw verticies
-	//vkCmdDrawIndexed(mSwapchain.frameData[mImg].commandBuffer, static_cast<uint32_t>(mQuadInds.size()), 1, 0, 0, 0);
-	 //vkCmdDraw(mSwapchain.frameData[mImg].commandBuffer, 3, 1, 0, 0);
+	mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, model);
 }
 
 
-void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour)
-{
-	if (font == nullptr)
-	{
-		std::cout << "font is NULL" << std::endl;
-		return;
-	}
-	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
-	{
-		Resource::Character* cTex = font->getChar(*c);
-		if (cTex == nullptr)
-			continue;
-		else if (cTex->TextureID != 0) //if character is added but no texture loaded for it (eg space)
-		{
-			glm::vec4 thisPos = glm::vec4(position.x, position.y, 0, 0);
-			thisPos.x += cTex->Bearing.x * size;
-			thisPos.y += (cTex->Size.y - cTex->Bearing.y) * size;
-			thisPos.y -= cTex->Size.y * size;
-
-			thisPos.z = cTex->Size.x * size;
-			thisPos.w = cTex->Size.y * size;
-			thisPos.z /= 1;
-			thisPos.w /= 1;
-
-			DrawSquare(thisPos, 0, colour, cTex->TextureID);
-		}
-		position.x += cTex->Advance * size;
-	}
-}
-
-float Render::MeasureString(Resource::Font* font, std::string text, float size)
-{
-	float sz = 0;
-	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
-	{
-		Resource::Character* cTex = font->getChar(*c);
-		if (cTex == nullptr)
-			continue;
-		sz += cTex->Advance * size;
-	}
-	return sz;
-}
-
-void Render::updateProjectionMatrix()
+void Render::updateViewProjectionMatrix()
 {
 
 	float correction;
@@ -389,13 +322,11 @@ void Render::updateProjectionMatrix()
 	else {
 		correction = xCorrection;
 	}
-	mUbo.proj = glm::ortho(0.0f, (float)mSwapchain.extent.width / correction, 0.0f, (float)mSwapchain.extent.height / correction, -1.0f, 1.0f);
-}
+	mUbo.proj = glm::perspective(glm::radians(45.0f), //45 deg fov
+			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 10.0f);
 
-void Render::setCameraOffset(glm::vec2 offset)
-{
-	mUbo.view = glm::mat4(1.0f);
-	mUbo.view = glm::translate(mUbo.view, glm::vec3(offset, 0));
+	mUbo.view = glm::lookAt(glm::vec3(3.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::vec3(0.0f, 0.0f, 1.0f));		
 }
 
 void Render::destroySwapchainComponents()

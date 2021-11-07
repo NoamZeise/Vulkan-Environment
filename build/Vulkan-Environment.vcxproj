@@ -320,6 +320,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\main.cpp" />
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\model_loader.cpp" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\model_loader.h" />
+    <None Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\model_loader.h.gch">
+    </None>
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\render.cpp" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\render.h" />
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\stb_image.cpp" />

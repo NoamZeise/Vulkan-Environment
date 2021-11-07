@@ -13,10 +13,30 @@ ModelLoader::ModelLoader(Base base, VkCommandPool pool)
 ModelLoader::~ModelLoader()
 {
 	for(auto &model: loadedModels)
-		for(size_t i = 0; i < model.meshes.size())
+		for(size_t i = 0; i < model.meshes.size(); i++)
 			delete model.meshes[i];
 }
 
+void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
+{
+	throw std::runtime_error("buffers need fixing!");
+	VkBuffer vertexBuffers[] = { buffer };
+	VkDeviceSize offsets[] = { 0 };
+	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
+	//bind index buffer - can only have one index buffer
+	vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
+}
+
+void ModelLoader::drawModel(VkCommandBuffer cmdBuff, Model model)
+{
+	if(model.ID > models.size())
+	{	
+		std::cout << "the model ID is out of range" << std::endl;
+		return;
+	}
+	ModelInGPU modelInfo = models[model.ID];
+	vkCmdDrawIndexed(cmdBuff, modelInfo.indexCount, 1,  modelInfo.indexOffset, modelInfo.vertexOffset, 0);
+}
 
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
@@ -33,7 +53,7 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 
 	processNode(&ldModel, scene->mRootNode, scene, texLoader);
 
-	loadedModels.insert(ldModel);
+	loadedModels.push_back(ldModel);
 
 	return model;
 }
@@ -125,172 +145,101 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType 
 	}
 }
 
-void ModelLoader::endLoading()
+void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 {
 	if(currentIndex <= 0)
 		return;
 
 	//load to staging buffer
-	VkDeviceSize totalDataSize = 0;
-	size_t totalVertexSize = 0;
 	for(size_t i = 0; i < loadedModels.size(); i++)
 	{
 		ModelInGPU model;
 		for(auto& mesh: loadedModels[i].meshes)
 		{
-			model.vertexCount += mesh.verticies.size();
-			model.indexCount  += mesh.indicies.size();
-			totalVertexSize += sizeof(mesh.verticies[0]) * mesh.verticies.size();
-			totalDataSize += (sizeof(mesh.verticies[0]) * mesh.verticies.size()) + (sizeof(mesh.indicies[0]) * mesh.indicies.count());
+			model.vertexCount += mesh->verticies.size();
+			model.indexCount  += mesh->indicies.size();
+			model.vertexOffset = vertexDataSize / sizeof(mesh->verticies[0]);
+			model.indexOffset = indexDataSize / sizeof(mesh->indicies[0]);
+			vertexDataSize += sizeof(mesh->verticies[0]) * mesh->verticies.size();
+			indexDataSize +=  sizeof(mesh->indicies[0]) * mesh->indicies.size();
 		}
-		models.insert(std::pair<unsigned int, ModelInGPU>(i, ))
+		models.push_back(model);
 	}
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
 
-	vkhelper::createBufferAndMemory(base, totalDataSize, &stagingBuffer, &stagingMemory,
+	vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &stagingBuffer, &stagingMemory,
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
 	vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
 	void* pMem;
-	vkMapMemory(base.device, stagingMemory, 0, totalDataSize, 0, &pMem);
+	vkMapMemory(base.device, stagingMemory, 0, vertexDataSize + indexDataSize, 0, &pMem);
 
 	//copy each model's data to staging memory
 	size_t currentVertexOffset = 0;
-	size_t currentIndexOffset = totalVertexSize;
+	size_t currentIndexOffset = vertexDataSize;
 	for(auto& model: loadedModels)
 	{
-		for(size_t i = 0; i < model.meshes.size(), i++)
+		for(size_t i = 0; i < model.meshes.size(); i++)
 		{
-				std::memcpy(static_cast<char*>(pMem) + currentVertexOffset, model.meshes[i]->verticies.begin(), sizeof(mesh.verticies[0]) * mesh.verticies.size());
-				currentVertexOffset += sizeof(mesh.verticies[0]) * mesh.verticies.size();
-				std::memcpy(static_cast<char*>(pMem) + currentIndexOffset, model.meshes[i]->indicies.begin(), sizeof(mesh.indicies[0]) * mesh.indicies.size());
-				currentIndexOffset += sizeof(mesh.indicies[0]) * mesh.indicies.size();
+			std::memcpy(static_cast<char*>(pMem) + currentVertexOffset, model.meshes[i]->verticies.data(), sizeof(model.meshes[i]->verticies[0]) * model.meshes[i]->verticies.size());
+			currentVertexOffset += sizeof(model.meshes[i]->verticies[0]) * model.meshes[i]->verticies.size();
+			std::memcpy(static_cast<char*>(pMem) + currentIndexOffset, model.meshes[i]->indicies.data(), sizeof(model.meshes[i]->indicies[0]) * model.meshes[i]->indicies.size());
+			currentIndexOffset += sizeof(model.meshes[i]->indicies[0]) * model.meshes[i]->indicies.size();
+			delete model.meshes[i];
 		}
 	}
+	loadedModels.clear();
 
 	//create final dest memory
 
-	//copy from staging buffer to final memory location
-}
-
-
-//reference
-/*
-void loadDataToGpu()
-{
-
-	size_t vertexSize = sizeof(mQuadVerts[0]) * mQuadVerts.size();
-	size_t indexSize = sizeof(mQuadInds[0]) * mQuadInds.size();
-
-	VkBufferCreateInfo stagingBufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	stagingBufferInfo.size = vertexSize + indexSize;
-	stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-	stagingBufferInfo.queueFamilyIndexCount = 1;
-	stagingBufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &stagingBufferInfo, nullptr, &mMemory.stagingBuffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create vertex buffer!");
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, mMemory.stagingBuffer, &memRequirements);
-
-	uint32_t memIndex = vkhelper::findMemoryIndex(mBase.physicalDevice, memRequirements.memoryTypeBits,
-		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
-
-	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	memInfo.allocationSize = memRequirements.size;
-	memInfo.memoryTypeIndex = memIndex;
-	if (vkAllocateMemory(mBase.device, &memInfo, nullptr, &mMemory.stagingMemory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory");
-
-	vkBindBufferMemory(mBase.device, mMemory.stagingBuffer, mMemory.stagingMemory, 0);
-
-	void* data;
-	vkMapMemory(mBase.device, mMemory.stagingMemory, 0, memRequirements.size, 0, &data);
-	std::memcpy(data, mQuadVerts.data(), vertexSize);
-	std::memcpy(static_cast<char*>(data) + vertexSize, mQuadInds.data(), indexSize);
-}
-
-void copyDataToLocalGPUMemory()
-{
-	size_t vertexSize = sizeof(mQuadVerts[0]) * mQuadVerts.size();
-	size_t indexSize = sizeof(mQuadInds[0]) * mQuadInds.size();
-
-	VkBufferCreateInfo vbufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	vbufferInfo.size = vertexSize;
-	vbufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	vbufferInfo.queueFamilyIndexCount = 1;
-	vbufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	vbufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &vbufferInfo, nullptr, &mMemory.vertexBuffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create vertex buffer!");
-	VkMemoryRequirements vmemRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, mMemory.vertexBuffer, &vmemRequirements);
-
-	VkBufferCreateInfo ibufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	ibufferInfo.size = indexSize;
-	ibufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	ibufferInfo.queueFamilyIndexCount = 1;
-	ibufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	ibufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &ibufferInfo, nullptr, &mMemory.indexBuffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create vertex buffer!");
-	VkMemoryRequirements imemRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, mMemory.indexBuffer, &imemRequirements);
+	VkBufferCreateInfo finalbufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	finalbufferInfo.size = vertexDataSize + indexDataSize;
+	finalbufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	finalbufferInfo.queueFamilyIndexCount = 1;
+	finalbufferInfo.pQueueFamilyIndices = &base.queue.graphicsPresentFamilyIndex;
+	finalbufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if (vkCreateBuffer(base.device, &finalbufferInfo, nullptr, &buffer) != VK_SUCCESS)
+		throw std::runtime_error("failed to create model data buffer!");
+	VkMemoryRequirements finalMemRequirements;
+	vkGetBufferMemoryRequirements(base.device, buffer, &finalMemRequirements);
 
 	uint32_t memIndex = vkhelper::findMemoryIndex(
-		mBase.physicalDevice,imemRequirements.memoryTypeBits & vmemRequirements.memoryTypeBits,
+		base.physicalDevice, finalMemRequirements.memoryTypeBits,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 	VkMemoryAllocateInfo memInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-	memInfo.allocationSize = vmemRequirements.size + imemRequirements.size;
+	memInfo.allocationSize = finalMemRequirements.size;
 	memInfo.memoryTypeIndex = memIndex;
-	if (vkAllocateMemory(mBase.device, &memInfo, nullptr, &mMemory.memory) != VK_SUCCESS)
+	if (vkAllocateMemory(base.device, &memInfo, nullptr, &memory) != VK_SUCCESS)
 		throw std::runtime_error("failed to allocate memory");
 
-	vkBindBufferMemory(mBase.device, mMemory.vertexBuffer, mMemory.memory, 0);
-	//begin command recording
+	vkBindBufferMemory(base.device, buffer, memory, 0);
+
+	//copy from staging buffer to final memory location
+
 	VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(mTransferCommandBuffer, &beginInfo);
+	vkBeginCommandBuffer(transferBuff, &beginInfo);
 
 	VkBufferCopy copyRegion{};
 	copyRegion.srcOffset = 0;
 	copyRegion.dstOffset = 0;
-	copyRegion.size = vertexSize;
-	vkCmdCopyBuffer(mTransferCommandBuffer, mMemory.stagingBuffer, mMemory.vertexBuffer,1, &copyRegion);
+	copyRegion.size = vertexDataSize + indexDataSize;
+	vkCmdCopyBuffer(transferBuff, stagingBuffer, buffer, 1, &copyRegion);
+	vkEndCommandBuffer(transferBuff);
 
-	vkEndCommandBuffer(mTransferCommandBuffer);
-	//submit commands for execution
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &mTransferCommandBuffer;
-	vkQueueSubmit(mBase.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
+	submitInfo.pCommandBuffers = &transferBuff;
+	vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(base.queue.graphicsPresentQueue);
 
-	vkResetCommandPool(mBase.device, mGeneralCommandPool, 0);
-
-	vkBindBufferMemory(mBase.device, mMemory.indexBuffer, mMemory.memory, vmemRequirements.size);
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	vkBeginCommandBuffer(mTransferCommandBuffer, &beginInfo);
-
-	copyRegion.srcOffset = vertexSize;
-	copyRegion.size = indexSize;
-	vkCmdCopyBuffer(mTransferCommandBuffer, mMemory.stagingBuffer, mMemory.indexBuffer, 1, &copyRegion);
-
-	vkEndCommandBuffer(mTransferCommandBuffer);
-	//submit commands for execution
-	submitInfo.pCommandBuffers = &mTransferCommandBuffer;
-	vkQueueSubmit(mBase.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
-
-	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
-	vkResetCommandPool(mBase.device, mGeneralCommandPool, 0);
-
+	//free staging buffer
+    vkDestroyBuffer(base.device, stagingBuffer, nullptr);
+	vkFreeMemory(base.device, stagingMemory, nullptr);
 }
-*/
 
 
-
-
-}
+} //end namespace

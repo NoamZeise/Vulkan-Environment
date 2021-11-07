@@ -21,8 +21,9 @@ void main()
     coord.y *= pc.texOffset.w;
     coord.x += pc.texOffset.x;
     coord.y += pc.texOffset.y;
-    if(texID == 0)
-        outColour = texture(sampler2D(textures[inTexCoord.z], texSamp), coord) * pc.colour;
+    highp int texCoord = int(inTexCoord.z);
+    if(pc.texID == 0)
+        outColour = texture(sampler2D(textures[texCoord], texSamp), coord) * pc.colour;
     else
-        outColour = texture(sampler2D(textures[texID], texSamp), coord) * pc.colour;
+        outColour = texture(sampler2D(textures[pc.texID], texSamp), coord) * pc.colour;
 }

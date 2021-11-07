@@ -68,6 +68,9 @@
     <CustomBuild Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\model_loader.h.gch" />
+  </ItemGroup>
+  <ItemGroup>
     <Filter Include="Header Files">
       <UniqueIdentifier>{0295AD5E-3A20-382E-A38B-57E191875D8E}</UniqueIdentifier>
     </Filter>

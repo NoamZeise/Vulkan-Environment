@@ -17,12 +17,12 @@
 #include <array>
 #include <string>
 
-#define NDEBUG //uncomment for release mode
+//#define NDEBUG //uncomment for release mode
 
 const bool USE_SRGB = false;
-const bool ENABLE_MIP = false;
-const bool PIXELATED = true; //for pixelated
-const bool FIXED_RATIO = true;
+const bool ENABLE_MIP = true;
+const bool PIXELATED = false; //for pixelated
+const bool FIXED_RATIO = false;
 const bool VSYNC = true;
 #ifndef NDEBUG
 const bool ERROR_ONLY = false;
@@ -142,15 +142,7 @@ struct UniformBufferTypes
 
 struct memoryObjects
 {
-	VkDeviceMemory memory;
-	VkBuffer vertexBuffer;
-	VkBuffer indexBuffer;
-
-	VkDeviceMemory stagingMemory;
-	VkBuffer stagingBuffer;
-
 	UniformBufferTypes viewProj;
-
 };
 
 

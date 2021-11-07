@@ -17,7 +17,6 @@
 #include <cmath>
 #include <cstring>
 #include <iostream>
-#include <map>
 
 #include "texture_loader.h"
 #include "typeStructs.h"
@@ -49,7 +48,7 @@ struct LoadedModel
 {
 	LoadedModel(){}
 	unsigned int 			 ID = 0;
-	std::vector<*Mesh> meshes;
+	std::vector<Mesh*> meshes;
 	std::string        directory;
 };
 
@@ -57,8 +56,8 @@ struct ModelInGPU
 {
 	unsigned int vertexCount = 0;
 	unsigned int indexCount  = 0;
-	VkBuffer vertexBuffer;
-	VkBuffer indexBuffer;
+	unsigned int vertexOffset = 0;
+	unsigned int indexOffset = 0;
 };
 
 class ModelLoader
@@ -68,9 +67,10 @@ public:
 	ModelLoader() {}
 	~ModelLoader();
 	Model loadModel(std::string path, TextureLoader &texLoader);
-	void endLoading();
+	void endLoading(VkCommandBuffer transferBuff);
 
-	VkSampler sampler;
+	void bindBuffers(VkCommandBuffer cmdBuff);
+	void drawModel(VkCommandBuffer cmdBuff, Model model);
 
 private:
 
@@ -83,8 +83,11 @@ private:
 	Assimp::Importer importer;
 	std::vector<LoadedModel> loadedModels;
 	std::vector<Texture> alreadyLoaded;
-	std::map<unsigned int, ModelInGPU> models;
+	std::vector<ModelInGPU> models;
+	VkBuffer buffer;
 	VkDeviceMemory memory;
+	unsigned int vertexDataSize = 0;
+	unsigned int indexDataSize = 0;
 	unsigned int currentIndex = 0;
 };
 
