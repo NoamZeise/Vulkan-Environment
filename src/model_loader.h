@@ -80,7 +80,6 @@ private:
 
 	Base base;
 	VkCommandPool pool;
-	Assimp::Importer importer;
 	std::vector<LoadedModel> loadedModels;
 	std::vector<Texture> alreadyLoaded;
 	std::vector<ModelInGPU> models;
@@ -88,6 +87,7 @@ private:
 	VkDeviceMemory memory;
 	unsigned int vertexDataSize = 0;
 	unsigned int indexDataSize = 0;
+	
 	unsigned int currentIndex = 0;
 };
 

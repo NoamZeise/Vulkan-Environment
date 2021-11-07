@@ -12,14 +12,21 @@ ModelLoader::ModelLoader(Base base, VkCommandPool pool)
 
 ModelLoader::~ModelLoader()
 {
-	for(auto &model: loadedModels)
-		for(size_t i = 0; i < model.meshes.size(); i++)
-			delete model.meshes[i];
+	if (currentIndex != 0)
+	{
+		for (auto& model : loadedModels)
+			for (size_t i = 0; i < model.meshes.size(); i++)
+				delete model.meshes[i];
+
+		vkDestroyBuffer(base.device, buffer, nullptr);
+		vkFreeMemory(base.device, memory, nullptr);
+	}
 }
 
 void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
 {
-	throw std::runtime_error("buffers need fixing!");
+	if(currentIndex == 0)
+		return;
 	VkBuffer vertexBuffers[] = { buffer };
 	VkDeviceSize offsets[] = { 0 };
 	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
@@ -41,6 +48,7 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, Model model)
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
 	Model model(currentIndex++);
+	Assimp::Importer importer;
 	const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
@@ -147,7 +155,7 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType 
 
 void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 {
-	if(currentIndex <= 0)
+	if(currentIndex == 0)
 		return;
 
 	//load to staging buffer
