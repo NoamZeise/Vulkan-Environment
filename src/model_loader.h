@@ -27,6 +27,7 @@ namespace Resource
 
 struct Model
 {
+	Model() { this->ID = 1000000; }
 	Model(unsigned int ID)
 	{
 		this->ID = ID;
@@ -76,7 +77,7 @@ private:
 
   void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader);
-	void loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype, TextureLoader &texLoader);
+	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);
 
 	Base base;
 	VkCommandPool pool;

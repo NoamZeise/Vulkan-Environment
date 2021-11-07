@@ -78,6 +78,7 @@ Render::~Render()
 {
 	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
 	mTextureLoader.~TextureLoader();
+	mModelLoader.~ModelLoader();
 	destroySwapchainComponents();
 	vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
 	initVulkan::destroySwapchain(&mSwapchain, mBase.device);
@@ -324,6 +325,7 @@ void Render::updateViewProjectionMatrix()
 	}
 	mUbo.proj = glm::perspective(glm::radians(45.0f), //45 deg fov
 			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 10.0f);
+	mUbo.proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 
 	mUbo.view = glm::lookAt(glm::vec3(3.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
 			glm::vec3(0.0f, 0.0f, 1.0f));		

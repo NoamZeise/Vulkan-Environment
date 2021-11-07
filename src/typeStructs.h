@@ -25,7 +25,7 @@ const bool PIXELATED = false; //for pixelated
 const bool FIXED_RATIO = false;
 const bool VSYNC = true;
 #ifndef NDEBUG
-const bool ERROR_ONLY = false;
+const bool ERROR_ONLY = true;
 #endif
 
 const int TARGET_WIDTH = 256;

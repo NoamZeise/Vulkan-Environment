@@ -12,15 +12,14 @@ ModelLoader::ModelLoader(Base base, VkCommandPool pool)
 
 ModelLoader::~ModelLoader()
 {
-	if (currentIndex != 0)
-	{
-		for (auto& model : loadedModels)
+	if(models.size() <= 0)
+		return;
+	for (auto& model : loadedModels)
 			for (size_t i = 0; i < model.meshes.size(); i++)
 				delete model.meshes[i];
 
-		vkDestroyBuffer(base.device, buffer, nullptr);
-		vkFreeMemory(base.device, memory, nullptr);
-	}
+	vkDestroyBuffer(base.device, buffer, nullptr);
+	vkFreeMemory(base.device, memory, nullptr);
 }
 
 void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
@@ -36,13 +35,13 @@ void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
 
 void ModelLoader::drawModel(VkCommandBuffer cmdBuff, Model model)
 {
-	if(model.ID > models.size())
+	if(model.ID >= models.size())
 	{	
-		std::cout << "the model ID is out of range" << std::endl;
+		std::cout << "the model ID is out of range, ID: " << model.ID << std::endl;
 		return;
 	}
 	ModelInGPU modelInfo = models[model.ID];
-	vkCmdDrawIndexed(cmdBuff, modelInfo.indexCount, 1,  modelInfo.indexOffset, modelInfo.vertexOffset, 0);
+	vkCmdDrawIndexed(cmdBuff, modelInfo.indexCount, 1, modelInfo.indexOffset, modelInfo.vertexOffset, 0);
 }
 
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
@@ -51,11 +50,9 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 	Assimp::Importer importer;
 	const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-	{
-		currentIndex--;
-		std::cout << "failed to load model at \"" << path << "\" assimp error: " << importer.GetErrorString() << std::endl;
-	    return model;
-	}
+		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
+	
+	
 	LoadedModel ldModel;
 	ldModel.directory = path.substr(0, path.find_last_of('/'));
 
@@ -65,7 +62,6 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 
 	return model;
 }
-
 void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader)
 {
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
@@ -81,15 +77,8 @@ void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* s
 }
 void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader)
 {
-	//textures
-	if(aimesh->mMaterialIndex >= 0)
-	{
-		aiMaterial* material = scene->mMaterials[aimesh->mMaterialIndex];
-		loadMaterials(mesh, material, aiTextureType_DIFFUSE, TextureType::Diffuse, texLoader);
-		loadMaterials(mesh, material, aiTextureType_SPECULAR, TextureType::Specular, texLoader);
-		loadMaterials(mesh, material, aiTextureType_AMBIENT, TextureType::Ambient, texLoader);
-	}
-
+	loadMaterials(mesh, scene->mMaterials[aimesh->mMaterialIndex], texLoader);
+	
 	//vertcies
 	for(unsigned int i = 0; i < aimesh->mNumVertices;i++)
 	{
@@ -109,7 +98,7 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 		{
 			vertex.TexCoord.x = aimesh->mTextureCoords[0][i].x;
 			vertex.TexCoord.y = aimesh->mTextureCoords[0][i].y;
-			if(mesh->textures.size() > 0)
+			if(mesh->textures.size() > 0) //needs to be fixed, only using first texture
 				vertex.TexCoord.z = mesh->textures[0].ID;
 			else
 				vertex.TexCoord.z = 0;
@@ -127,13 +116,14 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 			mesh->indicies.push_back(face.mIndices[j]);
 	}
 }
-
-void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType type, TextureType textype, TextureLoader &texLoader)
+void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader)
 {
-	for(unsigned int i = 0; i < material->GetTextureCount(type); i++)
+	
+	for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
 	{
+		std::cout << "loading texture" << std::endl;
 		aiString aistring;
-		material->GetTexture(type, i, &aistring);
+		material->GetTexture(aiTextureType_DIFFUSE, i, &aistring);
 		bool skip = false;
 		for(unsigned int j = 0; j < alreadyLoaded.size(); j++)
 		{
@@ -147,7 +137,7 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType 
 		if(!skip)
 		{
 			mesh->textures.push_back(texLoader.loadTexture(aistring.C_Str()));
-			mesh->textures.back().type = textype;
+			mesh->textures.back().type = TextureType::Diffuse; //attention
 			alreadyLoaded.push_back(mesh->textures.back());
 		}
 	}
@@ -155,19 +145,21 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, aiTextureType 
 
 void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 {
-	if(currentIndex == 0)
+	if(loadedModels.size() == 0)
 		return;
 
 	//load to staging buffer
 	for(size_t i = 0; i < loadedModels.size(); i++)
 	{
 		ModelInGPU model;
+
+		model.vertexOffset = vertexDataSize / sizeof(loadedModels[i].meshes[0]->verticies[0]);
+		model.indexOffset = indexDataSize / sizeof(loadedModels[i].meshes[0]->indicies[0]);
+
 		for(auto& mesh: loadedModels[i].meshes)
 		{
 			model.vertexCount += mesh->verticies.size();
 			model.indexCount  += mesh->indicies.size();
-			model.vertexOffset = vertexDataSize / sizeof(mesh->verticies[0]);
-			model.indexOffset = indexDataSize / sizeof(mesh->indicies[0]);
 			vertexDataSize += sizeof(mesh->verticies[0]) * mesh->verticies.size();
 			indexDataSize +=  sizeof(mesh->indicies[0]) * mesh->indicies.size();
 		}

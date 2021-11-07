@@ -19,6 +19,10 @@ int main()
 	catch (const std::exception& e)
 	{
 		std::cerr << e.what() << std::endl;
+		#ifndef NDEBUG
+			int x;
+			std::cin >> x;
+		#endif	
 		return EXIT_FAILURE;
 	}
 	int x = 0;

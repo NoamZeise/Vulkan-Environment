@@ -32,6 +32,7 @@ Texture TextureLoader::loadTexture(std::string path)
 
 	tex->fileSize = tex->width * tex->height * tex->nrChannels;
 
+//attention: should check if gpu supports image format, then adjust, eg add an extra channel if 3 channel unsupported
 	switch (tex->nrChannels)
 	{
 	case 1:
