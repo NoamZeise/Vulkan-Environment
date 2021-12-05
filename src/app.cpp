@@ -55,7 +55,8 @@ void App::run()
 	while (!glfwWindowShouldClose(mWindow))
 	{
 		update();
-		draw();
+		if(mWindowWidth != 0 && mWindowHeight != 0)
+			draw();
 	}
 }
 
@@ -65,6 +66,7 @@ void App::resize(int windowWidth, int windowHeight)
 	mWindowHeight = windowHeight;
 	if(mRender != nullptr)
 		mRender->framebufferResized = true;
+
 }
 
 void App::update()
