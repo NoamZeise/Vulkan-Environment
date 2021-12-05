@@ -268,8 +268,6 @@ void TextureLoader::endLoading()
 
 	for (const auto& tex : textures)
 	{
-		//if (tex.mipLevels == 1)
-		//	continue;
 		barrier.image = tex.image;
 		int32_t mipW = tex.width;
 		int32_t mipH = tex.height;

@@ -24,6 +24,8 @@ const bool ENABLE_MIP = true;
 const bool PIXELATED = false; //for pixelated
 const bool FIXED_RATIO = false;
 const bool VSYNC = true;
+const bool USE_MULTISAMPLING = true;
+const bool USE_SAMPLE_SHADING = true;
 #ifndef NDEBUG
 const bool ERROR_ONLY = true;
 #endif
@@ -56,6 +58,14 @@ struct FrameData
 	VkFramebuffer framebuffer;
 };
 
+struct AttachmentImage
+{
+	VkImage image;
+	VkImageView view;
+	VkDeviceMemory memory;
+	VkFormat format;
+};
+
 
 struct SwapChain
 {
@@ -63,10 +73,10 @@ struct SwapChain
 	VkSurfaceFormatKHR format;
 	VkExtent2D extent;
 
-	VkImage depthImage;
-	VkImageView depthImageView;
-	VkDeviceMemory depthImageMemory;
-	VkFormat depthImageFormat;
+	AttachmentImage depthBuffer;
+	AttachmentImage multisampling;
+	VkSampleCountFlagBits maxMsaaSamples;
+
 
 	std::vector<FrameData> frameData;
 	std::vector<VkSemaphore> imageAquireSem;
