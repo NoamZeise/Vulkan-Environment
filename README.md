@@ -1,5 +1,5 @@
-# 2D-Vulkan-Environment
-<h5>A 2D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp </h5>
+# Vulkan-Environment
+<h5>A 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp </h5>
 
 features so far:
   
@@ -11,6 +11,9 @@ features so far:
 * Offset texture positions and modify colours
 
 
+#needs fixing:
+
+*edit image data if gpu does not support less than 4 channels for textures
 
 
 # dependancies:

@@ -11,7 +11,9 @@ layout(set = 1, binding = 0) uniform sampler texSamp;
 layout(set = 1, binding = 1) uniform texture2D textures[200];
 
 
-layout(location = 0) in vec3 inTexCoord;  //third coord is texID
+layout(location = 0) in vec2 inTexCoord;
+layout(location = 1) flat in uint TexID;
+
 layout(location = 0) out vec4 outColour;
 
 void main()
@@ -21,9 +23,9 @@ void main()
     coord.y *= pc.texOffset.w;
     coord.x += pc.texOffset.x;
     coord.y += pc.texOffset.y;
-    highp int texCoord = int(inTexCoord.z);
+    //highp int texCoord = int(inTexCoord.z);
     if(pc.texID == 0)
-        outColour = texture(sampler2D(textures[texCoord], texSamp), coord) * pc.colour;
+        outColour = texture(sampler2D(textures[TexID], texSamp), coord) * pc.colour;
     else
         outColour = texture(sampler2D(textures[pc.texID], texSamp), coord) * pc.colour;
 }

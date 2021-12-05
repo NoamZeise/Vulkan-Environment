@@ -50,6 +50,7 @@ private:
 	Input previousInput;
 
 	Resource::Model testModel;
+	Resource::Model testModel2;
 };
 
 #endif

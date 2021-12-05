@@ -99,9 +99,14 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 			vertex.TexCoord.x = aimesh->mTextureCoords[0][i].x;
 			vertex.TexCoord.y = aimesh->mTextureCoords[0][i].y;
 			if(mesh->textures.size() > 0) //needs to be fixed, only using first texture
-				vertex.TexCoord.z = mesh->textures[0].ID;
+			{
+				vertex.TexID = mesh->textures[0].ID;
+			}
 			else
-				vertex.TexCoord.z = 0;
+			{
+				//std::cout << "default tex used" << std::endl;
+				vertex.TexID = 0;
+			}
 		}
 		else
 			vertex.TexCoord = glm::vec3(0, 0, 0);
@@ -118,16 +123,17 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 }
 void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader)
 {
-	
 	for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
 	{
-		std::cout << "loading texture" << std::endl;
 		aiString aistring;
 		material->GetTexture(aiTextureType_DIFFUSE, i, &aistring);
+		std::string texLocation = aistring.C_Str();
+		texLocation = "textures/" + texLocation;
+		std::cout << "loading texture " << texLocation << std::endl;
 		bool skip = false;
 		for(unsigned int j = 0; j < alreadyLoaded.size(); j++)
 		{
-			if(std::strcmp(alreadyLoaded[j].path.data(), aistring.C_Str()) == 0)
+			if(std::strcmp(alreadyLoaded[j].path.data(), texLocation.c_str()) == 0)
 			{
 				mesh->textures.push_back(alreadyLoaded[j]);
 				skip = true;
@@ -136,7 +142,7 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader 
 		}
 		if(!skip)
 		{
-			mesh->textures.push_back(texLoader.loadTexture(aistring.C_Str()));
+			mesh->textures.push_back(texLoader.loadTexture(texLocation));
 			mesh->textures.back().type = TextureType::Diffuse; //attention
 			alreadyLoaded.push_back(mesh->textures.back());
 		}

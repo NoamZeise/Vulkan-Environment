@@ -182,9 +182,12 @@ void Render::startDraw()
 	renderPassInfo.renderArea.offset = { 0, 0 };
 	renderPassInfo.renderArea.extent = mSwapchain.extent;
 	//clear colour -> values for VK_ATTACHMENT_LOAD_OP_CLEAR load operation in colour attachment
-	VkClearValue clearColour = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColour;
+	//need colour for each attachment being cleared (colour, depth)
+	std::array<VkClearValue, 2> clearColours {};
+	clearColours[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+	clearColours[1].depthStencil =  {1.0f, 0};
+	renderPassInfo.clearValueCount = clearColours.size();
+	renderPassInfo.pClearValues = clearColours.data();
 
 	//begin render pass
 	vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -311,7 +314,7 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix)
 void Render::updateViewProjectionMatrix()
 {
 
-	float correction;
+	float correction = 0.0f;
 	float deviceRatio = mSwapchain.extent.width / mSwapchain.extent.height;
 	float virtualRatio = targetResolution.x / targetResolution.y;
 	float xCorrection = mSwapchain.extent.width / targetResolution.x;

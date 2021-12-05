@@ -44,7 +44,9 @@ App::~App()
 void App::loadAssets()
 {
 	//TODO load assets
+
 	testModel = mRender->LoadModel("models/viking.fbx");
+	testModel2 = mRender->LoadModel("models/box.fbx");
 	mRender->endResourceLoad();
 }
 
@@ -84,6 +86,8 @@ void App::draw()
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	mRender->DrawModel(testModel, model);
+	//model = glm::translate(model, glm::vec3(0, 2, 0));
+	//mRender->DrawModel(testModel2, model);
 
 	mRender->endDraw();
 }

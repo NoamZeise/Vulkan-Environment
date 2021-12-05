@@ -367,12 +367,14 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	{
 		fillFrameData(device, &swapchain->frameData[i], graphicsQueueIndex);
 	}
+
+	//create depth buffer resoureces
+	createDepthBuffer(device, physicalDevice, swapchain);
 }
 
 void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain)
 {
 	//create attachments
-
 
 	//present attachment
 	VkAttachmentReference finalPresentRef{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
@@ -386,8 +388,21 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	finalPresent.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	finalPresent.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	
+	//depth attachment
+	VkAttachmentReference depthBufferRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+	VkAttachmentDescription depthBuffer {};
+	depthBuffer.format = swapchain.depthImageFormat;
+	depthBuffer.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthBuffer.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthBuffer.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthBuffer.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthBuffer.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; 
+	depthBuffer.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthBuffer.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	std::array<VkAttachmentDescription, 1> attachments = { finalPresent };
+
+	std::array<VkAttachmentDescription, 2> attachments = { finalPresent, depthBuffer };
 
 	//create subpass
 	VkSubpassDescription subpass{};
@@ -395,18 +410,26 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &finalPresentRef;
 	subpass.pResolveAttachments = nullptr;   //TODO: anti-aliasing
-	subpass.pDepthStencilAttachment = nullptr; //TODO: depth attachment
+	subpass.pDepthStencilAttachment = &depthBufferRef;
 
 	std::array<VkSubpassDescription, 1> subpasses = { subpass };
 
 	//depenancy to external events
 	VkSubpassDependency externalDependancy{};
 	externalDependancy.srcSubpass = VK_SUBPASS_EXTERNAL;
-	externalDependancy.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	externalDependancy.srcStageMask = 
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | 
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
 	externalDependancy.srcAccessMask = 0;
 	externalDependancy.dstSubpass = 0;
-	externalDependancy.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	externalDependancy.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //modifiable
+	externalDependancy.dstStageMask = 
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	externalDependancy.dstAccessMask = 
+			VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+		    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	std::array<VkSubpassDependency, 1> dependancies = { externalDependancy };
 
@@ -427,7 +450,7 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 
 	for (size_t i = 0; i < swapchain->frameData.size(); i++)
 	{
-		std::array<VkImageView, 1> attachments = { swapchain->frameData[i].view };
+		std::array<VkImageView, 2> attachments = { swapchain->frameData[i].view, swapchain->depthImageView };
 
 		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		createInfo.renderPass = renderPass;
@@ -520,8 +543,12 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	//config depthStencil - TODO add depth buffer
+	//config depthStencil
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+	depthStencilInfo.depthTestEnable = VK_TRUE;
+	depthStencilInfo.depthWriteEnable = VK_TRUE;
+	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE; //keep frags within range?
 
 	//config colour blend attachment
 	VkPipelineColorBlendAttachmentState blendAttachment{};
@@ -637,6 +664,10 @@ void initVulkan::fillFrameData(VkDevice device, FrameData* frame, uint32_t graph
 
 void initVulkan::destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
 {
+	vkDestroyImageView(device, swapchainStruct->depthImageView, nullptr);
+	vkDestroyImage(device, swapchainStruct->depthImage, nullptr);
+	vkFreeMemory(device, swapchainStruct->depthImageMemory, nullptr);
+
 	for (size_t i = 0; i < swapchainStruct->frameData.size(); i++)
 	{
 		vkDestroyImageView(device, swapchainStruct->frameData[i].view, nullptr);
@@ -682,6 +713,78 @@ VkShaderModule initVulkan::loadShaderModule(VkDevice device, std::string file)
 		throw std::runtime_error("failed to create shader module from: " + file);
 
 	return shaderModule;
+}
+
+void initVulkan::createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
+{
+	//get a supported format for depth buffer
+	swapchain->depthImageFormat = findSupportedFormat( physicalDevice,
+        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+
+	//create depth buffer image
+	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = swapchain->extent.width;
+	imageInfo.extent.height = swapchain->extent.height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = swapchain->depthImageFormat;
+	imageInfo.format = swapchain->depthImageFormat;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	if (vkCreateImage(device, &imageInfo, nullptr, &swapchain->depthImage) != VK_SUCCESS)
+		throw std::runtime_error("failed to create depth buffer image");
+
+	//assign memory for depth buffer image
+	VkMemoryRequirements memreq;
+	vkGetImageMemoryRequirements(device, swapchain->depthImage, &memreq);
+	
+	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	memInfo.allocationSize = memreq.size;
+	memInfo.memoryTypeIndex = vkhelper::findMemoryIndex(physicalDevice, memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if(vkAllocateMemory(device, &memInfo, nullptr, &swapchain->depthImageMemory) != VK_SUCCESS)
+		throw std::runtime_error("Failed to allocate memory for depth buffer image!");
+	
+	vkBindImageMemory(device, swapchain->depthImage, swapchain->depthImageMemory, 0);
+
+	//create image view
+
+	VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.image = swapchain->depthImage;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = swapchain->depthImageFormat;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+
+	if(vkCreateImageView(device, &viewInfo, nullptr, &swapchain->depthImageView) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create image view for depth buffer!");
+}
+
+VkFormat initVulkan::findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+	for (const auto& format : formats)
+	{
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+		if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+			return format;
+		else if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+			return format;
+	}
+	throw std::runtime_error("None of the formats supplied were supported!");
 }
 
 //DEBUG FUNCTIONS
