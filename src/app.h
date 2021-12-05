@@ -49,6 +49,8 @@ private:
 	int mWindowWidth, mWindowHeight;
 	Input previousInput;
 
+	Resource::Model testModel;
+	Resource::Model testModel2;
 };
 
 #endif

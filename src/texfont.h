@@ -18,6 +18,9 @@
 
 #include "texture_loader.h"
 
+namespace Resource
+{
+
 struct Character
 {
 	Character(unsigned int TextureID, glm::vec2 Size, glm::vec2 Bearing, double Advance)
@@ -37,11 +40,11 @@ struct Character
 	double Advance;
 };
 
-class TexFont
+class Font
 {
 public:
-	TexFont(std::string file, TextureLoader* texLoader);
-	~TexFont();
+	Font(std::string file, TextureLoader* texLoader);
+	~Font();
 	Character* getChar(char c);
 private:
 	std::map<char, Character*> _chars;
@@ -49,8 +52,5 @@ private:
 	const int SIZE = 50;
 };
 
-
-
-
-
+}
 #endif

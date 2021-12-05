@@ -161,6 +161,8 @@ void initVulkan::device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 	//enable optional device features
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	if(USE_SAMPLE_SHADING)
+		deviceFeatures.sampleRateShading = VK_TRUE;
 
 	deviceInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -263,29 +265,22 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	std::vector<VkPresentModeKHR> presentModes(presentModeCount);
 	if(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to get physical device surface present modes!");
-	if(VSYNC)
+	bool modeChosen = false;
+	for (const auto& mode : presentModes)
 	{
-		bool modeChosen = false;
-		for (const auto& mode : presentModes)
+		if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
 		{
-			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
-			{
-				presentMode = mode;
-				modeChosen = true;
-			}
-			else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
-			{
-				presentMode = mode;//for low stuttering
-				modeChosen = true;
-			}
+			presentMode = mode;
+			modeChosen = true;
 		}
-		if (!modeChosen)
-			presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
+		else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+		{
+			presentMode = mode;//for low stuttering
+			modeChosen = true;
+		}
 	}
-	else
-	{
-		presentMode = VK_PRESENT_MODE_FIFO_KHR;
-	}
+	if (!modeChosen || VSYNC)
+		presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
 
 	//find a supporte transform
 	VkSurfaceTransformFlagBitsKHR preTransform;
@@ -374,46 +369,80 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	{
 		fillFrameData(device, &swapchain->frameData[i], graphicsQueueIndex);
 	}
+
+	//create attachment resources
+	createMultisamplingBuffer(device, physicalDevice, swapchain); //this first as sets max msaa used by rest of attachments
+	createDepthBuffer(device, physicalDevice, swapchain);
 }
 
 void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain)
 {
 	//create attachments
 
-
 	//present attachment
-	VkAttachmentReference finalPresentRef{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-	VkAttachmentDescription finalPresent{};
-	finalPresent.format = swapchain.format.format;
-	finalPresent.samples = VK_SAMPLE_COUNT_1_BIT;
-	finalPresent.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR; //clear frame before render
-	finalPresent.storeOp = VK_ATTACHMENT_STORE_OP_STORE; //store frame for presenting
-	finalPresent.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	finalPresent.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	finalPresent.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	finalPresent.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	VkAttachmentReference colourAttachmentRef{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+	VkAttachmentDescription colourAttachment{};
+	colourAttachment.format = swapchain.format.format;
+	colourAttachment.samples = swapchain.maxMsaaSamples;
+	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; //clear frame before render
+	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //store frame for presenting
+	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	//depth attachment
+	VkAttachmentReference depthBufferRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+	VkAttachmentDescription depthAttachment {};
+	depthAttachment.format = swapchain.depthBuffer.format;
+	depthAttachment.samples = swapchain.maxMsaaSamples;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; 
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	//resolve attachment
+	VkAttachmentReference resolveAttachmentRef{ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+	VkAttachmentDescription resolveAttachment {};
+	resolveAttachment.format = swapchain.format.format;
+	resolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	resolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	resolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	resolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	resolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 
-	std::array<VkAttachmentDescription, 1> attachments = { finalPresent };
+	std::array<VkAttachmentDescription, 3> attachments = { colourAttachment, depthAttachment, resolveAttachment };
 
 	//create subpass
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &finalPresentRef;
-	subpass.pResolveAttachments = nullptr;   //TODO: anti-aliasing
-	subpass.pDepthStencilAttachment = nullptr; //TODO: depth attachment
+	subpass.pColorAttachments = &colourAttachmentRef;
+	subpass.pResolveAttachments = &resolveAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthBufferRef;
 
 	std::array<VkSubpassDescription, 1> subpasses = { subpass };
 
 	//depenancy to external events
 	VkSubpassDependency externalDependancy{};
 	externalDependancy.srcSubpass = VK_SUBPASS_EXTERNAL;
-	externalDependancy.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	externalDependancy.srcStageMask = 
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | 
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+
 	externalDependancy.srcAccessMask = 0;
 	externalDependancy.dstSubpass = 0;
-	externalDependancy.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	externalDependancy.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; //modifiable
+	externalDependancy.dstStageMask = 
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	externalDependancy.dstAccessMask = 
+		    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	std::array<VkSubpassDependency, 1> dependancies = { externalDependancy };
 
@@ -434,7 +463,11 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 
 	for (size_t i = 0; i < swapchain->frameData.size(); i++)
 	{
-		std::array<VkImageView, 1> attachments = { swapchain->frameData[i].view };
+		std::array<VkImageView, 3> attachments = 
+		{ 
+		  swapchain->multisampling.view,
+		  swapchain->depthBuffer.view,
+		  swapchain->frameData[i].view };
 
 		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		createInfo.renderPass = renderPass;
@@ -513,9 +546,9 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	VkPipelineRasterizationStateCreateInfo rasterizationInfo{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 	rasterizationInfo.depthClampEnable = VK_FALSE;
 	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+	rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizationInfo.lineWidth = 1.0f;
-	rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
 	//fragment shader
 	VkPipelineShaderStageCreateInfo fragmentStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
@@ -523,12 +556,20 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	fragmentStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 	fragmentStageInfo.pName = "main";
 
-	//config multisampler - TODO add multisampling
+	//config multisampler
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	//config depthStencil - TODO add depth buffer
+	multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
+	if(USE_SAMPLE_SHADING)
+	{	
+		multisampleInfo.minSampleShading = .1f;
+		multisampleInfo.sampleShadingEnable = VK_TRUE;
+	}
+	//config depthStencil
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+	depthStencilInfo.depthTestEnable = VK_TRUE;
+	depthStencilInfo.depthWriteEnable = VK_TRUE;
+	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE; //keep frags within range?
 
 	//config colour blend attachment
 	VkPipelineColorBlendAttachmentState blendAttachment{};
@@ -644,6 +685,9 @@ void initVulkan::fillFrameData(VkDevice device, FrameData* frame, uint32_t graph
 
 void initVulkan::destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
 {
+	destroyAttachmentImageResources(device, swapchainStruct->depthBuffer);
+	destroyAttachmentImageResources(device, swapchainStruct->multisampling);
+
 	for (size_t i = 0; i < swapchainStruct->frameData.size(); i++)
 	{
 		vkDestroyImageView(device, swapchainStruct->frameData[i].view, nullptr);
@@ -691,6 +735,114 @@ VkShaderModule initVulkan::loadShaderModule(VkDevice device, std::string file)
 	return shaderModule;
 }
 
+void initVulkan::createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
+{
+	//get a supported format for depth buffer
+	swapchain->depthBuffer.format = findSupportedFormat( physicalDevice,
+        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+
+	createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain, 
+									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
+void initVulkan::createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
+{
+	//get max msaa samples supported by physical device
+	swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkPhysicalDeviceProperties props;
+ 	vkGetPhysicalDeviceProperties(physicalDevice, &props);
+	VkSampleCountFlags samplesSupported = props.limits.framebufferColorSampleCounts & props.limits.framebufferDepthSampleCounts;
+	if     (samplesSupported & VK_SAMPLE_COUNT_64_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_32_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_32_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_16_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_16_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_8_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_4_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_2_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
+
+	if(!USE_MULTISAMPLING)
+		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+		
+	swapchain->multisampling.format = swapchain->format.format;
+
+	createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
+		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, 
+									AttachmentImage* attachIm, SwapChain& swapchain,
+									 VkImageUsageFlags usage, VkImageAspectFlags imgAspect)
+{	
+//create attach image
+	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	imageInfo.imageType = VK_IMAGE_TYPE_2D;
+	imageInfo.extent.width = swapchain.extent.width;
+	imageInfo.extent.height = swapchain.extent.height;
+	imageInfo.extent.depth = 1;
+	imageInfo.mipLevels = 1;
+	imageInfo.arrayLayers = 1;
+	imageInfo.format = attachIm->format;
+	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	imageInfo.usage = usage;
+	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	imageInfo.samples = swapchain.maxMsaaSamples;
+
+	if (vkCreateImage(device, &imageInfo, nullptr, &attachIm->image) != VK_SUCCESS)
+		throw std::runtime_error("failed to create attachment image");
+
+	//assign memory for attach image
+	VkMemoryRequirements memreq;
+	vkGetImageMemoryRequirements(device, attachIm->image, &memreq);
+	
+	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+	memInfo.allocationSize = memreq.size;
+	memInfo.memoryTypeIndex = vkhelper::findMemoryIndex(physicalDevice, memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	if(vkAllocateMemory(device, &memInfo, nullptr, &attachIm->memory) != VK_SUCCESS)
+		throw std::runtime_error("Failed to allocate memory for attachment image!");
+	
+	vkBindImageMemory(device, attachIm->image, attachIm->memory, 0);
+
+	//create attach image view
+
+	VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	viewInfo.image = attachIm->image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = attachIm->format;
+	viewInfo.subresourceRange.aspectMask = imgAspect;
+	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+
+	if(vkCreateImageView(device, &viewInfo, nullptr, &attachIm->view) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create image view for attachment!");
+}
+
+VkFormat initVulkan::findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+	for (const auto& format : formats)
+	{
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+		if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+			return format;
+		else if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+			return format;
+	}
+	throw std::runtime_error("None of the formats supplied were supported!");
+}
+
+void initVulkan::destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment)
+{
+	vkDestroyImageView(device, attachment.view, nullptr);
+	vkDestroyImage(device, attachment.image, nullptr);
+	vkFreeMemory(device, attachment.memory, nullptr);
+}
 //DEBUG FUNCTIONS
 #ifndef NDEBUG
 void initVulkan::debugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger)

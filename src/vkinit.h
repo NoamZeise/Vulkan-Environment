@@ -17,6 +17,7 @@
 #include <cstring>
 
 #include "typeStructs.h"
+#include "vkhelper.h"
 
 #ifndef NDEBUG
 
@@ -62,7 +63,11 @@ private:
 	static void fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex);
 	static void destroySwapchain(SwapChain* swapchain, const VkDevice& device, const VkSwapchainKHR& oldSwapChain);
 	static VkShaderModule loadShaderModule(VkDevice device, std::string file);
-
+	static void createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
+	static void createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
+	static void createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, AttachmentImage* attachIm, SwapChain& swapchain, VkImageUsageFlags usage, VkImageAspectFlags imgAspect);
+	static VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
+	static void destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment);
 	//DEBUG MEMBERS
 #ifndef NDEBUG
 

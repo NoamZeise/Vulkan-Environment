@@ -1,6 +1,9 @@
 #include "texfont.h"
 
-TexFont::TexFont(std::string file, TextureLoader* texLoader)
+namespace Resource
+{
+
+Font::Font(std::string file, TextureLoader* texLoader)
 {
 	FT_Library ftlib;
 	if (FT_Init_FreeType(&ftlib))
@@ -22,7 +25,7 @@ TexFont::TexFont(std::string file, TextureLoader* texLoader)
 	FT_Done_FreeType(ftlib);
 }
 
-TexFont::~TexFont()
+Font::~Font()
 {
 	std::map<char, Character*>::iterator it;
 	for (it = _chars.begin(); it != _chars.end(); it++)
@@ -32,7 +35,7 @@ TexFont::~TexFont()
 	}
 }
 
-bool TexFont::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
+bool Font::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 {
 	if (FT_Load_Char(face, c, FT_LOAD_RENDER))
 	{
@@ -59,12 +62,16 @@ bool TexFont::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 	unsigned char* buffer = new unsigned char[face->glyph->bitmap.width * face->glyph->bitmap.rows * 4];
 
 	int buffIndex = 0;
+	char blank = 0x00;
 	for (size_t i = 0; i < face->glyph->bitmap.width * face->glyph->bitmap.rows; i++)
 	{
+		//std::cout << (int)((face->glyph->bitmap.buffer + i)[0]) << std::endl;
 		std::memcpy(buffer + buffIndex++, face->glyph->bitmap.buffer + i, 1);
 		std::memcpy(buffer + buffIndex++, face->glyph->bitmap.buffer + i, 1);
 		std::memcpy(buffer + buffIndex++, face->glyph->bitmap.buffer + i, 1);
 		std::memcpy(buffer + buffIndex++, face->glyph->bitmap.buffer + i, 1);
+		if((char)((face->glyph->bitmap.buffer + i)[0])  != (char)0xFF)
+			std::memcpy(buffer + buffIndex - 1, &blank, 1);
 	}
 
 	unsigned int texture = textureLoader->loadTexture(
@@ -82,7 +89,11 @@ bool TexFont::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 	return true;
 }
 
-Character* TexFont::getChar(char c)
+Character* Font::getChar(char c)
 {
 	return _chars[c];
 }
+
+
+}
+//end

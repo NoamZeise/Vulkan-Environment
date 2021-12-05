@@ -22,6 +22,7 @@
 #include "typeStructs.h"
 #include "texture_loader.h"
 #include "texfont.h"
+#include "model_loader.h"
 
 class Render
 {
@@ -29,19 +30,15 @@ public:
 	Render(GLFWwindow* window);
 	void initRender(GLFWwindow* window);
 	Render(GLFWwindow* window, glm::vec2 target);
-	void updateProjectionMatrix();
+	void updateViewProjectionMatrix();
 	~Render();
-	uint32_t LoadTexture(std::string filepath);
-	TexFont* LoadFont(std::string filepath);
-	void endTextureLoad();
+	Resource::Texture LoadTexture(std::string filepath);
+	Resource::Font* LoadFont(std::string filepath);
+	Resource::Model LoadModel(std::string filepath);
+	void endResourceLoad();
 	void startDraw();
 	void endDraw();
-	void DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, uint32_t texID);
-	void DrawSquare(glm::vec4 drawRect, float rotate, glm::vec4 colour, glm::vec4 textureOffsetRect, uint32_t texID);
-	void DrawSquare(glm::vec4 drawRect, float rotate, uint32_t texID);
-	void DrawString(TexFont* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
-  float MeasureString(TexFont* font, std::string text, float size);
-	void setCameraOffset(glm::vec2 offset);
+	void DrawModel(Resource::Model model, glm::mat4 modelMatrix);
 	bool framebufferResized = false;
 private:
 	GLFWwindow* mWindow;
@@ -60,24 +57,15 @@ private:
 	DescriptorSets mViewprojDS;
 	VkSampler mTexFragSampler;
 	DescriptorSets mTexturesDS;
-	TextureLoader mTextureLoader;
+	Resource::TextureLoader mTextureLoader;
+	Resource::ModelLoader mModelLoader;
 
 	bool mBegunDraw = false;
-	bool mFinishedLoadingTextures = false;
+	bool mFinishedLoadingResources = false;
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
 	viewProjectionBufferObj mUbo;
 
-	std::vector<Vertex> mQuadVerts = {
-		{{0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{1.0f, 1.0f}, {1.0f, 1.0f}},
-		{{0.0f, 1.0f}, {0.0f, 1.0f}},
-	};
-	std::vector<uint32_t> mQuadInds = { 0, 1, 2, 2, 3, 0 };
-
-	void loadDataToGpu();
-	void copyDataToLocalGPUMemory();
 	void prepareViewProjDS();
 	void prepareFragmentDescriptorSets();
 	void destroySwapchainComponents();

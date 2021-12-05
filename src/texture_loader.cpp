@@ -1,5 +1,8 @@
 #include "texture_loader.h"
 
+namespace Resource
+{
+
 TextureLoader::TextureLoader(Base base, VkCommandPool pool)
 {
 	this->base = base;
@@ -19,7 +22,7 @@ TextureLoader::~TextureLoader()
 	vkFreeMemory(base.device, memory, nullptr);
 }
 
-uint32_t TextureLoader::loadTexture(std::string path)
+Texture TextureLoader::loadTexture(std::string path)
 {
 	texToLoad.push_back({ path });
 	TempTexture* tex = &texToLoad.back();
@@ -29,6 +32,7 @@ uint32_t TextureLoader::loadTexture(std::string path)
 
 	tex->fileSize = tex->width * tex->height * tex->nrChannels;
 
+//attention: should check if gpu supports image format, then adjust, eg add an extra channel if 3 channel unsupported
 	switch (tex->nrChannels)
 	{
 	case 1:
@@ -58,7 +62,7 @@ uint32_t TextureLoader::loadTexture(std::string path)
 	default:
 		throw std::runtime_error("texture at " + path + " has an unsupported number of channels");
 	}
-	return texToLoad.size() - 1;
+	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 
 uint32_t TextureLoader::loadTexture(unsigned char* data, int width, int height, int nrChannels)
@@ -137,7 +141,7 @@ void TextureLoader::endLoading()
 
 		bufferOffset += texToLoad[i].fileSize;
 
-		textures[i] = Texture(texToLoad[i]);
+		textures[i] = LoadedTexture(texToLoad[i]);
 		VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(base.physicalDevice, texToLoad[i].format, &formatProperties);
 		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
@@ -264,8 +268,6 @@ void TextureLoader::endLoading()
 
 	for (const auto& tex : textures)
 	{
-		//if (tex.mipLevels == 1)
-		//	continue;
 		barrier.image = tex.image;
 		int32_t mipW = tex.width;
 		int32_t mipH = tex.height;
@@ -392,4 +394,5 @@ VkImageView TextureLoader::getImageView(uint32_t texID)
 		return textures[0].view;
 	else
 		throw std::runtime_error("no textures to replace error id with");
+}
 }

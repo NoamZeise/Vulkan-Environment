@@ -23,8 +23,10 @@ App::App()
 	glfwSetScrollCallback(mWindow, scroll_callback);
 	glfwSetKeyCallback(mWindow, key_callback);
 	glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
+	
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
+
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
 	loadAssets();
 }
@@ -43,7 +45,9 @@ void App::loadAssets()
 {
 	//TODO load assets
 
-	mRender->endTextureLoad();
+	testModel = mRender->LoadModel("models/viking.fbx");
+	testModel2 = mRender->LoadModel("models/box.fbx");
+	mRender->endResourceLoad();
 }
 
 void App::run()
@@ -51,7 +55,8 @@ void App::run()
 	while (!glfwWindowShouldClose(mWindow))
 	{
 		update();
-		draw();
+		if(mWindowWidth != 0 && mWindowHeight != 0)
+			draw();
 	}
 }
 
@@ -61,6 +66,7 @@ void App::resize(int windowWidth, int windowHeight)
 	mWindowHeight = windowHeight;
 	if(mRender != nullptr)
 		mRender->framebufferResized = true;
+
 }
 
 void App::update()
@@ -76,8 +82,14 @@ void App::draw()
 {
 	mRender->startDraw();
 
-	//TODO draw app
-	mRender->DrawSquare(glm::vec4(10, 10, 200, 150), 0, 0);
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	mRender->DrawModel(testModel, model);
+	//model = glm::translate(model, glm::vec3(0, 2, 0));
+	//mRender->DrawModel(testModel2, model);
 
 	mRender->endDraw();
 }

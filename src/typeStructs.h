@@ -20,15 +20,18 @@
 //#define NDEBUG //uncomment for release mode
 
 const bool USE_SRGB = false;
-const bool ENABLE_MIP = false;
+const bool ENABLE_MIP = true;
 const bool PIXELATED = false; //for pixelated
-const int TARGET_WIDTH = 800;
-const int TARGET_HEIGHT = 600;
 const bool FIXED_RATIO = false;
 const bool VSYNC = true;
+const bool USE_MULTISAMPLING = true;
+const bool USE_SAMPLE_SHADING = true;
 #ifndef NDEBUG
-const bool ERROR_ONLY = false;
+const bool ERROR_ONLY = true;
 #endif
+
+const int TARGET_WIDTH = 256;
+const int TARGET_HEIGHT = 224;
 
 struct QueueFamilies
 {
@@ -55,12 +58,26 @@ struct FrameData
 	VkFramebuffer framebuffer;
 };
 
+struct AttachmentImage
+{
+	VkImage image;
+	VkImageView view;
+	VkDeviceMemory memory;
+	VkFormat format;
+};
+
 
 struct SwapChain
 {
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkSurfaceFormatKHR format;
 	VkExtent2D extent;
+
+	AttachmentImage depthBuffer;
+	AttachmentImage multisampling;
+	VkSampleCountFlagBits maxMsaaSamples;
+
+
 	std::vector<FrameData> frameData;
 	std::vector<VkSemaphore> imageAquireSem;
 };
@@ -75,8 +92,10 @@ struct Pipeline
 
 struct Vertex
 {
-	glm::vec2 position;
-	glm::vec2 texCoord;
+	glm::vec3 Position;
+	glm::vec3 Normal;
+	glm::vec2 TexCoord;
+	int TexID;
 
 	static std::array<VkVertexInputBindingDescription, 1> bindingDescriptions()
 	{
@@ -88,19 +107,27 @@ struct Vertex
 		return bindingDescriptions;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions()
+	static std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
+		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
 
 		//position
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
-		attributeDescriptions[0].offset = offsetof(Vertex, position);
+		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[0].offset = offsetof(Vertex, Position);
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT; //glm::vec3
-		attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT; 
+		attributeDescriptions[2].offset = offsetof(Vertex, Normal);
+		attributeDescriptions[2].binding = 0;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT; 
+		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32_UINT; 
+		attributeDescriptions[3].offset = offsetof(Vertex, TexID);
 
 		return attributeDescriptions;
 	}
@@ -115,7 +142,7 @@ struct fragPushConstants
 {
 	glm::vec4 colour;
 	glm::vec4 texOffset;
-	uint32_t texID;
+	unsigned int TexID;
 };
 
 
@@ -136,15 +163,7 @@ struct UniformBufferTypes
 
 struct memoryObjects
 {
-	VkDeviceMemory memory;
-	VkBuffer vertexBuffer;
-	VkBuffer indexBuffer;
-
-	VkDeviceMemory stagingMemory;
-	VkBuffer stagingBuffer;
-
 	UniformBufferTypes viewProj;
-
 };
 
 
