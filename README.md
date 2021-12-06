@@ -1,5 +1,5 @@
 # Work in progress 3D Vulkan Rendering Framework
-<h3> **working 2D framework on '2D-Environment' Branch: https://github.com/NoamZeise/Vulkan-Environment/tree/2D-Environment</h3>
+<h3> working 2D framework on other Branch: https://github.com/NoamZeise/Vulkan-Environment/tree/2D-Environment</h3>
 
 <h5>A 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp </h5>
 
