@@ -48,7 +48,8 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
 	Model model(currentIndex++);
 	Assimp::Importer importer;
-	const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+	const aiScene *scene = importer.ReadFile(path, 
+		aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals);
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
 	
@@ -56,41 +57,53 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 	LoadedModel ldModel;
 	ldModel.directory = path.substr(0, path.find_last_of('/'));
 
-	processNode(&ldModel, scene->mRootNode, scene, texLoader);
+	//correct for blender's orientation
+	glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	aiMatrix4x4 aiTransform = aiMatrix4x4(
+		transform[0][0], transform[0][1], transform[0][2], transform[0][3],
+		transform[1][0], transform[1][1], transform[1][2], transform[1][3],
+		transform[2][0], transform[2][1], transform[2][2], transform[2][3],
+		transform[3][0], transform[3][1], transform[3][2], transform[3][3]);
+
+	processNode(&ldModel, scene->mRootNode, scene, texLoader, aiTransform);
 
 	loadedModels.push_back(ldModel);
 
 	return model;
 }
-void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader)
+void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform)
 {
+	aiMatrix4x4 transform = parentTransform * node->mTransformation;
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 		model->meshes.push_back(new Mesh());
-		processMesh(model->meshes.back(), mesh, scene, texLoader);
+		processMesh(model->meshes.back(), mesh, scene, texLoader, transform);
 	}
 	for(unsigned int i = 0; i < node->mNumChildren; i++, texLoader)
 	{
-		processNode(model, node->mChildren[i], scene, texLoader);
+		processNode(model, node->mChildren[i], scene, texLoader, transform);
 	}
 }
-void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader)
+void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform)
 {
+	std::cout << "processing node" << std::endl;
 	loadMaterials(mesh, scene->mMaterials[aimesh->mMaterialIndex], texLoader);
 	
 	//vertcies
 	for(unsigned int i = 0; i < aimesh->mNumVertices;i++)
 	{
+		aiVector3D transformedVertex = transform * aimesh->mVertices[i]; 
 		Vertex vertex;
-		vertex.Position.x = aimesh->mVertices[i].x;
-		vertex.Position.y = aimesh->mVertices[i].y;
-		vertex.Position.z = aimesh->mVertices[i].z;
+		vertex.Position.x = transformedVertex.x;
+		vertex.Position.y = transformedVertex.y;
+		vertex.Position.z = transformedVertex.z;
 		if(aimesh->HasNormals())
 		{
-			vertex.Normal.x = aimesh->mNormals[i].x;
-			vertex.Normal.y = aimesh->mNormals[i].y;
-			vertex.Normal.z = aimesh->mNormals[i].z;
+			aiVector3D transformedNormal = transform * aimesh->mNormals[i]; 
+			vertex.Normal.x = transformedNormal.x;
+			vertex.Normal.y = transformedNormal.y;
+			vertex.Normal.z = transformedNormal.z;
 		}
 		else
 			vertex.Normal = glm::vec3(0, 0, 0);
@@ -98,18 +111,11 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 		{
 			vertex.TexCoord.x = aimesh->mTextureCoords[0][i].x;
 			vertex.TexCoord.y = aimesh->mTextureCoords[0][i].y;
-			if(mesh->textures.size() > 0) //needs to be fixed, only using first texture
-			{
-				vertex.TexID = mesh->textures[0].ID;
-			}
-			else
-			{
-				//std::cout << "default tex used" << std::endl;
-				vertex.TexID = 0;
-			}
 		}
 		else
 			vertex.TexCoord = glm::vec3(0, 0, 0);
+		
+		vertex.TexID = mesh->texture.ID;
 
 		mesh->verticies.push_back(vertex);
 	}
@@ -137,16 +143,16 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader 
 		{
 			if(std::strcmp(alreadyLoaded[j].path.data(), texLocation.c_str()) == 0)
 			{
-				mesh->textures.push_back(alreadyLoaded[j]);
+				mesh->texture = alreadyLoaded[j];
 				skip = true;
 				break;
 			}
 		}
 		if(!skip)
 		{
-			mesh->textures.push_back(texLoader.loadTexture(texLocation));
-			mesh->textures.back().type = TextureType::Diffuse; //attention
-			alreadyLoaded.push_back(mesh->textures.back());
+			mesh->texture = texLoader.loadTexture(texLocation);
+			mesh->texture.type = TextureType::Diffuse; //attention
+			alreadyLoaded.push_back(mesh->texture);
 		}
 	}
 }

@@ -326,7 +326,7 @@ void Render::updateViewProjectionMatrix()
 		correction = xCorrection;
 	}
 	mUbo.proj = glm::perspective(glm::radians(projectionFov), //45 deg fov
-			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 10.0f);
+			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 100.0f);
 	mUbo.proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 }
 

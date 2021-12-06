@@ -32,6 +32,13 @@ enum class TextureType
 
 struct Texture
 {
+	Texture()
+	{
+		path = "";
+		ID = 0;
+		dim = glm::vec2(1, 1);
+		type = TextureType::Diffuse;
+	}
 	Texture(unsigned int ID, glm::vec2 dimentions, std::string path)
 	{
 		this->path = path;

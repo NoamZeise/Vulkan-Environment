@@ -40,7 +40,7 @@ struct Mesh
 	Mesh() {}
 	std::vector<Vertex> 	    verticies;
 	std::vector<unsigned int> indicies;
-	std::vector<Texture>      textures;
+	Texture texture;
 	size_t vertexDataSize = 0;
 	size_t indexDataSize = 0;
 };
@@ -75,8 +75,8 @@ public:
 
 private:
 
-  void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader);
-	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader);
+    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
+	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);
 	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);
 
 	Base base;
