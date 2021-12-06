@@ -3,20 +3,17 @@
 
 <h5>A 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp </h5>
 
-features so far:
-  
-* Handles loading textures and fonts
-* Draw textured quads in arbitrary positions
-* Draw strings using a loaded font
-* Play audio on windows with a filename
-* Handle keyboard/mouse input from the user
-* Offset texture positions and modify colours
+# Todo list:
 
+bugs:
+* check for supported textures, then convert to supported format if supplied textures are not suitable
 
-#needs fixing:
+features:
+* phong lighting
 
-*edit image data if gpu does not support less than 4 channels for textures
-
+optimisations:
+* organise draw calls, by storing each call to render.draw then execute draws at render.enddraw  
+* use gl_BaseInstance when drawing as an index into an array of model matricies
 
 # dependancies:
 
