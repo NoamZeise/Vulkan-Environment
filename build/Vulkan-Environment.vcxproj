@@ -316,6 +316,8 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\app.cpp" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\app.h" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\audio.h" />
+    <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\freeCamera.cpp" />
+    <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\freeCamera.h" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\input.h" />
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\main.cpp" />
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\model_loader.cpp" />
@@ -330,6 +332,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\texfont.h" />
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\texture_loader.cpp" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\texture_loader.h" />
+    <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\timer.h" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\typeStructs.h" />
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\vkhelper.cpp" />
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\vkhelper.h" />

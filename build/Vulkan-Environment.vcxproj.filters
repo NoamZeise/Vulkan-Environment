@@ -4,6 +4,9 @@
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\app.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\freeCamera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -36,6 +39,9 @@
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\audio.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\freeCamera.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -52,6 +58,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\texture_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\noam4\source\repos\c++\Vulkan Projects\Templates\Vulkan-Environment\src\typeStructs.h">

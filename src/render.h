@@ -30,7 +30,7 @@ public:
 	Render(GLFWwindow* window);
 	void initRender(GLFWwindow* window);
 	Render(GLFWwindow* window, glm::vec2 target);
-	void updateViewProjectionMatrix();
+	void setViewMatrixAndFov(glm::mat4 view, float fov);
 	~Render();
 	Resource::Texture LoadTexture(std::string filepath);
 	Resource::Font* LoadFont(std::string filepath);
@@ -65,7 +65,9 @@ private:
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
 	viewProjectionBufferObj mUbo;
-
+	float projectionFov = 45.0f;
+	
+	void updateViewProjectionMatrix();
 	void prepareViewProjDS();
 	void prepareFragmentDescriptorSets();
 	void destroySwapchainComponents();

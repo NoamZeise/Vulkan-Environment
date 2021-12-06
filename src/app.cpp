@@ -23,12 +23,18 @@ App::App()
 	glfwSetScrollCallback(mWindow, scroll_callback);
 	glfwSetKeyCallback(mWindow, key_callback);
 	glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
+	glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	if (glfwRawMouseMotionSupported())
+    	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
 	
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
 
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
 	loadAssets();
+
+	freecam = camera::freecam(glm::vec3(3.0f, 0.0f, 2.0f));
 }
 
 
@@ -46,7 +52,7 @@ void App::loadAssets()
 	//TODO load assets
 
 	testModel = mRender->LoadModel("models/viking.fbx");
-	testModel2 = mRender->LoadModel("models/box.fbx");
+	//testModel = mRender->LoadModel("models/box.fbx");
 	mRender->endResourceLoad();
 }
 
@@ -74,22 +80,19 @@ void App::update()
 	glfwPollEvents();
 
 	//TODO update app
-
+	freecam.update(input, previousInput, timer);
+	timer.Update();
 	previousInput = input;
+	input.offset = 0;
 }
 
 void App::draw()
 {
+	mRender->setViewMatrixAndFov(freecam.getViewMatrix(), freecam.getZoom());
 	mRender->startDraw();
 
-	static auto startTime = std::chrono::high_resolution_clock::now();
-
-	auto currentTime = std::chrono::high_resolution_clock::now();
-	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-	glm::mat4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(-45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	mRender->DrawModel(testModel, model);
-	//model = glm::translate(model, glm::vec3(0, 2, 0));
-	//mRender->DrawModel(testModel2, model);
 
 	mRender->endDraw();
 }

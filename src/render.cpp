@@ -313,7 +313,6 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix)
 
 void Render::updateViewProjectionMatrix()
 {
-
 	float correction = 0.0f;
 	float deviceRatio = mSwapchain.extent.width / mSwapchain.extent.height;
 	float virtualRatio = targetResolution.x / targetResolution.y;
@@ -326,12 +325,16 @@ void Render::updateViewProjectionMatrix()
 	else {
 		correction = xCorrection;
 	}
-	mUbo.proj = glm::perspective(glm::radians(45.0f), //45 deg fov
+	mUbo.proj = glm::perspective(glm::radians(projectionFov), //45 deg fov
 			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 10.0f);
 	mUbo.proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
+}
 
-	mUbo.view = glm::lookAt(glm::vec3(3.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-			glm::vec3(0.0f, 0.0f, 1.0f));		
+void Render::setViewMatrixAndFov(glm::mat4 view, float fov)
+{
+	mUbo.view = view;
+	projectionFov = fov;
+	updateViewProjectionMatrix();
 }
 
 void Render::destroySwapchainComponents()

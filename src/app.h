@@ -18,6 +18,8 @@
 #include "render.h"
 #include "input.h"
 #include "audio.h"
+#include "timer.h"
+#include "freeCamera.h"
 
 class App
 {
@@ -48,6 +50,8 @@ private:
 	Render* mRender;
 	int mWindowWidth, mWindowHeight;
 	Input previousInput;
+	Timer timer;
+	camera::freecam freecam;
 
 	Resource::Model testModel;
 	Resource::Model testModel2;
