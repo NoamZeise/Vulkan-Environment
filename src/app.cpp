@@ -51,8 +51,8 @@ void App::loadAssets()
 {
 	//TODO load assets
 
-	testModel = mRender->LoadModel("models/viking.fbx");
-	//testModel = mRender->LoadModel("models/box.fbx");
+	//testModel = mRender->LoadModel("models/viking.fbx");
+	testModel = mRender->LoadModel("models/testScene.fbx");
 	mRender->endResourceLoad();
 }
 

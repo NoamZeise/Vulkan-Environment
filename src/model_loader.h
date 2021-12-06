@@ -12,6 +12,7 @@
 #include <assimp/postprocess.h>
 
 #include <vector>
+#include <array>
 #include <string>
 #include <stdexcept>
 #include <cmath>
@@ -59,6 +60,7 @@ struct ModelInGPU
 	unsigned int indexCount  = 0;
 	unsigned int vertexOffset = 0;
 	unsigned int indexOffset = 0;
+	std::vector<std::array<unsigned int, 3>> meshOffset; //count, index, vertex
 };
 
 class ModelLoader
