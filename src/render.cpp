@@ -317,7 +317,7 @@ void Render::updateViewProjectionMatrix()
 		correction = xCorrection;
 	}
 	viewProjectionData.proj = glm::perspective(glm::radians(projectionFov),
-			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 100.0f);
+			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 50.0f);
 	viewProjectionData.proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 }
 

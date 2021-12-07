@@ -39,7 +39,7 @@ namespace camera
 		float _yaw = 200.0f;
 		float _pitch = -20.0f;
 
-		float _speed = 0.005f;
+		float _speed = 0.01f;
 		float _sensitivity = 0.05f;
 		float _zoom = 45.0f;
 

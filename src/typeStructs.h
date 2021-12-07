@@ -153,7 +153,7 @@ struct lighting
 {
 	lighting()
 	{
-		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.2f);
+		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.4f);
 		directionalCol = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	    directionalVec = glm::vec4(-0.8f, -1.0f, -2.0f, 0.0f);
 	}

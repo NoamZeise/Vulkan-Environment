@@ -53,6 +53,7 @@ namespace camera
 			_zoom = 100.0f;
 
 		calculateVectors();
+		//std::cout << "X:" << _position.x << " Y:" << _position.y << " Z:" << _position.z << std::endl;
 	}
 	
 	void freecam::calculateVectors()

@@ -20,6 +20,7 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 0) out vec2 outTexCoord;
 layout(location = 1) out vec3 outVertPos;
 layout(location = 2) out vec3 outNormal;
+layout(location = 3) out vec3 outOgNormal;
 
 void main()
 {
@@ -29,4 +30,5 @@ void main()
     vec4 vertPos = ubo.view * pcs.model * vec4(inPos, 1.0);
     outVertPos = vec3(vertPos) / vertPos.w;
     outNormal = vec3(pcs.normalMat * vec4(inNormal, 0.0));
+    outOgNormal = inNormal;
 }

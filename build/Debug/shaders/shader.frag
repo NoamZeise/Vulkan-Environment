@@ -21,6 +21,7 @@ layout(set = 2, binding = 0) uniform LightingUBO
 layout(location = 0) in vec2 inTexCoord;
 layout(location = 1) in vec3 inVertPos;
 layout(location = 2) in vec3 inNormal;
+layout(location = 3) in vec3 inOgNormal;
 
 layout(location = 0) out vec4 outColour;
 
@@ -34,17 +35,17 @@ void main()
 
     vec3 objectColour = texture(sampler2D(textures[pc.texID], texSamp), coord).xyz;
 
-    //ambient
     vec3 ambient = vec3(lighting.ambient) * lighting.ambient.w * objectColour;
-    //diffuse
+
     vec3 normal = normalize(inNormal);
+    vec3 ogNormal = normalize(inOgNormal);
     vec3 lightDir = normalize(-lighting.directional.xyz);
-    float lambertian = max(dot(normal, lightDir), 0.0);
+    float lambertian = max(dot(ogNormal, lightDir), 0.0);
     vec3 diffuse = lighting.directionalColour.xyz * lambertian * objectColour;
 
     vec3 viewDir = normalize(-inVertPos);
     vec3 reflectDir = reflect(-lightDir, normal);
-    float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
+    float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), 4.0);
     vec3 specular = vec3(1.0) * specularIntensity * objectColour;
 
     outColour = vec4(ambient + diffuse + specular, 1.0);

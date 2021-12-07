@@ -52,7 +52,8 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 		sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
 		vkCmdDrawIndexed(cmdBuff, modelInfo.meshes[i].indexCount, 1,
-		 modelInfo.meshes[i].indexOffset, modelInfo.meshes[i].vertexOffset, 0);
+			modelInfo.meshes[i].indexOffset + modelInfo.indexOffset,
+			modelInfo.meshes[i].vertexOffset + modelInfo.vertexOffset, 0);
 	}
 }
 
@@ -66,12 +67,13 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
 	
-	
+
 	LoadedModel ldModel;
 	ldModel.directory = path.substr(0, path.find_last_of('/'));
-
+	
 	//correct for blender's orientation
 	glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+	transform = glm::scale(transform, glm::vec3(0.02f));
 	aiMatrix4x4 aiTransform = aiMatrix4x4(
 		transform[0][0], transform[0][1], transform[0][2], transform[0][3],
 		transform[1][0], transform[1][1], transform[1][2], transform[1][3],
@@ -173,6 +175,7 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 		return;
 
 	//load to staging buffer
+
 	for(size_t i = 0; i < loadedModels.size(); i++)
 	{
 		ModelInGPU model;
