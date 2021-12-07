@@ -30,8 +30,8 @@ const bool USE_SAMPLE_SHADING = true;
 const bool ERROR_ONLY = true;
 #endif
 
-const int TARGET_WIDTH = 256;
-const int TARGET_HEIGHT = 224;
+const int TARGET_WIDTH = 1920;
+const int TARGET_HEIGHT = 1080;
 
 struct QueueFamilies
 {
@@ -95,7 +95,6 @@ struct Vertex
 	glm::vec3 Position;
 	glm::vec3 Normal;
 	glm::vec2 TexCoord;
-	int TexID;
 
 	static std::array<VkVertexInputBindingDescription, 1> bindingDescriptions()
 	{
@@ -107,9 +106,9 @@ struct Vertex
 		return bindingDescriptions;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions()
+	static std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
 		//position
 		attributeDescriptions[0].binding = 0;
@@ -124,10 +123,6 @@ struct Vertex
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT; 
 		attributeDescriptions[2].offset = offsetof(Vertex, TexCoord);
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32_UINT; 
-		attributeDescriptions[3].offset = offsetof(Vertex, TexID);
 
 		return attributeDescriptions;
 	}
@@ -136,21 +131,53 @@ struct Vertex
 struct vectPushConstants
 {
 	glm::mat4 model;
+	glm::mat4 normalMat;
 };
 
 struct fragPushConstants
 {
-	glm::vec4 colour;
 	glm::vec4 texOffset;
 	unsigned int TexID;
 };
 
+namespace DS
+{
 
-struct viewProjectionBufferObj
+struct viewProjection
 {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 };
+
+struct lighting
+{
+	lighting()
+	{
+		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.2f);
+		directionalCol = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	    directionalVec = glm::vec4(-0.8f, -1.0f, -2.0f, 0.0f);
+	}
+
+	glm::vec4 ambient;
+	glm::vec4 directionalCol;
+	glm::vec4 directionalVec;
+};
+
+struct DescriptorSets
+{
+	void destroySet(VkDevice device)
+	{
+		vkDestroyDescriptorPool(device, pool, nullptr);
+		vkDestroyDescriptorSetLayout(device, layout, nullptr);
+	}
+	VkDescriptorPool pool;
+	VkDescriptorSetLayout layout;
+	std::vector<VkDescriptorSet> sets;
+	std::vector<VkDescriptorPoolSize> poolSize;
+	uint32_t binding;
+};
+
+}
 
 struct UniformBufferTypes
 {
@@ -164,19 +191,7 @@ struct UniformBufferTypes
 struct memoryObjects
 {
 	UniformBufferTypes viewProj;
-};
-
-
-struct DescriptorSets
-{
-	void destroySet(VkDevice device)
-	{
-		vkDestroyDescriptorPool(device, pool, nullptr);
-		vkDestroyDescriptorSetLayout(device, layout, nullptr);
-	}
-	VkDescriptorPool pool;
-	VkDescriptorSetLayout layout;
-	std::vector<VkDescriptorSet> sets;
+	UniformBufferTypes lighting;
 };
 
 

@@ -2,17 +2,25 @@
 
 layout(push_constant) uniform fragconstants
 {
-    layout(offset = 64)vec4 colour;
-    vec4 texOffset;
+    layout(offset = 128) vec4 texOffset;
     uint texID;
 } pc;
 
+//maybe add uniform buffer for lighting
+
 layout(set = 1, binding = 0) uniform sampler texSamp;
-layout(set = 1, binding = 1) uniform texture2D textures[200];
+layout(set = 1, binding = 1) uniform texture2D textures[50];
+layout(set = 2, binding = 0) uniform LightingUBO
+{
+    vec4 ambient;
+    vec4 directionalColour;  
+    vec4 directional;
+} lighting;
 
 
 layout(location = 0) in vec2 inTexCoord;
-layout(location = 1) flat in uint TexID;
+layout(location = 1) in vec3 inVertPos;
+layout(location = 2) in vec3 inNormal;
 
 layout(location = 0) out vec4 outColour;
 
@@ -23,9 +31,21 @@ void main()
     coord.y *= pc.texOffset.w;
     coord.x += pc.texOffset.x;
     coord.y += pc.texOffset.y;
-    //highp int texCoord = int(inTexCoord.z);
-    if(pc.texID == 0)
-        outColour = texture(sampler2D(textures[TexID], texSamp), coord) * pc.colour;
-    else
-        outColour = texture(sampler2D(textures[pc.texID], texSamp), coord) * pc.colour;
+
+    vec3 objectColour = texture(sampler2D(textures[pc.texID], texSamp), coord).xyz;
+
+    //ambient
+    vec3 ambient = vec3(lighting.ambient) * lighting.ambient.w * objectColour;
+    //diffuse
+    vec3 normal = normalize(inNormal);
+    vec3 lightDir = normalize(-lighting.directional.xyz);
+    float lambertian = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = lighting.directionalColour.xyz * lambertian * objectColour;
+
+    vec3 viewDir = normalize(-inVertPos);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float specularIntensity = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
+    vec3 specular = vec3(1.0) * specularIntensity * objectColour;
+
+    outColour = vec4(ambient + diffuse + specular, 1.0);
 }

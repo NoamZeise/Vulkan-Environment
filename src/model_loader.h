@@ -36,33 +36,6 @@ struct Model
 	unsigned int ID;
 };
 
-struct Mesh
-{
-	Mesh() {}
-	std::vector<Vertex> 	    verticies;
-	std::vector<unsigned int> indicies;
-	Texture texture;
-	size_t vertexDataSize = 0;
-	size_t indexDataSize = 0;
-};
-
-struct LoadedModel
-{
-	LoadedModel(){}
-	unsigned int 			 ID = 0;
-	std::vector<Mesh*> meshes;
-	std::string        directory;
-};
-
-struct ModelInGPU
-{
-	unsigned int vertexCount = 0;
-	unsigned int indexCount  = 0;
-	unsigned int vertexOffset = 0;
-	unsigned int indexOffset = 0;
-	std::vector<std::array<unsigned int, 3>> meshOffset; //count, index, vertex
-};
-
 class ModelLoader
 {
 public:
@@ -73,9 +46,52 @@ public:
 	void endLoading(VkCommandBuffer transferBuff);
 
 	void bindBuffers(VkCommandBuffer cmdBuff);
-	void drawModel(VkCommandBuffer cmdBuff, Model model);
+	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model);
 
 private:
+
+	struct Mesh
+	{
+		Mesh() {}
+		std::vector<Vertex> 	    verticies;
+		std::vector<unsigned int> indicies;
+		Texture texture;
+		size_t vertexDataSize = 0;
+		size_t indexDataSize = 0;
+	};
+
+	struct LoadedModel
+	{
+		LoadedModel(){}
+		unsigned int 			 ID = 0;
+		std::vector<Mesh*> meshes;
+		std::string        directory;
+	};
+
+	struct MeshInfo
+	{
+		MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
+		MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset, Texture texture)
+		{
+			this->indexCount = indexCount;
+			this->indexOffset = indexOffset;
+			this->vertexOffset = vertexOffset;
+			this->texture = texture;
+		}
+		size_t indexCount;
+		size_t indexOffset;
+		size_t vertexOffset;
+		Texture texture;
+	};
+
+	struct ModelInGPU
+	{
+		unsigned int vertexCount = 0;
+		unsigned int indexCount  = 0;
+		unsigned int vertexOffset = 0;
+		unsigned int indexOffset = 0;
+		std::vector<MeshInfo> meshes;
+	};
 
     void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);

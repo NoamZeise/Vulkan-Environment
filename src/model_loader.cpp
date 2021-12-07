@@ -33,7 +33,7 @@ void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
 	vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
 }
 
-void ModelLoader::drawModel(VkCommandBuffer cmdBuff, Model model)
+void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model)
 {
 	if(model.ID >= models.size())
 	{	
@@ -41,9 +41,19 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, Model model)
 		return;
 	}
 	ModelInGPU modelInfo = models[model.ID];
-	for(size_t i = 0; i < modelInfo.meshOffset.size(); i++)
-		vkCmdDrawIndexed(cmdBuff, modelInfo.meshOffset[i][0], 1, modelInfo.meshOffset[i][1], modelInfo.meshOffset[i][2], 0);
-		//vkCmdDrawIndexed(cmdBuff, modelInfo.indexCount, 1, modelInfo.indexOffset, modelInfo.vertexOffset, 0);
+	for(size_t i = 0; i < modelInfo.meshes.size(); i++)
+	{
+		fragPushConstants fps{
+			glm::vec4(0, 0, 1, 1), //texOffset
+			modelInfo.meshes[i].texture.ID
+		};   
+
+		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
+		sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
+
+		vkCmdDrawIndexed(cmdBuff, modelInfo.meshes[i].indexCount, 1,
+		 modelInfo.meshes[i].indexOffset, modelInfo.meshes[i].vertexOffset, 0);
+	}
 }
 
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
@@ -52,7 +62,7 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 	Assimp::Importer importer;
 	const aiScene *scene = importer.ReadFile(path, 
 		aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_FlipUVs |
-		aiProcess_JoinIdenticalVertices | aiProcess_GenSmoothNormals);
+		aiProcess_JoinIdenticalVertices | aiProcess_GenNormals);
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
 	
@@ -90,7 +100,6 @@ void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* s
 }
 void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform)
 {
-	std::cout << "processing node" << std::endl;
 	loadMaterials(mesh, scene->mMaterials[aimesh->mMaterialIndex], texLoader);
 	
 	//vertcies
@@ -117,8 +126,6 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 		}
 		else
 			vertex.TexCoord = glm::vec3(0, 0, 0);
-		
-		vertex.TexID = mesh->texture.ID;
 
 		mesh->verticies.push_back(vertex);
 	}
@@ -172,11 +179,14 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 
 		model.vertexOffset = vertexDataSize / sizeof(loadedModels[i].meshes[0]->verticies[0]);
 		model.indexOffset = indexDataSize / sizeof(loadedModels[i].meshes[0]->indicies[0]);
-		model.meshOffset.resize(loadedModels[i].meshes.size());
+		model.meshes.resize(loadedModels[i].meshes.size());
 		for(size_t j = 0 ; j <  loadedModels[i].meshes.size(); j++)
 		{
-			model.meshOffset[j] = 
-				{ (unsigned int)loadedModels[i].meshes[j]->indicies.size(), model.indexCount, model.vertexCount };
+			model.meshes[j] = MeshInfo( 
+					loadedModels[i].meshes[j]->indicies.size(),
+					model.indexCount,
+					model.vertexCount,
+					loadedModels[i].meshes[j]->texture);
 			model.vertexCount += loadedModels[i].meshes[j]->verticies.size();
 			model.indexCount  += loadedModels[i].meshes[j]->indicies.size();
 			vertexDataSize += sizeof(loadedModels[i].meshes[j]->verticies[0]) * loadedModels[i].meshes[j]->verticies.size();

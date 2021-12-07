@@ -9,9 +9,11 @@ bugs:
 * check for supported textures, then convert to supported format if supplied textures are not suitable
 
 features:
-* phong lighting
+* blinn-phong lighting
 
 optimisations:
+* reduce memory allocations by combining into fewer calls, especially with descriptor sets
+* bind all descriptor sets in one command
 * organise draw calls, by storing each call to render.draw then execute draws at render.enddraw  
 * use gl_BaseInstance when drawing as an index into an array of model matricies
 

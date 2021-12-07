@@ -54,9 +54,10 @@ private:
 	VkCommandPool mGeneralCommandPool;
 	VkCommandBuffer mTransferCommandBuffer;
 	VkDescriptorPool mDescriptorPool;
-	DescriptorSets mViewprojDS;
+	DS::DescriptorSets mViewprojDS;
 	VkSampler mTexFragSampler;
-	DescriptorSets mTexturesDS;
+	DS::DescriptorSets mTexturesDS;
+	DS::DescriptorSets mLightingDS;
 	Resource::TextureLoader mTextureLoader;
 	Resource::ModelLoader mModelLoader;
 
@@ -64,12 +65,13 @@ private:
 	bool mFinishedLoadingResources = false;
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
-	viewProjectionBufferObj mUbo;
+	DS::viewProjection viewProjectionData;
+	DS::lighting lightingData;
 	float projectionFov = 45.0f;
 	
 	void updateViewProjectionMatrix();
-	void prepareViewProjDS();
 	void prepareFragmentDescriptorSets();
+	void prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt);
 	void destroySwapchainComponents();
 	void resize();
 

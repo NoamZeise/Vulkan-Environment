@@ -49,8 +49,9 @@ public:
 	static void framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
 	static void graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain,
 		VkRenderPass renderPass, std::vector<VkDescriptorSetLayout> dsLayouts);
-	static void CreateDescriptorSets(VkDevice device, DescriptorSets* descriptorSets, uint32_t binding,
-		uint32_t frames, VkDescriptorType type, uint32_t descriptorCount, VkShaderStageFlagBits stageFlags);
+	static void CreateDescriptorSets(VkDevice device, DS::DescriptorSets* descriptorSets,
+		 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, 
+		 VkShaderStageFlagBits stageFlags);
 #ifndef NDEBUG
 	static void debugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
 	static void DestroyDebugUtilsMessengerEXT(VkInstance instance,

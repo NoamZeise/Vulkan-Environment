@@ -613,43 +613,28 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 }
 
 
-void initVulkan::CreateDescriptorSets(VkDevice device, DescriptorSets* descriptorSets, uint32_t binding,
-	uint32_t frames, VkDescriptorType type, uint32_t descriptorCount, VkShaderStageFlagBits stageFlags)
+void initVulkan::CreateDescriptorSets(VkDevice device, DS::DescriptorSets* descriptorSets,
+	 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, VkShaderStageFlagBits stageFlags)
 {
-
-	//create pool
-	VkDescriptorPoolSize poolSize{};
-	poolSize.type = type;
-	poolSize.descriptorCount = frames;
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.poolSizeCount = 1;
-	poolInfo.pPoolSizes = &poolSize;
-	poolInfo.maxSets = frames;
-
-	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorSets->pool) != VK_SUCCESS)
-		throw std::runtime_error("failed to create descriptor pool");
 	//create layout
-	VkDescriptorSetLayoutBinding layoutBinding{};
-	layoutBinding.binding = binding;
-	layoutBinding.descriptorType = type;
-	layoutBinding.descriptorCount = descriptorCount;
-	layoutBinding.stageFlags = stageFlags;
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings(descriptorTypes.size());
+	descriptorSets->poolSize.resize(descriptorTypes.size());
+	for(size_t i = 0; i < descriptorTypes.size(); i++)
+	{
+		layoutBindings[i].binding = i;
+		layoutBindings[i].descriptorType = descriptorTypes[i];
+		layoutBindings[i].descriptorCount = descriptorCount[i];
+		layoutBindings[i].stageFlags = stageFlags;
+
+		descriptorSets->poolSize[i].type = descriptorTypes[i];
+		descriptorSets->poolSize[i].descriptorCount = descriptorCount[i];
+	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layoutInfo.bindingCount = 1;
-	layoutInfo.pBindings = &layoutBinding;
+	layoutInfo.bindingCount = layoutBindings.size();
+	layoutInfo.pBindings = layoutBindings.data();
 	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSets->layout) != VK_SUCCESS)
 		throw std::runtime_error("failed to create descriptor sets");
-
-	//create descriptor sets
-	std::vector<VkDescriptorSetLayout> layouts(frames, descriptorSets->layout);
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = descriptorSets->pool;
-	allocInfo.descriptorSetCount = frames;
-	allocInfo.pSetLayouts = layouts.data();
-	descriptorSets->sets.resize(frames);
-	if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets->sets.data()) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate descriptor sets");
 }
 
 //HELPERS

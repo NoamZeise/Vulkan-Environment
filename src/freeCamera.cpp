@@ -31,6 +31,10 @@ namespace camera
 			_position -= _front * velocity;
 		if(input.Keys[GLFW_KEY_D])
 			_position += _right * velocity;
+		if(input.Keys[GLFW_KEY_SPACE])
+			_position += _worldUp * velocity;
+		if(input.Keys[GLFW_KEY_LEFT_SHIFT])
+			_position -= _worldUp * velocity;
 
 		//mouse
 		_pitch   += (prevInput.Y - input.Y) * _sensitivity;

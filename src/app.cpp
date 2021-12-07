@@ -4,8 +4,8 @@
 App::App()
 {
 	//set member variables
-	mWindowWidth = 800;
-	mWindowHeight = 600;
+	mWindowWidth = 1600;
+	mWindowHeight = 900;
 	//init glfw window
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())
