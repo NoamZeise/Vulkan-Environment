@@ -26,29 +26,8 @@ void Render::initRender(GLFWwindow* window)
 	if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
 		throw std::runtime_error("failed to create window surface!");
 	initVulkan::device(mInstance, mBase.physicalDevice, &mBase.device, mSurface, &mBase.queue);
-	initVulkan::swapChain(mBase.device, mBase.physicalDevice, mSurface, &mSwapchain, mWindow, mBase.queue.graphicsPresentFamilyIndex);
-	initVulkan::renderPass(mBase.device, &mRenderPass, mSwapchain);
-	initVulkan::framebuffers(mBase.device, &mSwapchain, mRenderPass);
-
-
-	initVulkan::CreateDescriptorSets(mBase.device, &mViewprojDS,
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1}, 
-		VK_SHADER_STAGE_VERTEX_BIT);
 	
-	initVulkan::CreateDescriptorSets(mBase.device, &mTexturesDS, 
-		{VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE}, {1, Resource::MAX_TEXTURES_SUPPORTED}, 
-		VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	initVulkan::CreateDescriptorSets(mBase.device, &mLightingDS,
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1},
-		VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	std::vector<VkDescriptorSetLayout> dsLs = { mViewprojDS.layout, mTexturesDS.layout, mLightingDS.layout };
-
-	initVulkan::graphicsPipeline(mBase.device, &mPipeline, mSwapchain, mRenderPass, dsLs);
-
-	prepareDescriptorSet(mViewprojDS, mMemory.viewProj);
-	prepareDescriptorSet(mLightingDS, mMemory.lighting);
+	initFrameResources();
 
 	//create general command pool
 	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
@@ -76,7 +55,7 @@ Render::~Render()
 	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
 	mTextureLoader.~TextureLoader();
 	mModelLoader.~ModelLoader();
-	destroySwapchainComponents();
+	destroyFrameResources();
 	vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
 	initVulkan::destroySwapchain(&mSwapchain, mBase.device);
 	vkDestroyDevice(mBase.device, nullptr);
@@ -85,6 +64,25 @@ Render::~Render()
 	initVulkan::DestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger, nullptr);
 #endif
 	vkDestroyInstance(mInstance, nullptr);
+}
+
+void Render::initFrameResources()
+{
+	initVulkan::swapChain(mBase.device, mBase.physicalDevice, mSurface, &mSwapchain, mWindow, mBase.queue.graphicsPresentFamilyIndex);
+	initVulkan::renderPass(mBase.device, &mRenderPass, mSwapchain);
+	initVulkan::framebuffers(mBase.device, &mSwapchain, mRenderPass);
+	initVulkan::CreateDescriptorSets(mBase.device, &mViewprojDS,
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1}, 
+		VK_SHADER_STAGE_VERTEX_BIT);
+	initVulkan::CreateDescriptorSets(mBase.device, &mTexturesDS, 
+		{VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE}, {1, Resource::MAX_TEXTURES_SUPPORTED}, 
+		VK_SHADER_STAGE_FRAGMENT_BIT);
+	initVulkan::CreateDescriptorSets(mBase.device, &mLightingDS,
+		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1},
+		VK_SHADER_STAGE_FRAGMENT_BIT);
+	initVulkan::graphicsPipeline(mBase.device, &mPipeline, mSwapchain, mRenderPass, { mViewprojDS.layout, mTexturesDS.layout, mLightingDS.layout });
+	prepareDescriptorSet(mViewprojDS, mMemory.viewProj, mSwapchain.frameData.size());
+	prepareDescriptorSet(mLightingDS, mMemory.lighting, mSwapchain.frameData.size());
 }
 
 
@@ -122,7 +120,7 @@ void Render::endResourceLoad()
 {
 	mTextureLoader.endLoading();
 	mModelLoader.endLoading(mTransferCommandBuffer);
-	prepareFragmentDescriptorSets();
+	prepareFragmentDescriptorSet();
 	mFinishedLoadingResources = true;
 }
 
@@ -259,31 +257,10 @@ void Render::endDraw()
 void Render::resize()
 {
 	vkDeviceWaitIdle(mBase.device);
-	destroySwapchainComponents();
-	//recreate swapchain and framebuffer
-	initVulkan::swapChain(mBase.device, mBase.physicalDevice, mSurface, &mSwapchain, mWindow, mBase.queue.graphicsPresentFamilyIndex);
-	initVulkan::renderPass(mBase.device, &mRenderPass, mSwapchain);
+	destroyFrameResources();
 
-	initVulkan::CreateDescriptorSets(mBase.device, &mViewprojDS,
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1}, 
-		VK_SHADER_STAGE_VERTEX_BIT);
-	
-	initVulkan::CreateDescriptorSets(mBase.device, &mTexturesDS, 
-		{VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE}, {1, Resource::MAX_TEXTURES_SUPPORTED}, 
-		VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	initVulkan::CreateDescriptorSets(mBase.device, &mLightingDS,
-		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1},
-		VK_SHADER_STAGE_FRAGMENT_BIT);
-
-	std::vector<VkDescriptorSetLayout> dsLs = { mViewprojDS.layout, mTexturesDS.layout, mLightingDS.layout };
-
-	initVulkan::graphicsPipeline(mBase.device, &mPipeline, mSwapchain, mRenderPass, dsLs);
-	initVulkan::framebuffers(mBase.device, &mSwapchain, mRenderPass);
-
-	prepareDescriptorSet(mViewprojDS, mMemory.viewProj);
-	prepareDescriptorSet(mLightingDS, mMemory.lighting);
-	prepareFragmentDescriptorSets();
+	initFrameResources();
+	prepareFragmentDescriptorSet();
 
 	vkDeviceWaitIdle(mBase.device);
 	updateViewProjectionMatrix();
@@ -328,7 +305,7 @@ void Render::setViewMatrixAndFov(glm::mat4 view, float fov)
 	updateViewProjectionMatrix();
 }
 
-void Render::destroySwapchainComponents()
+void Render::destroyFrameResources()
 {
 	vkDestroyBuffer(mBase.device, mMemory.viewProj.buffer, nullptr);
 	vkFreeMemory(mBase.device, mMemory.viewProj.memory, nullptr);
@@ -345,28 +322,9 @@ void Render::destroySwapchainComponents()
 }
 
 
-void Render::prepareFragmentDescriptorSets()
+void Render::prepareFragmentDescriptorSet()
 {
-	mTexturesDS.sets.resize(mSwapchain.frameData.size());
-
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.maxSets = mTexturesDS.sets.size();
-	poolInfo.poolSizeCount = mTexturesDS.poolSize.size();
-	poolInfo.pPoolSizes = mTexturesDS.poolSize.data();
-	if (vkCreateDescriptorPool(mBase.device, &poolInfo, nullptr, &mTexturesDS.pool) != VK_SUCCESS)
-		throw std::runtime_error("failed to create descriptor pool");
-
-	for (int i = 0; i < mTexturesDS.sets.size(); i++)
-	{
-		VkDescriptorSetAllocateInfo allocInfo = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
-		allocInfo.pNext = nullptr;
-		allocInfo.descriptorPool = mTexturesDS.pool;
-		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = &mTexturesDS.layout;
-
-		vkAllocateDescriptorSets(mBase.device, &allocInfo, &mTexturesDS.sets[i]);
-	}
-
+	vkhelper::prepareDS(mBase.device, mTexturesDS, Resource::MAX_TEXTURES_SUPPORTED);
 
 	std::vector<VkDescriptorImageInfo> texInfos(Resource::MAX_TEXTURES_SUPPORTED);
 	for (uint32_t i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++)
@@ -404,28 +362,11 @@ void Render::prepareFragmentDescriptorSets()
 	vkUpdateDescriptorSets(mBase.device, mTexturesDS.sets.size() * 2, sampDSWrite.data(), 0, nullptr);
 }
 
-void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt)
+void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt, size_t setCount)
 {
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.poolSizeCount = ds.poolSize.size();
-	poolInfo.pPoolSizes = ds.poolSize.data();
-	poolInfo.maxSets = mSwapchain.frameData.size();
+	vkhelper::prepareDS(mBase.device, ds, setCount);
 
-	if (vkCreateDescriptorPool(mBase.device, &poolInfo, nullptr, &ds.pool) != VK_SUCCESS)
-		throw std::runtime_error("failed to create descriptor pool");
-
-		//create descriptor sets
-	std::vector<VkDescriptorSetLayout> layouts(mSwapchain.frameData.size(), ds.layout);
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = ds.pool;
-	allocInfo.descriptorSetCount = mSwapchain.frameData.size();
-	allocInfo.pSetLayouts = layouts.data();
-	ds.sets.resize(mSwapchain.frameData.size());
-	if (vkAllocateDescriptorSets(mBase.device, &allocInfo, ds.sets.data()) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate descriptor sets");
-	
 	VkDeviceSize slot = sizeof(DS::viewProjection);
-
 	VkPhysicalDeviceProperties physDevProps;
 	vkGetPhysicalDeviceProperties(mBase.physicalDevice, &physDevProps);
 	if (slot % physDevProps.limits.minUniformBufferOffsetAlignment != 0)
@@ -434,30 +375,10 @@ void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ub
 
 	ubt.memSize = slot * ds.sets.size();
 
-	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	bufferInfo.size = ubt.memSize;
-	bufferInfo.queueFamilyIndexCount = 1;
-	bufferInfo.pQueueFamilyIndices = &mBase.queue.graphicsPresentFamilyIndex;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(mBase.device, &bufferInfo, nullptr, &ubt.buffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create uniform buffer!");
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(mBase.device, ubt.buffer, &memRequirements);
-
-
-	uint32_t memIndex = vkhelper::findMemoryIndex(mBase.physicalDevice, memRequirements.memoryTypeBits,
+	vkhelper::createBufferAndMemory(mBase, ubt.memSize, &ubt.buffer, &ubt.memory, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
 		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
 
-	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	memInfo.allocationSize = memRequirements.size;
-	memInfo.memoryTypeIndex = memIndex;
-	if (vkAllocateMemory(mBase.device, &memInfo, nullptr, &ubt.memory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory");
-
 	vkBindBufferMemory(mBase.device, ubt.buffer, ubt.memory, 0);
-
 	vkMapMemory(mBase.device, ubt.memory, 0, ubt.memSize, 0, &ubt.pointer);
 
 	for (size_t i = 0; i < ds.sets.size(); i++)

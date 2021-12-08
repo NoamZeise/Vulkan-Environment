@@ -28,7 +28,6 @@ class Render
 {
 public:
 	Render(GLFWwindow* window);
-	void initRender(GLFWwindow* window);
 	Render(GLFWwindow* window, glm::vec2 target);
 	void setViewMatrixAndFov(glm::mat4 view, float fov);
 	~Render();
@@ -50,14 +49,16 @@ private:
 	SwapChain mSwapchain;
 	VkRenderPass mRenderPass;
 	Pipeline mPipeline;
-	memoryObjects mMemory;
 	VkCommandPool mGeneralCommandPool;
 	VkCommandBuffer mTransferCommandBuffer;
-	VkDescriptorPool mDescriptorPool;
+
+	//descriptor set members
+	memoryObjects mMemory;
 	DS::DescriptorSets mViewprojDS;
 	VkSampler mTexFragSampler;
 	DS::DescriptorSets mTexturesDS;
 	DS::DescriptorSets mLightingDS;
+
 	Resource::TextureLoader mTextureLoader;
 	Resource::ModelLoader mModelLoader;
 
@@ -69,10 +70,12 @@ private:
 	DS::lighting lightingData;
 	float projectionFov = 45.0f;
 	
+	void initRender(GLFWwindow* window);
+	void initFrameResources();
 	void updateViewProjectionMatrix();
-	void prepareFragmentDescriptorSets();
-	void prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt);
-	void destroySwapchainComponents();
+	void prepareFragmentDescriptorSet();
+	void prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt, size_t setCount);
+	void destroyFrameResources();
 	void resize();
 
 #ifndef NDEBUG

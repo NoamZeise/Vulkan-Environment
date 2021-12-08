@@ -569,7 +569,7 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	depthStencilInfo.depthTestEnable = VK_TRUE;
 	depthStencilInfo.depthWriteEnable = VK_TRUE;
 	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-	depthStencilInfo.depthBoundsTestEnable = VK_FALSE; //keep frags within range?
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
 
 	//config colour blend attachment
 	VkPipelineColorBlendAttachmentState blendAttachment{};
@@ -781,13 +781,9 @@ void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevic
 	//assign memory for attach image
 	VkMemoryRequirements memreq;
 	vkGetImageMemoryRequirements(device, attachIm->image, &memreq);
-	
-	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	memInfo.allocationSize = memreq.size;
-	memInfo.memoryTypeIndex = vkhelper::findMemoryIndex(physicalDevice, memreq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-	if(vkAllocateMemory(device, &memInfo, nullptr, &attachIm->memory) != VK_SUCCESS)
-		throw std::runtime_error("Failed to allocate memory for attachment image!");
+	vkhelper::createMemory(device, physicalDevice, memreq.size, &attachIm->memory, 
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memreq.memoryTypeBits);
 	
 	vkBindImageMemory(device, attachIm->image, attachIm->memory, 0);
 

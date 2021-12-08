@@ -183,8 +183,7 @@ void TextureLoader::endLoading()
 		finalMemSize += textures[i].imageMemSize;
 	}
 	//create device local memory for permanent storage of images
-	vkhelper::createMemory(base, finalMemSize, &memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
-
+	vkhelper::createMemory(base.device, base.physicalDevice, finalMemSize, &memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
 
 	//transition image to required format
 //create command buffer

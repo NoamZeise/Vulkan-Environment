@@ -114,10 +114,11 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 		vertex.Position.z = transformedVertex.z;
 		if(aimesh->HasNormals())
 		{
-			aiVector3D transformedNormal = transform * aimesh->mNormals[i]; 
+			aiVector3D transformedNormal = /*transform */ aimesh->mNormals[i]; 
 			vertex.Normal.x = transformedNormal.x;
 			vertex.Normal.y = transformedNormal.y;
 			vertex.Normal.z = transformedNormal.z;
+			//std::cout << transformedNormal.x << std::endl;
 		}
 		else
 			vertex.Normal = glm::vec3(0, 0, 0);
@@ -225,27 +226,9 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 	loadedModels.clear();
 
 	//create final dest memory
-
-	VkBufferCreateInfo finalbufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	finalbufferInfo.size = vertexDataSize + indexDataSize;
-	finalbufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	finalbufferInfo.queueFamilyIndexCount = 1;
-	finalbufferInfo.pQueueFamilyIndices = &base.queue.graphicsPresentFamilyIndex;
-	finalbufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(base.device, &finalbufferInfo, nullptr, &buffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create model data buffer!");
-	VkMemoryRequirements finalMemRequirements;
-	vkGetBufferMemoryRequirements(base.device, buffer, &finalMemRequirements);
-
-	uint32_t memIndex = vkhelper::findMemoryIndex(
-		base.physicalDevice, finalMemRequirements.memoryTypeBits,
+	vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &buffer, &memory, 
+		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-	VkMemoryAllocateInfo memInfo{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
-	memInfo.allocationSize = finalMemRequirements.size;
-	memInfo.memoryTypeIndex = memIndex;
-	if (vkAllocateMemory(base.device, &memInfo, nullptr, &memory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory");
 
 	vkBindBufferMemory(base.device, buffer, memory, 0);
 

@@ -23,8 +23,9 @@ struct vkhelper
 	static glm::vec4 getTextureOffset(glm::vec4 drawArea, glm::vec4 textureArea);
 	static void createBufferAndMemory(Base base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory,
 		VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-	static void createMemory(Base base, VkDeviceSize size, VkDeviceMemory* memory,
+	static void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory,
 		VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
+	static void prepareDS(VkDevice device, DS::DescriptorSets &ds, size_t setCount);
 };
 
 

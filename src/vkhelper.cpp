@@ -61,21 +61,37 @@ void vkhelper::createBufferAndMemory(Base base, VkDeviceSize size, VkBuffer* buf
 	VkMemoryRequirements memReq;
 	vkGetBufferMemoryRequirements(base.device, *buffer, &memReq);
 
-	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-	memInfo.allocationSize = memReq.size;
-	memInfo.memoryTypeIndex = findMemoryIndex(base.physicalDevice, memReq.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(base.device, &memInfo, nullptr, memory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory of size " + memReq.size);
+	createMemory(base.device, base.physicalDevice, memReq.size, memory, properties, memReq.memoryTypeBits);
 }
 
-void vkhelper::createMemory(Base base, VkDeviceSize size, VkDeviceMemory* memory,
-	VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
+void vkhelper::createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory,
+		VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
 {
 	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	memInfo.allocationSize = size;
-	memInfo.memoryTypeIndex = findMemoryIndex(base.physicalDevice, memoryTypeBits, properties);
+	memInfo.memoryTypeIndex = findMemoryIndex(physicalDevice, memoryTypeBits, properties);
 
-	if (vkAllocateMemory(base.device, &memInfo, nullptr, memory) != VK_SUCCESS)
+	if (vkAllocateMemory(device, &memInfo, nullptr, memory) != VK_SUCCESS)
 		throw std::runtime_error("failed to allocate memory of size " + size);
+}
+
+
+void vkhelper::prepareDS(VkDevice device, DS::DescriptorSets &ds, size_t setCount)
+{
+	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	poolInfo.poolSizeCount = ds.poolSize.size();
+	poolInfo.pPoolSizes = ds.poolSize.data();
+	poolInfo.maxSets = setCount;
+	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &ds.pool) != VK_SUCCESS)
+		throw std::runtime_error("failed to create descriptor pool");
+
+	std::vector<VkDescriptorSetLayout> layouts(setCount, ds.layout);
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = ds.pool;
+	allocInfo.descriptorSetCount = layouts.size();
+	allocInfo.pSetLayouts = layouts.data();
+	ds.sets.resize(setCount);
+	if (vkAllocateDescriptorSets(device, &allocInfo, ds.sets.data()) != VK_SUCCESS)
+		throw std::runtime_error("failed to allocate descriptor sets");
+	
 }
