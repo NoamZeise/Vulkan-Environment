@@ -76,7 +76,7 @@ void vkhelper::createMemory(VkDevice device, VkPhysicalDevice physicalDevice, Vk
 }
 
 
-void vkhelper::prepareDS(VkDevice device, DS::DescriptorSets &ds, size_t setCount)
+void vkhelper::createDescriptorSet(VkDevice device, DS::DescriptorSets &ds, size_t setCount)
 {
 	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	poolInfo.poolSizeCount = ds.poolSize.size();

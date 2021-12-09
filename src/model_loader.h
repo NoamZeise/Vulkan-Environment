@@ -21,6 +21,7 @@
 
 #include "texture_loader.h"
 #include "typeStructs.h"
+#include "pipeline.h"
 #include "vkhelper.h"
 
 namespace Resource

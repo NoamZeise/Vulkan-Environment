@@ -71,18 +71,47 @@ void Render::initFrameResources()
 	initVulkan::swapChain(mBase.device, mBase.physicalDevice, mSurface, &mSwapchain, mWindow, mBase.queue.graphicsPresentFamilyIndex);
 	initVulkan::renderPass(mBase.device, &mRenderPass, mSwapchain);
 	initVulkan::framebuffers(mBase.device, &mSwapchain, mRenderPass);
-	initVulkan::CreateDescriptorSets(mBase.device, &mViewprojDS,
+
+	initVulkan::CreateDescriptorSetLayout(mBase.device, &mViewprojDS,
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1}, 
 		VK_SHADER_STAGE_VERTEX_BIT);
-	initVulkan::CreateDescriptorSets(mBase.device, &mTexturesDS, 
+	initVulkan::CreateDescriptorSetLayout(mBase.device, &mTexturesDS, 
 		{VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE}, {1, Resource::MAX_TEXTURES_SUPPORTED}, 
 		VK_SHADER_STAGE_FRAGMENT_BIT);
-	initVulkan::CreateDescriptorSets(mBase.device, &mLightingDS,
+	initVulkan::CreateDescriptorSetLayout(mBase.device, &mLightingDS,
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1},
 		VK_SHADER_STAGE_FRAGMENT_BIT);
-	initVulkan::graphicsPipeline(mBase.device, &mPipeline, mSwapchain, mRenderPass, { mViewprojDS.layout, mTexturesDS.layout, mLightingDS.layout });
-	prepareDescriptorSet(mViewprojDS, mMemory.viewProj, mSwapchain.frameData.size());
-	prepareDescriptorSet(mLightingDS, mMemory.lighting, mSwapchain.frameData.size());
+
+	initVulkan::graphicsPipeline(mBase.device, &mainPipeline, mSwapchain, mRenderPass, 
+	{ &mViewprojDS, &mTexturesDS, &mLightingDS },
+	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
+	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
+	"shaders/vbasicDirectional.spv", "shaders/fBasicDirectional.spv");
+
+	initVulkan::graphicsPipeline(mBase.device, &flatPipeline, mSwapchain, mRenderPass, 
+	{ &mViewprojDS, &mTexturesDS},
+	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
+	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
+	"shaders/vflat.spv", "shaders/fflat.spv");
+
+	prepareDescriptorSet(mViewprojDS, mMemory.viewProj, mSwapchain.frameData.size(), sizeof(DS::viewProjection));
+	prepareDescriptorSet(mLightingDS, mMemory.lighting, mSwapchain.frameData.size(), sizeof(DS::lighting));
+}
+
+void Render::destroyFrameResources()
+{
+	vkDestroyBuffer(mBase.device, mMemory.viewProj.buffer, nullptr);
+	vkFreeMemory(mBase.device, mMemory.viewProj.memory, nullptr);
+	vkDestroyBuffer(mBase.device, mMemory.lighting.buffer, nullptr);
+	vkFreeMemory(mBase.device, mMemory.lighting.memory, nullptr);
+	mViewprojDS.destroySet(mBase.device);
+	mTexturesDS.destroySet(mBase.device);
+	mLightingDS.destroySet(mBase.device);
+	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
+		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
+	mainPipeline.destroy(mBase.device);
+	flatPipeline.destroy(mBase.device);
+	vkDestroyRenderPass(mBase.device, mRenderPass, nullptr);
 }
 
 
@@ -188,20 +217,11 @@ void Render::startDraw()
 	//begin render pass
 	vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	//bind descriptor sets
-	vkCmdBindDescriptorSets(mSwapchain.frameData[mImg].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-		mPipeline.layout, 0, 1, &mViewprojDS.sets[mImg], 0, nullptr);
-
-	vkCmdBindDescriptorSets(mSwapchain.frameData[mImg].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-		mPipeline.layout, 1, 1, &mTexturesDS.sets[mImg], 0, nullptr);
-
-	vkCmdBindDescriptorSets(mSwapchain.frameData[mImg].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-		mPipeline.layout, 2, 1, &mLightingDS.sets[mImg], 0, nullptr);
-
-	//bind graphics pipeline
-	vkCmdBindPipeline(mSwapchain.frameData[mImg].commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline.pipeline);
 	//bind vertex buffer
 	mModelLoader.bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
+
+	//bind pipeline
+	flatPipeline.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
 }
 
 void Render::endDraw()
@@ -254,6 +274,18 @@ void Render::endDraw()
 	mSwapchain.imageAquireSem.push_back(mImgAquireSem);
 }
 
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix)
+{
+	//push constants
+	vectPushConstants vps{};
+	vps.model = modelMatrix;
+	vps.normalMat = glm::transpose(glm::inverse(modelMatrix));
+	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
+		0, sizeof(vectPushConstants), &vps);
+
+	mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, model);
+}
+
 void Render::resize()
 {
 	vkDeviceWaitIdle(mBase.device);
@@ -265,19 +297,6 @@ void Render::resize()
 	vkDeviceWaitIdle(mBase.device);
 	updateViewProjectionMatrix();
 }
-
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix)
-{
-	//push constants
-	vectPushConstants vps{};
-	vps.model = modelMatrix;
-	vps.normalMat = glm::transpose(glm::inverse(modelMatrix));
-	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
-		0, sizeof(vectPushConstants), &vps);
-
-	mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline.layout, model);
-}
-
 
 void Render::updateViewProjectionMatrix()
 {
@@ -305,26 +324,9 @@ void Render::setViewMatrixAndFov(glm::mat4 view, float fov)
 	updateViewProjectionMatrix();
 }
 
-void Render::destroyFrameResources()
-{
-	vkDestroyBuffer(mBase.device, mMemory.viewProj.buffer, nullptr);
-	vkFreeMemory(mBase.device, mMemory.viewProj.memory, nullptr);
-	vkDestroyBuffer(mBase.device, mMemory.lighting.buffer, nullptr);
-	vkFreeMemory(mBase.device, mMemory.lighting.memory, nullptr);
-	mViewprojDS.destroySet(mBase.device);
-	mTexturesDS.destroySet(mBase.device);
-	mLightingDS.destroySet(mBase.device);
-	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
-		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
-	vkDestroyPipeline(mBase.device, mPipeline.pipeline, nullptr);
-	vkDestroyPipelineLayout(mBase.device, mPipeline.layout, nullptr);
-	vkDestroyRenderPass(mBase.device, mRenderPass, nullptr);
-}
-
-
 void Render::prepareFragmentDescriptorSet()
 {
-	vkhelper::prepareDS(mBase.device, mTexturesDS, Resource::MAX_TEXTURES_SUPPORTED);
+	vkhelper::createDescriptorSet(mBase.device, mTexturesDS, Resource::MAX_TEXTURES_SUPPORTED);
 
 	std::vector<VkDescriptorImageInfo> texInfos(Resource::MAX_TEXTURES_SUPPORTED);
 	for (uint32_t i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++)
@@ -348,7 +350,7 @@ void Render::prepareFragmentDescriptorSet()
 		sampDSWrite[i].dstArrayElement = 0;
 		sampDSWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
 		sampDSWrite[i].descriptorCount = 1;
-		sampDSWrite[i].pImageInfo = &imgSamplerInfo; //todo sampler
+		sampDSWrite[i].pImageInfo = &imgSamplerInfo; 
 
 		sampDSWrite[i + 1].dstSet = mTexturesDS.sets[index];
 		sampDSWrite[i + 1].pBufferInfo = 0;
@@ -362,17 +364,18 @@ void Render::prepareFragmentDescriptorSet()
 	vkUpdateDescriptorSets(mBase.device, mTexturesDS.sets.size() * 2, sampDSWrite.data(), 0, nullptr);
 }
 
-void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt, size_t setCount)
+void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferMemory &ubt, size_t setCount, size_t dsSize)
 {
-	vkhelper::prepareDS(mBase.device, ds, setCount);
+	vkhelper::createDescriptorSet(mBase.device, ds, setCount);
 
-	VkDeviceSize slot = sizeof(DS::viewProjection);
+	VkDeviceSize slot = dsSize;
 	VkPhysicalDeviceProperties physDevProps;
 	vkGetPhysicalDeviceProperties(mBase.physicalDevice, &physDevProps);
 	if (slot % physDevProps.limits.minUniformBufferOffsetAlignment != 0)
 		slot = slot + physDevProps.limits.minUniformBufferOffsetAlignment
 		- (slot % physDevProps.limits.minUniformBufferOffsetAlignment);
 
+	ubt.slotSize = slot;
 	ubt.memSize = slot * ds.sets.size();
 
 	vkhelper::createBufferAndMemory(mBase, ubt.memSize, &ubt.buffer, &ubt.memory, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
@@ -381,22 +384,21 @@ void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ub
 	vkBindBufferMemory(mBase.device, ubt.buffer, ubt.memory, 0);
 	vkMapMemory(mBase.device, ubt.memory, 0, ubt.memSize, 0, &ubt.pointer);
 
+	std::vector<VkWriteDescriptorSet> writes(ds.sets.size(), {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+	std::vector<VkDescriptorBufferInfo> buffInfos(ds.sets.size());
+
 	for (size_t i = 0; i < ds.sets.size(); i++)
 	{
-		VkDescriptorBufferInfo bufferInfo{};
-		bufferInfo.buffer = ubt.buffer;
-		bufferInfo.offset = slot * i;
-		bufferInfo.range = slot;
+		buffInfos[i].buffer = ubt.buffer;
+		buffInfos[i].offset = slot * i;
+		buffInfos[i].range = slot;
 
-		VkWriteDescriptorSet writeSet{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-		writeSet.dstSet = ds.sets[i];
-		writeSet.pBufferInfo = &bufferInfo;
-		writeSet.dstBinding = 0;
-		writeSet.dstArrayElement = 0;
-		writeSet.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		writeSet.descriptorCount = 1;
-
-		vkUpdateDescriptorSets(mBase.device, 1, &writeSet, 0, nullptr);
+		writes[i].dstSet = ds.sets[i];
+		writes[i].pBufferInfo = buffInfos.data() + i;
+		writes[i].dstBinding = 0;
+		writes[i].dstArrayElement = 0;
+		writes[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		writes[i].descriptorCount = 1;
 	}
-	ubt.slotSize = slot;
+	vkUpdateDescriptorSets(mBase.device, writes.size(), writes.data(), 0, nullptr);
 }

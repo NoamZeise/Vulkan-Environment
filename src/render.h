@@ -20,6 +20,8 @@
 #include "vkinit.h"
 #include "vkhelper.h"
 #include "typeStructs.h"
+#include "pipeline.h"
+#include "descriptorSets.h"
 #include "texture_loader.h"
 #include "texfont.h"
 #include "model_loader.h"
@@ -48,16 +50,20 @@ private:
 	FrameData mFrame;
 	SwapChain mSwapchain;
 	VkRenderPass mRenderPass;
-	Pipeline mPipeline;
+
 	VkCommandPool mGeneralCommandPool;
 	VkCommandBuffer mTransferCommandBuffer;
+
+	Pipeline mainPipeline;
+	Pipeline flatPipeline;
 
 	//descriptor set members
 	memoryObjects mMemory;
 	DS::DescriptorSets mViewprojDS;
-	VkSampler mTexFragSampler;
 	DS::DescriptorSets mTexturesDS;
 	DS::DescriptorSets mLightingDS;
+	DS::viewProjection viewProjectionData;
+	DS::lighting lightingData;
 
 	Resource::TextureLoader mTextureLoader;
 	Resource::ModelLoader mModelLoader;
@@ -66,17 +72,16 @@ private:
 	bool mFinishedLoadingResources = false;
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
-	DS::viewProjection viewProjectionData;
-	DS::lighting lightingData;
 	float projectionFov = 45.0f;
 	
 	void initRender(GLFWwindow* window);
 	void initFrameResources();
-	void updateViewProjectionMatrix();
-	void prepareFragmentDescriptorSet();
-	void prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferTypes &ubt, size_t setCount);
 	void destroyFrameResources();
 	void resize();
+	void updateViewProjectionMatrix();
+	//move outside render!
+	void prepareFragmentDescriptorSet();
+	void prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferMemory &ubt, size_t setCount, size_t dsSize);
 
 #ifndef NDEBUG
 	VkDebugUtilsMessengerEXT mDebugMessenger;

@@ -17,6 +17,7 @@
 #include <cstring>
 
 #include "typeStructs.h"
+#include "pipeline.h"
 #include "vkhelper.h"
 
 #ifndef NDEBUG
@@ -47,9 +48,11 @@ public:
 	static void destroySwapchain(SwapChain* swapchain, const VkDevice& device);
 	static void renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain);
 	static void framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
-	static void graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain,
-		VkRenderPass renderPass, std::vector<VkDescriptorSetLayout> dsLayouts);
-	static void CreateDescriptorSets(VkDevice device, DS::DescriptorSets* descriptorSets,
+	static void graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
+	std::vector<DS::DescriptorSets*> descriptorSets, 
+	std::vector<VkPushConstantRange> pushConstantsRanges,
+	std::string vertexShaderPath, std::string fragmentShaderPath);
+	static void CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSets* descriptorSets,
 		 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, 
 		 VkShaderStageFlagBits stageFlags);
 #ifndef NDEBUG

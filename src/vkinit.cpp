@@ -482,27 +482,28 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 	}
 }
 
-void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass, std::vector<VkDescriptorSetLayout> dsV)
+void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
+	std::vector<DS::DescriptorSets*> descriptorSets, 
+	std::vector<VkPushConstantRange> pushConstantsRanges,
+	std::string vertexShaderPath, std::string fragmentShaderPath)
 {
-	std::array<VkPushConstantRange, 2> pushConsts;
-	pushConsts[0].offset = 0;
-	pushConsts[0].size = sizeof(vectPushConstants);
-	pushConsts[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	pushConsts[1].offset = sizeof(vectPushConstants);
-	pushConsts[1].size = sizeof(fragPushConstants);
-	pushConsts[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
+	pipeline->descriptorSets = descriptorSets;
 
 	//load shader modules
-	auto vertexShaderModule = loadShaderModule(device, "shaders/vert.spv");
-	auto fragmentShaderModule = loadShaderModule(device, "shaders/frag.spv");
+	auto vertexShaderModule = loadShaderModule(device, vertexShaderPath);
+	auto fragmentShaderModule = loadShaderModule(device, fragmentShaderPath);
 
 	//create pipeline layout
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(descriptorSets.size());
+	
+	for (size_t i = 0; i < descriptorSets.size(); i++)
+		descriptorSetLayouts[i] = descriptorSets[i]->layout;
+	
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutInfo.setLayoutCount = dsV.size();
-	pipelineLayoutInfo.pSetLayouts = dsV.data();
-	pipelineLayoutInfo.pushConstantRangeCount = pushConsts.size();
-	pipelineLayoutInfo.pPushConstantRanges = pushConsts.data();
+	pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+	pipelineLayoutInfo.pushConstantRangeCount = pushConstantsRanges.size();
+	pipelineLayoutInfo.pPushConstantRanges = pushConstantsRanges.data();
 	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipeline->layout) != VK_SUCCESS)
 		throw std::runtime_error("failed to create pipeline layout");
 
@@ -613,7 +614,8 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 }
 
 
-void initVulkan::CreateDescriptorSets(VkDevice device, DS::DescriptorSets* descriptorSets,
+
+void initVulkan::CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSets* descriptorSets,
 	 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, VkShaderStageFlagBits stageFlags)
 {
 	//create layout
@@ -701,7 +703,7 @@ VkShaderModule initVulkan::loadShaderModule(VkDevice device, std::string file)
 
 	std::ifstream in(file, std::ios::binary | std::ios::ate);
 	if (!in.is_open())
-		throw std::runtime_error("failed to load file");
+		throw std::runtime_error("failed to load shader at " + file);
 
 	size_t fileSize = (size_t)in.tellg();
 	std::vector<char> shaderCode(fileSize);
