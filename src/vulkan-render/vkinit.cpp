@@ -483,7 +483,7 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 }
 
 void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
-	std::vector<DS::DescriptorSets*> descriptorSets, 
+	std::vector<DS::DescriptorSet*> descriptorSets, 
 	std::vector<VkPushConstantRange> pushConstantsRanges,
 	std::string vertexShaderPath, std::string fragmentShaderPath)
 {
@@ -615,7 +615,7 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 
 
 
-void initVulkan::CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSets* descriptorSets,
+void initVulkan::CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSet* descriptorSets,
 	 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, VkShaderStageFlagBits stageFlags)
 {
 	//create layout

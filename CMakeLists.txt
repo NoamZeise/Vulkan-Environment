@@ -28,7 +28,9 @@ endif()
 
 #add executables
 file(GLOB SOURCES src/*)
-add_executable(${ProjectName} ${SOURCES})
+file(GLOB VULKAN-RENDER src/vulkan-render/*)
+add_executable(${ProjectName} ${SOURCES}
+                              ${VULKAN-RENDER})
 
 #link
 if(UNIX)

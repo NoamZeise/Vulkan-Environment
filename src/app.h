@@ -15,11 +15,11 @@
 
 #include <iostream>
 
-#include "render.h"
+#include "vulkan-render/render.h"
 #include "input.h"
 #include "audio.h"
 #include "timer.h"
-#include "freeCamera.h"
+#include "camera.h"
 
 class App
 {

@@ -76,7 +76,7 @@ void vkhelper::createMemory(VkDevice device, VkPhysicalDevice physicalDevice, Vk
 }
 
 
-void vkhelper::createDescriptorSet(VkDevice device, DS::DescriptorSets &ds, size_t setCount)
+void vkhelper::createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount)
 {
 	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 	poolInfo.poolSizeCount = ds.poolSize.size();
@@ -94,4 +94,56 @@ void vkhelper::createDescriptorSet(VkDevice device, DS::DescriptorSets &ds, size
 	if (vkAllocateDescriptorSets(device, &allocInfo, ds.sets.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to allocate descriptor sets");
 	
+}
+
+void vkhelper::prepareUniformBufferSets(Base base,	std::vector<DS::UniformBufferSet*> ds, 
+										VkBuffer* buffer, VkDeviceMemory* memory)
+{
+	size_t memorySize = 0;
+	for (size_t i = 0; i < ds.size(); i++)
+	{
+		VkDeviceSize slot = ds[i]->dsStructSize;
+		VkPhysicalDeviceProperties physDevProps;
+		vkGetPhysicalDeviceProperties(base.physicalDevice, &physDevProps);
+		if (slot % physDevProps.limits.minUniformBufferOffsetAlignment != 0)
+			slot = slot + physDevProps.limits.minUniformBufferOffsetAlignment
+			- (slot % physDevProps.limits.minUniformBufferOffsetAlignment);
+
+		ds[i]->slotSize = slot;
+		ds[i]->offset = memorySize;
+		memorySize += slot * ds[i]->setCount;
+	}
+	
+	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
+
+	
+	vkBindBufferMemory(base.device, *buffer, *memory, 0);
+	void* pointer;
+	vkMapMemory(base.device, *memory, 0, memorySize, 0, &pointer);	
+
+	for (size_t dI = 0; dI < ds.size(); dI++)
+	{
+		ds[dI]->pointer = pointer;
+
+		vkhelper::createDescriptorSet(base.device, ds[dI]->ds, ds[dI]->setCount);
+
+		std::vector<VkWriteDescriptorSet> writes(ds[dI]->setCount, {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+		std::vector<VkDescriptorBufferInfo> buffInfos(ds[dI]->setCount);
+
+		for (size_t i = 0; i < ds[dI]->setCount; i++)
+		{
+			buffInfos[i].buffer = *buffer;
+			buffInfos[i].offset = ds[dI]->offset + (ds[dI]->slotSize * i);
+			buffInfos[i].range = ds[dI]->slotSize;
+
+			writes[i].dstSet = ds[dI]->ds.sets[i];
+			writes[i].pBufferInfo = buffInfos.data() + i;
+			writes[i].dstBinding = 0;
+			writes[i].dstArrayElement = 0;
+			writes[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			writes[i].descriptorCount = 1;
+		}
+		vkUpdateDescriptorSets(base.device, writes.size(), writes.data(), 0, nullptr);
+	}
 }

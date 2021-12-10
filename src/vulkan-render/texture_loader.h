@@ -15,6 +15,7 @@
 
 #include "stb_image.h"
 #include "typeStructs.h"
+#include "descriptorSets.h"
 #include "vkhelper.h"
 
 namespace Resource
@@ -90,6 +91,7 @@ public:
 	uint32_t loadTexture(unsigned char* data, int width, int height, int nrChannels);
 	VkImageView getImageView(uint32_t texID);
 	void endLoading();
+	void prepareFragmentDescriptorSet(DS::DescriptorSet &textureDS);
 
 	VkSampler sampler;
 

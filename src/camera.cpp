@@ -1,4 +1,4 @@
-#include "freeCamera.h"
+#include "camera.h"
 
 namespace camera
 {

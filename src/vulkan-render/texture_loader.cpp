@@ -394,4 +394,47 @@ VkImageView TextureLoader::getImageView(uint32_t texID)
 	else
 		throw std::runtime_error("no textures to replace error id with");
 }
+
+void TextureLoader::prepareFragmentDescriptorSet(DS::DescriptorSet &textureDS)
+{
+	vkhelper::createDescriptorSet(base.device, textureDS, MAX_TEXTURES_SUPPORTED);
+
+	std::vector<VkDescriptorImageInfo> texInfos(MAX_TEXTURES_SUPPORTED);
+	for (uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
+	{
+		texInfos[i].sampler = nullptr;
+		texInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		texInfos[i].imageView = getImageView(i);
+	}
+
+	VkDescriptorImageInfo imgSamplerInfo = {};
+	imgSamplerInfo.sampler = this->sampler;
+
+	//sampler
+	std::vector<VkWriteDescriptorSet> sampDSWrite(textureDS.sets.size() * 2, { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET });
+	int index = 0;
+	for (size_t i = 0; i < textureDS.sets.size() * 2; i+=2)
+	{
+		sampDSWrite[i].dstSet = textureDS.sets[index];
+		sampDSWrite[i].pBufferInfo = 0;
+		sampDSWrite[i].dstBinding = 0;
+		sampDSWrite[i].dstArrayElement = 0;
+		sampDSWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+		sampDSWrite[i].descriptorCount = 1;
+		sampDSWrite[i].pImageInfo = &imgSamplerInfo; 
+
+		sampDSWrite[i + 1].dstSet = textureDS.sets[index];
+		sampDSWrite[i + 1].pBufferInfo = 0;
+		sampDSWrite[i + 1].dstBinding = 1;
+		sampDSWrite[i + 1].dstArrayElement = 0;
+		sampDSWrite[i + 1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		sampDSWrite[i + 1].descriptorCount = MAX_TEXTURES_SUPPORTED;
+		sampDSWrite[i + 1].pImageInfo = texInfos.data();
+		index++;
+	}
+	vkUpdateDescriptorSets(base.device, textureDS.sets.size() * 2, sampDSWrite.data(), 0, nullptr);
 }
+
+
+
+}//end namesapce

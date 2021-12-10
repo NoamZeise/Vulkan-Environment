@@ -58,10 +58,12 @@ private:
 	Pipeline flatPipeline;
 
 	//descriptor set members
-	memoryObjects mMemory;
-	DS::DescriptorSets mViewprojDS;
-	DS::DescriptorSets mTexturesDS;
-	DS::DescriptorSets mLightingDS;
+	VkDeviceMemory uboMemory;
+	VkBuffer uboBuffer;
+	DS::UniformBufferSet mViewprojUbo;
+	DS::UniformBufferSet mLightingUbo;
+	DS::DescriptorSet mTexturesDS;
+
 	DS::viewProjection viewProjectionData;
 	DS::lighting lightingData;
 
@@ -79,9 +81,6 @@ private:
 	void destroyFrameResources();
 	void resize();
 	void updateViewProjectionMatrix();
-	//move outside render!
-	void prepareFragmentDescriptorSet();
-	void prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferMemory &ubt, size_t setCount, size_t dsSize);
 
 #ifndef NDEBUG
 	VkDebugUtilsMessengerEXT mDebugMessenger;

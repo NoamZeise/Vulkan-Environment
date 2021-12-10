@@ -15,6 +15,7 @@
 #include <stdexcept>
 
 #include "typeStructs.h"
+#include "descriptorSets.h"
 #include "pipeline.h"
 
 struct vkhelper
@@ -26,7 +27,9 @@ struct vkhelper
 		VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
 	static void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory,
 		VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
-	static void createDescriptorSet(VkDevice device, DS::DescriptorSets &ds, size_t setCount);
+	static void createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount);
+	static void prepareUniformBufferSets(Base base,	std::vector<DS::UniformBufferSet*> ds,
+		VkBuffer* buffer, VkDeviceMemory* memory);
 };
 
 

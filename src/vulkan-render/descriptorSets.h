@@ -17,6 +17,7 @@
 #include <string>
 
 
+
 namespace DS
 {
 
@@ -40,7 +41,7 @@ struct lighting
 	alignas(16) glm::vec4 directionalVec;
 };
 
-struct DescriptorSets
+struct DescriptorSet
 {
 	void destroySet(VkDevice device)
 	{
@@ -51,25 +52,31 @@ struct DescriptorSets
 	VkDescriptorSetLayout layout;
 	std::vector<VkDescriptorSet> sets;
 	std::vector<VkDescriptorPoolSize> poolSize;
-	uint32_t binding;
+};
+
+struct UniformBufferSet
+{
+	DescriptorSet  ds;
+	
+	size_t setCount;
+	size_t dsStructSize;
+
+	size_t offset;
+	VkDeviceSize slotSize;
+	void* pointer;
+
+	void setPerUboProperties(size_t setCount, size_t dsStructSize)
+	{
+		this->setCount = setCount;
+		this->dsStructSize = dsStructSize;
+	}
+	void storeSetData(size_t frameIndex, void* data)
+	{
+		std::memcpy(static_cast<char*>(pointer) + offset + (frameIndex * slotSize), data, dsStructSize);
+	}
 };
 
 } //end DS namespace
-
-struct UniformBufferMemory
-{
-	VkBuffer buffer;
-	VkDeviceSize memSize;
-	VkDeviceSize slotSize;
-	VkDeviceMemory memory;
-	void* pointer;
-};
-
-struct memoryObjects
-{
-	UniformBufferMemory viewProj;
-	UniformBufferMemory lighting;
-};
 
 
 #endif

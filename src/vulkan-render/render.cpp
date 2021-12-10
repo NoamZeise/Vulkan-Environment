@@ -72,41 +72,41 @@ void Render::initFrameResources()
 	initVulkan::renderPass(mBase.device, &mRenderPass, mSwapchain);
 	initVulkan::framebuffers(mBase.device, &mSwapchain, mRenderPass);
 
-	initVulkan::CreateDescriptorSetLayout(mBase.device, &mViewprojDS,
+	initVulkan::CreateDescriptorSetLayout(mBase.device, &mViewprojUbo.ds,
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1}, 
 		VK_SHADER_STAGE_VERTEX_BIT);
 	initVulkan::CreateDescriptorSetLayout(mBase.device, &mTexturesDS, 
 		{VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE}, {1, Resource::MAX_TEXTURES_SUPPORTED}, 
 		VK_SHADER_STAGE_FRAGMENT_BIT);
-	initVulkan::CreateDescriptorSetLayout(mBase.device, &mLightingDS,
+	initVulkan::CreateDescriptorSetLayout(mBase.device, &mLightingUbo.ds,
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1},
 		VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	initVulkan::graphicsPipeline(mBase.device, &mainPipeline, mSwapchain, mRenderPass, 
-	{ &mViewprojDS, &mTexturesDS, &mLightingDS },
+	{ &mViewprojUbo.ds, &mTexturesDS, &mLightingUbo.ds},
 	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 	"shaders/vbasicDirectional.spv", "shaders/fBasicDirectional.spv");
 
 	initVulkan::graphicsPipeline(mBase.device, &flatPipeline, mSwapchain, mRenderPass, 
-	{ &mViewprojDS, &mTexturesDS},
+	{ &mViewprojUbo.ds, &mTexturesDS, &mLightingUbo.ds},
 	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 	"shaders/vflat.spv", "shaders/fflat.spv");
 
-	prepareDescriptorSet(mViewprojDS, mMemory.viewProj, mSwapchain.frameData.size(), sizeof(DS::viewProjection));
-	prepareDescriptorSet(mLightingDS, mMemory.lighting, mSwapchain.frameData.size(), sizeof(DS::lighting));
+	mViewprojUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::viewProjection));
+	mLightingUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::lighting));
+	vkhelper::prepareUniformBufferSets(mBase, {&mViewprojUbo, &mLightingUbo}, &uboBuffer, &uboMemory);
 }
 
 void Render::destroyFrameResources()
 {
-	vkDestroyBuffer(mBase.device, mMemory.viewProj.buffer, nullptr);
-	vkFreeMemory(mBase.device, mMemory.viewProj.memory, nullptr);
-	vkDestroyBuffer(mBase.device, mMemory.lighting.buffer, nullptr);
-	vkFreeMemory(mBase.device, mMemory.lighting.memory, nullptr);
-	mViewprojDS.destroySet(mBase.device);
+	vkDestroyBuffer(mBase.device, uboBuffer, nullptr);
+	vkFreeMemory(mBase.device, uboMemory, nullptr);
+	mViewprojUbo.ds.destroySet(mBase.device);
 	mTexturesDS.destroySet(mBase.device);
-	mLightingDS.destroySet(mBase.device);
+	mLightingUbo.ds.destroySet(mBase.device);
+
 	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
 		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
 	mainPipeline.destroy(mBase.device);
@@ -149,7 +149,7 @@ void Render::endResourceLoad()
 {
 	mTextureLoader.endLoading();
 	mModelLoader.endLoading(mTransferCommandBuffer);
-	prepareFragmentDescriptorSet();
+	mTextureLoader.prepareFragmentDescriptorSet(mTexturesDS);
 	mFinishedLoadingResources = true;
 }
 
@@ -193,10 +193,9 @@ void Render::startDraw()
 		throw std::runtime_error("failed to being recording command buffer");
 	}
 
-	//copy viewproj data into descriptor set
-	std::memcpy(static_cast<char*>(mMemory.viewProj.pointer) + (mImg * mMemory.viewProj.slotSize), &viewProjectionData, mMemory.viewProj.slotSize);
-	//copy lighting data into descriptor set
-	std::memcpy(static_cast<char*>(mMemory.lighting.pointer) + (mImg * mMemory.lighting.slotSize), &lightingData, mMemory.lighting.slotSize);
+	//copy per-frame data to descriptor sets
+	mViewprojUbo.storeSetData(mImg, &viewProjectionData);
+	mLightingUbo.storeSetData(mImg, &lightingData);
 
 	//fill render pass begin struct
 	VkRenderPassBeginInfo renderPassInfo{};
@@ -221,7 +220,7 @@ void Render::startDraw()
 	mModelLoader.bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
 
 	//bind pipeline
-	flatPipeline.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
+	mainPipeline.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
 }
 
 void Render::endDraw()
@@ -292,7 +291,7 @@ void Render::resize()
 	destroyFrameResources();
 
 	initFrameResources();
-	prepareFragmentDescriptorSet();
+	mTextureLoader.prepareFragmentDescriptorSet(mTexturesDS);
 
 	vkDeviceWaitIdle(mBase.device);
 	updateViewProjectionMatrix();
@@ -322,83 +321,4 @@ void Render::setViewMatrixAndFov(glm::mat4 view, float fov)
 	viewProjectionData.view = view;
 	projectionFov = fov;
 	updateViewProjectionMatrix();
-}
-
-void Render::prepareFragmentDescriptorSet()
-{
-	vkhelper::createDescriptorSet(mBase.device, mTexturesDS, Resource::MAX_TEXTURES_SUPPORTED);
-
-	std::vector<VkDescriptorImageInfo> texInfos(Resource::MAX_TEXTURES_SUPPORTED);
-	for (uint32_t i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++)
-	{
-		texInfos[i].sampler = nullptr;
-		texInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		texInfos[i].imageView = mTextureLoader.getImageView(i);
-	}
-
-	VkDescriptorImageInfo imgSamplerInfo = {};
-	imgSamplerInfo.sampler = mTextureLoader.sampler;
-
-	//sampler
-	std::vector<VkWriteDescriptorSet> sampDSWrite(mTexturesDS.sets.size() * 2, { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET });
-	int index = 0;
-	for (size_t i = 0; i < mTexturesDS.sets.size() * 2; i+=2)
-	{
-		sampDSWrite[i].dstSet = mTexturesDS.sets[index];
-		sampDSWrite[i].pBufferInfo = 0;
-		sampDSWrite[i].dstBinding = 0;
-		sampDSWrite[i].dstArrayElement = 0;
-		sampDSWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-		sampDSWrite[i].descriptorCount = 1;
-		sampDSWrite[i].pImageInfo = &imgSamplerInfo; 
-
-		sampDSWrite[i + 1].dstSet = mTexturesDS.sets[index];
-		sampDSWrite[i + 1].pBufferInfo = 0;
-		sampDSWrite[i + 1].dstBinding = 1;
-		sampDSWrite[i + 1].dstArrayElement = 0;
-		sampDSWrite[i + 1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		sampDSWrite[i + 1].descriptorCount = Resource::MAX_TEXTURES_SUPPORTED;
-		sampDSWrite[i + 1].pImageInfo = texInfos.data();
-		index++;
-	}
-	vkUpdateDescriptorSets(mBase.device, mTexturesDS.sets.size() * 2, sampDSWrite.data(), 0, nullptr);
-}
-
-void Render::prepareDescriptorSet(DS::DescriptorSets &ds, UniformBufferMemory &ubt, size_t setCount, size_t dsSize)
-{
-	vkhelper::createDescriptorSet(mBase.device, ds, setCount);
-
-	VkDeviceSize slot = dsSize;
-	VkPhysicalDeviceProperties physDevProps;
-	vkGetPhysicalDeviceProperties(mBase.physicalDevice, &physDevProps);
-	if (slot % physDevProps.limits.minUniformBufferOffsetAlignment != 0)
-		slot = slot + physDevProps.limits.minUniformBufferOffsetAlignment
-		- (slot % physDevProps.limits.minUniformBufferOffsetAlignment);
-
-	ubt.slotSize = slot;
-	ubt.memSize = slot * ds.sets.size();
-
-	vkhelper::createBufferAndMemory(mBase, ubt.memSize, &ubt.buffer, &ubt.memory, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
-		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
-
-	vkBindBufferMemory(mBase.device, ubt.buffer, ubt.memory, 0);
-	vkMapMemory(mBase.device, ubt.memory, 0, ubt.memSize, 0, &ubt.pointer);
-
-	std::vector<VkWriteDescriptorSet> writes(ds.sets.size(), {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
-	std::vector<VkDescriptorBufferInfo> buffInfos(ds.sets.size());
-
-	for (size_t i = 0; i < ds.sets.size(); i++)
-	{
-		buffInfos[i].buffer = ubt.buffer;
-		buffInfos[i].offset = slot * i;
-		buffInfos[i].range = slot;
-
-		writes[i].dstSet = ds.sets[i];
-		writes[i].pBufferInfo = buffInfos.data() + i;
-		writes[i].dstBinding = 0;
-		writes[i].dstArrayElement = 0;
-		writes[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		writes[i].descriptorCount = 1;
-	}
-	vkUpdateDescriptorSets(mBase.device, writes.size(), writes.data(), 0, nullptr);
 }

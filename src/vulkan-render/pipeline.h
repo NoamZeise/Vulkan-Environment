@@ -26,7 +26,7 @@ public:
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout layout;
 	VkPipeline pipeline;
-	std::vector<DS::DescriptorSets*> descriptorSets;
+	std::vector<DS::DescriptorSet*> descriptorSets;
 
 	void begin(VkCommandBuffer cmdBuff, size_t frameIndex)
 	{
@@ -34,9 +34,8 @@ public:
 		for (size_t i = 0; i < descriptorSets.size(); i++)
 			vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
 									 i, 1, &descriptorSets[i]->sets[frameIndex], 0, nullptr);
-
-	//bind graphics pipeline
-	vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		//bind graphics pipeline
+		vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	}
 
 	void destroy(VkDevice device)
