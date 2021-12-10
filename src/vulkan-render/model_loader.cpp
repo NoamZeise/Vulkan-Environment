@@ -114,21 +114,19 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 		vertex.Position.z = transformedVertex.z;
 		if(aimesh->HasNormals())
 		{
-			aiVector3D transformedNormal = /*transform */ aimesh->mNormals[i]; 
-			vertex.Normal.x = transformedNormal.x;
-			vertex.Normal.y = transformedNormal.y;
-			vertex.Normal.z = transformedNormal.z;
-			//std::cout << transformedNormal.x << std::endl;
+			vertex.Normal.x = aimesh->mNormals[i].x;
+			vertex.Normal.y = aimesh->mNormals[i].y;
+			vertex.Normal.z = aimesh->mNormals[i].z;
 		}
 		else
-			vertex.Normal = glm::vec3(0, 0, 0);
+			vertex.Normal = glm::vec3(0);
 		if(aimesh->mTextureCoords[0])
 		{
 			vertex.TexCoord.x = aimesh->mTextureCoords[0][i].x;
 			vertex.TexCoord.y = aimesh->mTextureCoords[0][i].y;
 		}
 		else
-			vertex.TexCoord = glm::vec3(0, 0, 0);
+			vertex.TexCoord = glm::vec2(0);
 
 		mesh->verticies.push_back(vertex);
 	}

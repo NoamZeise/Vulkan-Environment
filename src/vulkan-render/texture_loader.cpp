@@ -36,25 +36,25 @@ Texture TextureLoader::loadTexture(std::string path)
 	switch (tex->nrChannels)
 	{
 	case 1:
-		if(USE_SRGB)
+		if(settings::SRGB)
 			tex->format = VK_FORMAT_R8_SRGB;
 		else
 			tex->format = VK_FORMAT_R8_UNORM;
 		break;
 	case 2:
-		if (USE_SRGB)
+		if (settings::SRGB)
 			tex->format = VK_FORMAT_R8G8_SRGB;
 		else
 			tex->format = VK_FORMAT_R8G8_UNORM;
 		break;
 	case 3:
-		if (USE_SRGB)
+		if (settings::SRGB)
 			tex->format = VK_FORMAT_R8G8B8_SRGB;
 		else
 			tex->format = VK_FORMAT_R8G8B8_UNORM;
 		break;
 	case 4:
-		if (USE_SRGB)
+		if (settings::SRGB)
 			tex->format = VK_FORMAT_R8G8B8A8_SRGB;
 		else
 			tex->format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -146,7 +146,7 @@ void TextureLoader::endLoading()
 		vkGetPhysicalDeviceFormatProperties(base.physicalDevice, texToLoad[i].format, &formatProperties);
 		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
 			|| !(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)
-			|| !ENABLE_MIP)
+			|| !settings::MIP_MAPPING)
 			textures[i].mipLevels = 1;
 		//get smallest mip levels of any texture
 		if (textures[i].mipLevels < minMips)
@@ -358,7 +358,7 @@ void TextureLoader::endLoading()
 	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	if (PIXELATED)
+	if (settings::PIXELATED)
 	{
 		samplerInfo.magFilter = VK_FILTER_NEAREST;
 		samplerInfo.minFilter = VK_FILTER_NEAREST;

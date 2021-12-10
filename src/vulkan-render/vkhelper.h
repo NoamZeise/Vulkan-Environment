@@ -1,4 +1,3 @@
-#pragma once
 #ifndef VKHELPER_H
 #define VKHELPER_H
 
@@ -14,8 +13,8 @@
 
 #include <stdexcept>
 
-#include "typeStructs.h"
-#include "descriptorSets.h"
+#include "render_structs.h"
+#include "descriptor_sets.h"
 #include "pipeline.h"
 
 struct vkhelper

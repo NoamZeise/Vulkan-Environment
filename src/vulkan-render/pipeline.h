@@ -14,11 +14,8 @@
 #include <stdint.h>
 #include <vector>
 #include <array>
-#include <string>
-#include <iostream>
 
-#include "descriptorSets.h"
-
+#include "descriptor_sets.h"
 
 class Pipeline
 {
@@ -71,10 +68,12 @@ struct Vertex
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[0].offset = offsetof(Vertex, Position);
+
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT; 
-		attributeDescriptions[2].offset = offsetof(Vertex, Normal);
+		attributeDescriptions[1].offset = offsetof(Vertex, Normal);
+		
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT; 
@@ -93,7 +92,7 @@ struct vectPushConstants
 struct fragPushConstants
 {
 	glm::vec4 texOffset;
-	unsigned int TexID;
+	uint32_t TexID;
 };
 
 

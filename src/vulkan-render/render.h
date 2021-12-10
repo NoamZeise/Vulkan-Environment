@@ -1,4 +1,3 @@
-#pragma once
 #ifndef RENDER_H
 #define RENDER_H
 
@@ -19,9 +18,9 @@
 
 #include "vkinit.h"
 #include "vkhelper.h"
-#include "typeStructs.h"
+#include "render_structs.h"
 #include "pipeline.h"
-#include "descriptorSets.h"
+#include "descriptor_sets.h"
 #include "texture_loader.h"
 #include "texfont.h"
 #include "model_loader.h"

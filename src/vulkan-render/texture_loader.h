@@ -1,4 +1,3 @@
-#pragma once
 #ifndef TEXTURE_LOADER_H
 #define TEXTURE_LOADER_H
 
@@ -14,8 +13,9 @@
 #include <cstring>
 
 #include "stb_image.h"
-#include "typeStructs.h"
-#include "descriptorSets.h"
+#include "config.h"
+#include "render_structs.h"
+#include "descriptor_sets.h"
 #include "vkhelper.h"
 
 namespace Resource

@@ -31,9 +31,9 @@ struct lighting
 {
 	lighting()
 	{
-		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.4f);
+		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.2f);
 		directionalCol = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	    directionalVec = glm::vec4(-0.8f, -1.0f, -2.0f, 0.0f);
+	    directionalVec = glm::vec4(0.8f, -0.7f, -0.9f, 0.0f);
 	}
 
 	alignas(16) glm::vec4 ambient;

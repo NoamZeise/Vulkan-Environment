@@ -20,7 +20,7 @@
 #include <iostream>
 
 #include "texture_loader.h"
-#include "typeStructs.h"
+#include "render_structs.h"
 #include "pipeline.h"
 #include "vkhelper.h"
 

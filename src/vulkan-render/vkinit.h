@@ -16,9 +16,10 @@
 #include <fstream>
 #include <cstring>
 
-#include "typeStructs.h"
+#include "config.h"
+#include "render_structs.h"
 #include "pipeline.h"
-#include "descriptorSets.h"
+#include "descriptor_sets.h"
 #include "vkhelper.h"
 
 #ifndef NDEBUG

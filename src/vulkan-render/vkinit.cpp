@@ -161,7 +161,7 @@ void initVulkan::device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 	//enable optional device features
 	VkPhysicalDeviceFeatures deviceFeatures{};
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
-	if(USE_SAMPLE_SHADING)
+	if(settings::SAMPLE_SHADING)
 		deviceFeatures.sampleRateShading = VK_TRUE;
 
 	deviceInfo.pEnabledFeatures = &deviceFeatures;
@@ -193,7 +193,7 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	else if (formatCount == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
 	{
 		swapchain->format = formats[0];
-		if(USE_SRGB)
+		if(settings::SRGB)
 			swapchain->format.format = VK_FORMAT_R8G8B8A8_SRGB;
 		else
 			swapchain->format.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -206,7 +206,7 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 			switch (fmt.format)
 			{
 			case VK_FORMAT_R8G8B8A8_SRGB:
-				if (USE_SRGB)
+				if (settings::SRGB)
 					swapchain->format = fmt;
 				break;
 			case VK_FORMAT_R8G8B8A8_UNORM:
@@ -279,7 +279,7 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 			modeChosen = true;
 		}
 	}
-	if (!modeChosen || VSYNC)
+	if (!modeChosen || settings::VSYNC)
 		presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
 
 	//find a supporte transform
@@ -560,7 +560,7 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	//config multisampler
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 	multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
-	if(USE_SAMPLE_SHADING)
+	if(settings::SAMPLE_SHADING)
 	{	
 		multisampleInfo.minSampleShading = .1f;
 		multisampleInfo.sampleShadingEnable = VK_TRUE;
@@ -749,7 +749,7 @@ void initVulkan::createMultisamplingBuffer(VkDevice device, VkPhysicalDevice phy
 	else if(samplesSupported & VK_SAMPLE_COUNT_4_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
 	else if(samplesSupported & VK_SAMPLE_COUNT_2_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
 
-	if(!USE_MULTISAMPLING)
+	if(!settings::MULTISAMPLING)
 		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		
 	swapchain->multisampling.format = swapchain->format.format;
@@ -843,7 +843,7 @@ void initVulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInf
 {
 	//debug messenger settings
 	createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	if(ERROR_ONLY)
+	if(settings::ERROR_ONLY)
 		createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 	else
 		createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT

@@ -25,7 +25,9 @@ int main()
 		#endif	
 		return EXIT_FAILURE;
 	}
+	/* 
 	int x = 0;
 	std::cin >> x;
+	*/
 	return EXIT_SUCCESS;
 }
