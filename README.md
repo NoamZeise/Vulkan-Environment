@@ -12,9 +12,7 @@ features:
 * blinn-phong lighting
 
 optimisations:
-* reduce memory allocations by combining into fewer calls, especially with descriptor sets
-* bind all descriptor sets in one command
-* make it easy to make multiple pipelines and switch between them on the fly
+* create and change pipelines from outside render
 * organise draw calls, by storing each call to render.draw then execute draws at render.enddraw  
 * use gl_BaseInstance when drawing as an index into an array of model matricies
 
