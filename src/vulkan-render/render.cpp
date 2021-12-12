@@ -94,13 +94,6 @@ void Render::initFrameResources()
 	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 	"shaders/vbasicDirectional.spv", "shaders/fBasicDirectional.spv");
-
-	
-	initVulkan::graphicsPipeline(mBase.device, &flatPipeline, mSwapchain, mRenderPass, 
-	{ &mViewprojUbo.ds, &mTexturesDS, &mLightingUbo.ds},
-	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
-	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-	"shaders/vflat.spv", "shaders/fflat.spv");
 	
 	mViewprojUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::viewProjection), DS::BufferType::Uniform);
 	mPerInstanceSSBO.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::PerInstance), DS::BufferType::Storage);
@@ -120,7 +113,6 @@ void Render::destroyFrameResources()
 	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
 		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
 	mainPipeline.destroy(mBase.device);
-	flatPipeline.destroy(mBase.device);
 	vkDestroyRenderPass(mBase.device, mRenderPass, nullptr);
 }
 

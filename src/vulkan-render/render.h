@@ -55,7 +55,6 @@ private:
 	VkCommandBuffer mTransferCommandBuffer;
 
 	Pipeline mainPipeline;
-	Pipeline flatPipeline;
 
 	//descriptor set members
 	VkDeviceMemory shaderMemory;

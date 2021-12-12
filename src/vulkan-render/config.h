@@ -2,7 +2,7 @@
 #define VULKAN_RENDERER_CONFIG_H
 
 
-//#define NDEBUG //uncomment for release mode
+#define NDEBUG //uncomment for release mode
 
 namespace settings
 {

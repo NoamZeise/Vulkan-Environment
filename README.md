@@ -1,20 +1,8 @@
-# Work in progress 3D Vulkan Rendering Framework
+# Instance Rendering Demo
+<h3> more up to date 3D renderer on other branch: https://github.com/NoamZeise/Vulkan-Environment</h3>
 <h3> working 2D framework on other Branch: https://github.com/NoamZeise/Vulkan-Environment/tree/2D-Environment</h3>
 
-<h5>A 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp </h5>
 
-# Todo list:
-
-bugs:
-* check for supported textures, then convert to supported format if supplied textures are not suitable
-
-features:
-* blinn-phong lighting
-
-optimisations:
-* create and change pipelines from outside render
-* organise draw calls, by storing each call to render.draw then execute draws at render.enddraw  
-* use gl_BaseInstance when drawing as an index into an array of model matricies
 
 # dependancies:
 

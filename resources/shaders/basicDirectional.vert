@@ -18,17 +18,13 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec2 outTexCoord;
-layout(location = 1) out vec3 outFragPos;
+layout(location = 1) out vec3 outVertPos;
 layout(location = 2) out vec3 outNormal;
-
-
 
 void main()
 {
     gl_Position = ubo.proj * ubo.view * pcs.model * vec4(inPos, 1);
     outTexCoord = inTexCoord;
-
-    vec4 fragPos = ubo.view * pcs.model * vec4(inPos, 1.0);
-    outFragPos = vec3(fragPos) / fragPos.w;
+    outVertPos = (ubo.view * pcs.model * vec4(inPos, 1.0)).xyz;
     outNormal = vec3(pcs.normalMat * vec4(inNormal, 0.0));
 }

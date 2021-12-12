@@ -68,6 +68,9 @@ private:
 	std::array<glm::mat4, 10000> models;
 	std::array<glm::mat4, 10000> normalMat;
 
+	bool calcNormals = true;
+	bool calcRotation = true;
+
 };
 
 #endif

@@ -81,14 +81,25 @@ void App::update()
 	auto start = std::chrono::high_resolution_clock::now();
 #endif
 
+	if(input.Keys[GLFW_KEY_N] && !previousInput.Keys[GLFW_KEY_N])
+	{
+		calcNormals = !calcNormals;
+	}
+	if(input.Keys[GLFW_KEY_R] && !previousInput.Keys[GLFW_KEY_R])
+	{
+		calcRotation = !calcRotation;
+	}
+
 	unsigned int index = 0;
 	for(size_t x = 0; x < 100; x++)
 	{
 		for(size_t y = 0; y < 100; y++)
 		{
 			models[index] = glm::translate(glm::mat4(1.0f), glm::vec3(x * 14, y * 14, 0.0f));
-			models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 0.0, 1.0));
-			normalMat[index] = glm::inverseTranspose(freecam.getViewMatrix() * models[index]);
+			if(calcRotation)
+				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 0.0, 1.0));
+			if(calcNormals)
+				normalMat[index] = glm::inverseTranspose(freecam.getViewMatrix() * models[index]);
 			index++;
 		}
 	}
