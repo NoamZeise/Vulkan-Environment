@@ -96,7 +96,7 @@ void vkhelper::createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_
 	
 }
 
-void vkhelper::prepareUniformBufferSets(Base base,	std::vector<DS::UniformBufferSet*> ds, 
+void vkhelper::prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSet*> ds, 
 										VkBuffer* buffer, VkDeviceMemory* memory)
 {
 	size_t memorySize = 0;
@@ -114,7 +114,8 @@ void vkhelper::prepareUniformBufferSets(Base base,	std::vector<DS::UniformBuffer
 		memorySize += slot * ds[i]->setCount;
 	}
 	
-	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
+	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory, 
+	VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
 		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
 
 	
@@ -141,7 +142,10 @@ void vkhelper::prepareUniformBufferSets(Base base,	std::vector<DS::UniformBuffer
 			writes[i].pBufferInfo = buffInfos.data() + i;
 			writes[i].dstBinding = 0;
 			writes[i].dstArrayElement = 0;
-			writes[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			if(ds[dI]->type == DS::BufferType::Storage)
+				writes[i].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			else if(ds[dI]->type == DS::BufferType::Uniform)
+				writes[i].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			writes[i].descriptorCount = 1;
 		}
 		vkUpdateDescriptorSets(base.device, writes.size(), writes.data(), 0, nullptr);

@@ -27,7 +27,7 @@ struct vkhelper
 	static void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory,
 		VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
 	static void createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount);
-	static void prepareUniformBufferSets(Base base,	std::vector<DS::UniformBufferSet*> ds,
+	static void prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSet*> ds,
 		VkBuffer* buffer, VkDeviceMemory* memory);
 };
 

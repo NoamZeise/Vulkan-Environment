@@ -50,8 +50,6 @@ App::~App()
 void App::loadAssets()
 {
 	//TODO load assets
-
-	testModel2 = mRender->LoadModel("models/viking.fbx");
 	testModel = mRender->LoadModel("models/testScene.fbx");
 	mRender->endResourceLoad();
 }
@@ -79,24 +77,61 @@ void App::update()
 {
 	glfwPollEvents();
 
-	//TODO update app
+#ifdef TIME_APP_DRAW_UPDATE
+	auto start = std::chrono::high_resolution_clock::now();
+#endif
+
+	unsigned int index = 0;
+	for(size_t x = 0; x < 100; x++)
+	{
+		for(size_t y = 0; y < 100; y++)
+		{
+			models[index] = glm::translate(glm::mat4(1.0f), glm::vec3(x * 14, y * 14, 0.0f));
+			models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 0.0, 1.0));
+			normalMat[index] = glm::inverseTranspose(freecam.getViewMatrix() * models[index]);
+			index++;
+		}
+	}
+
+#ifdef TIME_APP_DRAW_UPDATE
+	auto stop = std::chrono::high_resolution_clock::now();
+	std::cout << "update: "
+         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() << " microseconds" << std::endl;
+#endif
+
+	time += timer.FrameElapsed();
+
+
 	freecam.update(input, previousInput, timer);
 	timer.Update();
 	previousInput = input;
 	input.offset = 0;
+	mRender->setViewMatrixAndFov(freecam.getViewMatrix(), freecam.getZoom());
 }
 
 void App::draw()
 {
-	mRender->setViewMatrixAndFov(freecam.getViewMatrix(), freecam.getZoom());
+#ifdef TIME_APP_DRAW_UPDATE
+	auto start = std::chrono::high_resolution_clock::now();
+#endif
+
+
 	mRender->startDraw();
 
-	glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));
-	mRender->DrawModel(testModel, model);
-	model = glm::translate(glm::mat4(1.0f), glm::vec3(10, 0, 0));
-	mRender->DrawModel(testModel2, model);
-
+	int x = 0;
+	for(size_t i = 0; i < 10000; i++)
+	{
+		mRender->DrawModel(testModel, models[i], normalMat[i]);
+	}
+			
 	mRender->endDraw();
+
+
+#ifdef TIME_APP_DRAW_UPDATE
+	auto stop = std::chrono::high_resolution_clock::now();
+	std::cout << "draw: " << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
+						<< " microseconds" << std::endl;
+#endif
 }
 
 glm::vec2 App::correctedPos(glm::vec2 pos)

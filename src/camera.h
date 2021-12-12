@@ -35,6 +35,8 @@ namespace camera
 		glm::vec3 _up;
 		glm::vec3 _right;
 		glm::vec3 _worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+		glm::mat4 view = glm::mat4(1.0f);
+		bool viewUpdated = true;
 
 		float _yaw = 200.0f;
 		float _pitch = -20.0f;

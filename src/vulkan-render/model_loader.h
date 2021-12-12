@@ -24,6 +24,8 @@
 #include "pipeline.h"
 #include "vkhelper.h"
 
+#include <chrono>
+
 namespace Resource
 {
 
@@ -47,7 +49,7 @@ public:
 	void endLoading(VkCommandBuffer transferBuff);
 
 	void bindBuffers(VkCommandBuffer cmdBuff);
-	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model);
+	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
 
 private:
 

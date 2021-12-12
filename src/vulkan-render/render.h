@@ -10,6 +10,7 @@
 #endif
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <stdexcept>
 #include <iostream>
@@ -38,7 +39,7 @@ public:
 	void endResourceLoad();
 	void startDraw();
 	void endDraw();
-	void DrawModel(Resource::Model model, glm::mat4 modelMatrix);
+	void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
 	bool framebufferResized = false;
 private:
 	GLFWwindow* mWindow;
@@ -57,14 +58,16 @@ private:
 	Pipeline flatPipeline;
 
 	//descriptor set members
-	VkDeviceMemory uboMemory;
-	VkBuffer uboBuffer;
-	DS::UniformBufferSet mViewprojUbo;
-	DS::UniformBufferSet mLightingUbo;
+	VkDeviceMemory shaderMemory;
+	VkBuffer shaderBuffer;
+	DS::ShaderBufferSet mViewprojUbo;
+	DS::ShaderBufferSet mPerInstanceSSBO;
+	DS::ShaderBufferSet mLightingUbo;
 	DS::DescriptorSet mTexturesDS;
 
 	DS::viewProjection viewProjectionData;
 	DS::lighting lightingData;
+	DS::PerInstance perInstanceData;
 
 	Resource::TextureLoader mTextureLoader;
 	Resource::ModelLoader mModelLoader;
@@ -74,12 +77,17 @@ private:
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
 	float projectionFov = 45.0f;
+
+	unsigned int modelRuns = 0;
+	unsigned int currentIndex = 0;
+	Resource::Model currentModel;
 	
 	void initRender(GLFWwindow* window);
 	void initFrameResources();
 	void destroyFrameResources();
 	void resize();
 	void updateViewProjectionMatrix();
+	void drawBatch();
 
 #ifndef NDEBUG
 	VkDebugUtilsMessengerEXT mDebugMessenger;

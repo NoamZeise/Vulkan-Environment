@@ -21,6 +21,10 @@
 #include "timer.h"
 #include "camera.h"
 
+#include <array>
+
+//#define TIME_APP_DRAW_UPDATE
+
 const bool FIXED_RATIO = false;
 const int TARGET_WIDTH = 1920;
 const int TARGET_HEIGHT = 1080;
@@ -57,8 +61,13 @@ private:
 	Timer timer;
 	camera::freecam freecam;
 
+	float time = 0.0f;
+
 	Resource::Model testModel;
-	Resource::Model testModel2;
+
+	std::array<glm::mat4, 10000> models;
+	std::array<glm::mat4, 10000> normalMat;
+
 };
 
 #endif

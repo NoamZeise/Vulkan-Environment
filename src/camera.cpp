@@ -10,7 +10,13 @@ namespace camera
 
 	glm::mat4 freecam::getViewMatrix()
 	{
-		return glm::lookAt(_position, _position + _front, _up);
+		if(viewUpdated)
+		{
+			view = glm::lookAt(_position, _position + _front, _up);
+			viewUpdated = false;
+			return view;
+		}
+		return view;
 	}
 
 	float freecam::getZoom()
@@ -21,6 +27,7 @@ namespace camera
 
 	void freecam::update(Input &input, Input &prevInput, Timer &timer)
 	{
+		viewUpdated = true;
 		//keyboard
 		float velocity = _speed * timer.FrameElapsed();
 		if(input.Keys[GLFW_KEY_W])

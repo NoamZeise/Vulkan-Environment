@@ -33,27 +33,28 @@ void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
 	vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
 }
 
-void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model)
+void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
 {
+
 	if(model.ID >= models.size())
 	{	
 		std::cout << "the model ID is out of range, ID: " << model.ID << std::endl;
 		return;
 	}
-	ModelInGPU modelInfo = models[model.ID];
-	for(size_t i = 0; i < modelInfo.meshes.size(); i++)
+	ModelInGPU *modelInfo = &models[model.ID];
+	for(size_t i = 0; i < modelInfo->meshes.size(); i++)
 	{
 		fragPushConstants fps{
 			glm::vec4(0, 0, 1, 1), //texOffset
-			modelInfo.meshes[i].texture.ID
+			modelInfo->meshes[i].texture.ID
 		};   
 
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 		sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
-		vkCmdDrawIndexed(cmdBuff, modelInfo.meshes[i].indexCount, 1,
-			modelInfo.meshes[i].indexOffset + modelInfo.indexOffset,
-			modelInfo.meshes[i].vertexOffset + modelInfo.vertexOffset, 0);
+		vkCmdDrawIndexed(cmdBuff, modelInfo->meshes[i].indexCount, count,
+			modelInfo->meshes[i].indexOffset + modelInfo->indexOffset,
+			modelInfo->meshes[i].vertexOffset + modelInfo->vertexOffset, instanceOffset);
 	}
 }
 

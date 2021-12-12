@@ -27,18 +27,28 @@ struct viewProjection
 	alignas(16) glm::mat4 proj;
 };
 
+const unsigned int MAX_BATCH_SIZE = 10000;
+
+struct PerInstance
+{
+	alignas(16) glm::mat4 model[MAX_BATCH_SIZE];
+	alignas(16) glm::mat4 normalMat[MAX_BATCH_SIZE];
+};
+
 struct lighting
 {
 	lighting()
 	{
-		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.2f);
-		directionalCol = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-	    directionalVec = glm::vec4(0.8f, -0.7f, -0.9f, 0.0f);
+		ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.6f);
+		diffuse = glm::vec4(1.0f, 1.0f, 1.0f, 0.7f);
+		specular = glm::vec4(0.1f, 0.1f, 0.1f, 5.0f);
+	    direction = glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
 	}
 
 	alignas(16) glm::vec4 ambient;
-	alignas(16) glm::vec4 directionalCol;
-	alignas(16) glm::vec4 directionalVec;
+	alignas(16) glm::vec4 diffuse;
+	alignas(16) glm::vec4 specular;
+	alignas(16) glm::vec4 direction;
 };
 
 struct DescriptorSet
@@ -54,9 +64,16 @@ struct DescriptorSet
 	std::vector<VkDescriptorPoolSize> poolSize;
 };
 
-struct UniformBufferSet
+enum class BufferType
+{
+	Uniform,
+	Storage
+};
+
+struct ShaderBufferSet
 {
 	DescriptorSet  ds;
+	BufferType type;
 	
 	size_t setCount;
 	size_t dsStructSize;
@@ -65,10 +82,11 @@ struct UniformBufferSet
 	VkDeviceSize slotSize;
 	void* pointer;
 
-	void setPerUboProperties(size_t setCount, size_t dsStructSize)
+	void setPerUboProperties(size_t setCount, size_t dsStructSize, DS::BufferType type)
 	{
 		this->setCount = setCount;
 		this->dsStructSize = dsStructSize;
+		this->type = type;
 	}
 	void storeSetData(size_t frameIndex, void* data)
 	{

@@ -14,8 +14,6 @@ Render::Render(GLFWwindow* window, glm::vec2 target)
 	updateViewProjectionMatrix();
 }
 
-
-
 void Render::initRender(GLFWwindow* window)
 {
 	mWindow = window;
@@ -48,6 +46,12 @@ void Render::initRender(GLFWwindow* window)
 	mModelLoader = Resource::ModelLoader(mBase, mGeneralCommandPool);
 	mTextureLoader = Resource::TextureLoader(mBase, mGeneralCommandPool);
 	mTextureLoader.loadTexture("textures/error.png");
+
+	for(size_t i = 0; i < DS::MAX_BATCH_SIZE; i++)
+	{
+		perInstanceData.model[i] = glm::mat4(1.0f);
+		perInstanceData.normalMat[i] = glm::mat4(1.0f);
+	}
 }
 
 Render::~Render()
@@ -75,6 +79,9 @@ void Render::initFrameResources()
 	initVulkan::CreateDescriptorSetLayout(mBase.device, &mViewprojUbo.ds,
 		{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}, {1}, 
 		VK_SHADER_STAGE_VERTEX_BIT);
+	initVulkan::CreateDescriptorSetLayout(mBase.device, &mPerInstanceSSBO.ds, 
+		{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}, {1}, 
+		VK_SHADER_STAGE_VERTEX_BIT);
 	initVulkan::CreateDescriptorSetLayout(mBase.device, &mTexturesDS, 
 		{VK_DESCRIPTOR_TYPE_SAMPLER, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE}, {1, Resource::MAX_TEXTURES_SUPPORTED}, 
 		VK_SHADER_STAGE_FRAGMENT_BIT);
@@ -83,27 +90,30 @@ void Render::initFrameResources()
 		VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	initVulkan::graphicsPipeline(mBase.device, &mainPipeline, mSwapchain, mRenderPass, 
-	{ &mViewprojUbo.ds, &mTexturesDS, &mLightingUbo.ds},
+	{ &mViewprojUbo.ds, &mPerInstanceSSBO.ds, &mTexturesDS, &mLightingUbo.ds},
 	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 	"shaders/vbasicDirectional.spv", "shaders/fBasicDirectional.spv");
 
+	
 	initVulkan::graphicsPipeline(mBase.device, &flatPipeline, mSwapchain, mRenderPass, 
 	{ &mViewprojUbo.ds, &mTexturesDS, &mLightingUbo.ds},
 	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 	"shaders/vflat.spv", "shaders/fflat.spv");
-
-	mViewprojUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::viewProjection));
-	mLightingUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::lighting));
-	vkhelper::prepareUniformBufferSets(mBase, {&mViewprojUbo, &mLightingUbo}, &uboBuffer, &uboMemory);
+	
+	mViewprojUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::viewProjection), DS::BufferType::Uniform);
+	mPerInstanceSSBO.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::PerInstance), DS::BufferType::Storage);
+	mLightingUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::lighting), DS::BufferType::Uniform);
+	vkhelper::prepareShaderBufferSets(mBase, {&mViewprojUbo, &mPerInstanceSSBO,  &mLightingUbo}, &shaderBuffer, &shaderMemory);
 }
 
 void Render::destroyFrameResources()
 {
-	vkDestroyBuffer(mBase.device, uboBuffer, nullptr);
-	vkFreeMemory(mBase.device, uboMemory, nullptr);
+	vkDestroyBuffer(mBase.device, shaderBuffer, nullptr);
+	vkFreeMemory(mBase.device, shaderMemory, nullptr);
 	mViewprojUbo.ds.destroySet(mBase.device);
+	mPerInstanceSSBO.ds.destroySet(mBase.device);
 	mTexturesDS.destroySet(mBase.device);
 	mLightingUbo.ds.destroySet(mBase.device);
 
@@ -195,7 +205,9 @@ void Render::startDraw()
 
 	//copy per-frame data to descriptor sets
 	mViewprojUbo.storeSetData(mImg, &viewProjectionData);
-	mLightingUbo.storeSetData(mImg, &lightingData);
+	DS::lighting tempLightingData = lightingData;
+	tempLightingData.direction = glm::transpose(glm::inverse(viewProjectionData.view)) * tempLightingData.direction;
+	mLightingUbo.storeSetData(mImg, &tempLightingData);
 
 	//fill render pass begin struct
 	VkRenderPassBeginInfo renderPassInfo{};
@@ -213,14 +225,11 @@ void Render::startDraw()
 	renderPassInfo.clearValueCount = clearColours.size();
 	renderPassInfo.pClearValues = clearColours.data();
 
-	//begin render pass
 	vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	//bind vertex buffer
 	mModelLoader.bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
 
-	//bind pipeline
-	mainPipeline.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
+	mainPipeline.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);	
 }
 
 void Render::endDraw()
@@ -228,6 +237,13 @@ void Render::endDraw()
 	if (!mBegunDraw)
 		throw std::runtime_error("start draw before ending it");
 	mBegunDraw = false;
+
+	if(modelRuns != 0 && currentIndex < DS::MAX_BATCH_SIZE)
+		drawBatch();
+
+	mPerInstanceSSBO.storeSetData(mImg, &perInstanceData);
+	currentIndex = 0;
+ 
 	//end render pass
 	vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);
 	if (vkEndCommandBuffer(mSwapchain.frameData[mImg].commandBuffer) != VK_SUCCESS)
@@ -273,16 +289,51 @@ void Render::endDraw()
 	mSwapchain.imageAquireSem.push_back(mImgAquireSem);
 }
 
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix)
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
 {
-	//push constants
-	vectPushConstants vps{};
-	vps.model = modelMatrix;
-	vps.normalMat = glm::transpose(glm::inverse(modelMatrix));
-	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
-		0, sizeof(vectPushConstants), &vps);
+	if(currentIndex >= DS::MAX_BATCH_SIZE)
+	{
+		std::cout << "single" << std::endl;
+		vectPushConstants vps{
+			modelMatrix,
+			normalMat
+		};   
+		vps.normalMat[3][3] = 1.0;
+		vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
+							0, sizeof(vectPushConstants), &vps);
 
-	mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, model);
+		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, model, 1, 0);
+		return;
+	}
+	if(currentModel.ID != model.ID && modelRuns != 0)
+	{
+		drawBatch();
+		return;
+	}
+	//add model to buffer
+	currentModel = model;
+	perInstanceData.model[currentIndex + modelRuns] = modelMatrix;
+	perInstanceData.normalMat[currentIndex + modelRuns] = normalMat;
+	modelRuns++;
+
+	if(currentIndex + modelRuns == DS::MAX_BATCH_SIZE)
+		drawBatch();
+}
+
+void Render::drawBatch()
+{
+	vectPushConstants vps{
+			glm::mat4(1.0f),
+			glm::mat4(0.0f)
+		};   
+	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, VK_SHADER_STAGE_VERTEX_BIT,
+							0, sizeof(vectPushConstants), &vps);
+
+	mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mainPipeline.layout, currentModel, modelRuns, currentIndex);
+
+	currentIndex += modelRuns;
+	modelRuns = 0;
+
 }
 
 void Render::resize()
@@ -312,7 +363,7 @@ void Render::updateViewProjectionMatrix()
 		correction = xCorrection;
 	}
 	viewProjectionData.proj = glm::perspective(glm::radians(projectionFov),
-			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 50.0f);
+			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 10000.0f);
 	viewProjectionData.proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 }
 
