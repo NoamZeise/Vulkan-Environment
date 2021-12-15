@@ -91,7 +91,7 @@ public:
 	uint32_t loadTexture(unsigned char* data, int width, int height, int nrChannels);
 	VkImageView getImageView(uint32_t texID);
 	void endLoading();
-	void prepareFragmentDescriptorSet(DS::DescriptorSet &textureDS);
+	void prepareFragmentDescriptorSet(DS::DescriptorSet &textureDS, size_t frameCount);
 
 	VkSampler sampler;
 

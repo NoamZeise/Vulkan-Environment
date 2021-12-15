@@ -64,9 +64,11 @@ private:
 	float time = 0.0f;
 
 	Resource::Model testModel;
+	Resource::Model testModel2;
+	Resource::Model testModel3;
 
-	std::array<glm::mat4, 10000> models;
-	std::array<glm::mat4, 10000> normalMat;
+	std::array<glm::mat4, 10100> models;
+	std::array<glm::mat4, 10100> normalMat;
 
 };
 

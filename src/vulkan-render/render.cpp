@@ -24,8 +24,7 @@ void Render::initRender(GLFWwindow* window)
 	if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
 		throw std::runtime_error("failed to create window surface!");
 	initVulkan::device(mInstance, mBase.physicalDevice, &mBase.device, mSurface, &mBase.queue);
-	
-	initFrameResources();
+
 
 	//create general command pool
 	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
@@ -95,7 +94,6 @@ void Render::initFrameResources()
 	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 	"shaders/vbasicDirectional.spv", "shaders/fBasicDirectional.spv");
 
-	
 	initVulkan::graphicsPipeline(mBase.device, &flatPipeline, mSwapchain, mRenderPass, 
 	{ &mViewprojUbo.ds, &mTexturesDS, &mLightingUbo.ds},
 	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
@@ -106,6 +104,7 @@ void Render::initFrameResources()
 	mPerInstanceSSBO.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::PerInstance), DS::BufferType::Storage);
 	mLightingUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::lighting), DS::BufferType::Uniform);
 	vkhelper::prepareShaderBufferSets(mBase, {&mViewprojUbo, &mPerInstanceSSBO,  &mLightingUbo}, &shaderBuffer, &shaderMemory);
+	mTextureLoader.prepareFragmentDescriptorSet(mTexturesDS, mSwapchain.frameData.size());
 }
 
 void Render::destroyFrameResources()
@@ -116,7 +115,6 @@ void Render::destroyFrameResources()
 	mPerInstanceSSBO.ds.destroySet(mBase.device);
 	mTexturesDS.destroySet(mBase.device);
 	mLightingUbo.ds.destroySet(mBase.device);
-
 	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
 		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
 	mainPipeline.destroy(mBase.device);
@@ -157,10 +155,21 @@ Resource::Model Render::LoadModel(std::string filepath)
 
 void Render::endResourceLoad()
 {
+	mFinishedLoadingResources = true;
 	mTextureLoader.endLoading();
 	mModelLoader.endLoading(mTransferCommandBuffer);
-	mTextureLoader.prepareFragmentDescriptorSet(mTexturesDS);
-	mFinishedLoadingResources = true;
+	initFrameResources();
+}
+
+void Render::resize()
+{
+	vkDeviceWaitIdle(mBase.device);
+	destroyFrameResources();
+
+	initFrameResources();
+
+	vkDeviceWaitIdle(mBase.device);
+	updateViewProjectionMatrix();
 }
 
 void Render::startDraw()
@@ -306,10 +315,7 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 		return;
 	}
 	if(currentModel.ID != model.ID && modelRuns != 0)
-	{
 		drawBatch();
-		return;
-	}
 	//add model to buffer
 	currentModel = model;
 	perInstanceData.model[currentIndex + modelRuns] = modelMatrix;
@@ -334,18 +340,6 @@ void Render::drawBatch()
 	currentIndex += modelRuns;
 	modelRuns = 0;
 
-}
-
-void Render::resize()
-{
-	vkDeviceWaitIdle(mBase.device);
-	destroyFrameResources();
-
-	initFrameResources();
-	mTextureLoader.prepareFragmentDescriptorSet(mTexturesDS);
-
-	vkDeviceWaitIdle(mBase.device);
-	updateViewProjectionMatrix();
 }
 
 void Render::updateViewProjectionMatrix()

@@ -1,11 +1,10 @@
 #include "app.h"
 
-
 App::App()
 {
 	//set member variables
-	mWindowWidth = 1600;
-	mWindowHeight = 900;
+	mWindowWidth = 800;
+	mWindowHeight = 450;
 	//init glfw window
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())
@@ -37,20 +36,20 @@ App::App()
 	freecam = camera::freecam(glm::vec3(3.0f, 0.0f, 2.0f));
 }
 
-
 App::~App()
 {
 	delete mRender;
 	mRender = nullptr;
-	//cleanup glfw
 	glfwDestroyWindow(mWindow);
 	glfwTerminate();
 }
 
 void App::loadAssets()
 {
-	//TODO load assets
 	testModel = mRender->LoadModel("models/testScene.fbx");
+	testModel2 = mRender->LoadModel("models/stone.fbx");
+	testModel3 = mRender->LoadModel("models/monkey.fbx");
+
 	mRender->endResourceLoad();
 }
 
@@ -82,12 +81,25 @@ void App::update()
 #endif
 
 	unsigned int index = 0;
-	for(size_t x = 0; x < 100; x++)
+	for(size_t x = 0; x < 101; x++)
 	{
 		for(size_t y = 0; y < 100; y++)
 		{
 			models[index] = glm::translate(glm::mat4(1.0f), glm::vec3(x * 14, y * 14, 0.0f));
-			models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 0.0, 1.0));
+			switch(index % 4)
+			{
+				case 0:
+				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 0.0, 1.0));
+				break;
+				case 1:
+				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 1.0, 1.0));
+				break;
+				case 2:
+				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(1.0, 0.0, 0.0));
+				break;
+				case 3:
+				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(1.0, 1.0, 0.0));
+			}
 			normalMat[index] = glm::inverseTranspose(freecam.getViewMatrix() * models[index]);
 			index++;
 		}
@@ -115,17 +127,22 @@ void App::draw()
 	auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-
 	mRender->startDraw();
 
-	int x = 0;
-	for(size_t i = 0; i < 10000; i++)
+	for(size_t i = 0; i < 10100; i+=3)
+	{
+		mRender->DrawModel(testModel2, models[i], normalMat[i]);
+	}
+	for(size_t i = 1; i < 10100; i+=3)
 	{
 		mRender->DrawModel(testModel, models[i], normalMat[i]);
 	}
+	for(size_t i = 2; i < 10100; i+=3)
+	{
+		mRender->DrawModel(testModel3, models[i], normalMat[i]);
+	}
 			
 	mRender->endDraw();
-
 
 #ifdef TIME_APP_DRAW_UPDATE
 	auto stop = std::chrono::high_resolution_clock::now();
