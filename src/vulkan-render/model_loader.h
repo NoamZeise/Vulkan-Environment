@@ -1,4 +1,3 @@
-#pragma once
 #ifndef MODEL_LOADER_H
 #define MODEL_LOADER_H
 
@@ -50,6 +49,7 @@ public:
 
 	void bindBuffers(VkCommandBuffer cmdBuff);
 	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
+	void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset);
 
 private:
 
@@ -59,14 +59,11 @@ private:
 		std::vector<Vertex> 	    verticies;
 		std::vector<unsigned int> indicies;
 		Texture texture;
-		size_t vertexDataSize = 0;
-		size_t indexDataSize = 0;
 	};
 
 	struct LoadedModel
 	{
 		LoadedModel(){}
-		unsigned int 			 ID = 0;
 		std::vector<Mesh*> meshes;
 		std::string        directory;
 	};
@@ -99,6 +96,7 @@ private:
     void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);
 	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);
+	void loadQuad();
 
 	Base base;
 	VkCommandPool pool;

@@ -384,8 +384,8 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	VkAttachmentDescription colourAttachment{};
 	colourAttachment.format = swapchain.format.format;
 	colourAttachment.samples = swapchain.maxMsaaSamples;
-	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; //clear frame before render
-	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; //store frame for presenting
+	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;

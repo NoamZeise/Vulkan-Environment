@@ -151,3 +151,19 @@ void vkhelper::prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSe
 		vkUpdateDescriptorSets(base.device, writes.size(), writes.data(), 0, nullptr);
 	}
 }
+
+glm::mat4 vkhelper::calcMatFromRect(glm::vec4 rect, float rotate)
+{
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(rect.x, rect.y, 0.0f));
+
+		if(rotate != 0)
+		{
+			model = glm::translate(model, glm::vec3(0.5 * rect.z, 0.5 * rect.w, 0.0));
+			model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
+			model = glm::translate(model, glm::vec3(-0.5 * rect.z, -0.5 * rect.w, 0.0)); 
+		}
+		model = glm::scale(model, glm::vec3(rect.z, rect.w, 1.0f)); 
+		return model;
+	}

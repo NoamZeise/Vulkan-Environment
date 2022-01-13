@@ -8,6 +8,7 @@ ModelLoader::ModelLoader(Base base, VkCommandPool pool)
 	this->base = base;
 	this->pool = pool;
 
+	loadQuad();
 }
 
 ModelLoader::~ModelLoader()
@@ -35,7 +36,6 @@ void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
 
 void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
 {
-
 	if(model.ID >= models.size())
 	{	
 		std::cout << "the model ID is out of range, ID: " << model.ID << std::endl;
@@ -50,12 +50,47 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 		};   
 
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
-		sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
+			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
 		vkCmdDrawIndexed(cmdBuff, modelInfo->meshes[i].indexCount, count,
 			modelInfo->meshes[i].indexOffset + modelInfo->indexOffset,
 			modelInfo->meshes[i].vertexOffset + modelInfo->vertexOffset, instanceOffset);
 	}
+}
+
+void ModelLoader::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset)
+{
+		fragPushConstants fps{
+			glm::vec4(0, 0, 1, 1), //texOffset
+			texID
+		};   
+		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
+			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
+
+		ModelInGPU *modelInfo = &models[0];
+		vkCmdDrawIndexed(cmdBuff, modelInfo->meshes[0].indexCount, count,
+			modelInfo->meshes[0].indexOffset + modelInfo->indexOffset,
+			modelInfo->meshes[0].vertexOffset + modelInfo->vertexOffset, instanceOffset);
+}
+
+void ModelLoader::loadQuad()
+{
+	currentIndex++;
+	LoadedModel ldModel;
+	ldModel.directory = "quad";
+	ldModel.meshes.push_back(new Mesh());
+	ldModel.meshes.back()->texture =  Texture(0, glm::vec2(0,0), "quad");
+	ldModel.meshes.back()->verticies =
+		{
+			//pos   			normal  			texcoord
+			{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+			{{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+			{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
+			{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+		};
+	ldModel.meshes.back()->indicies = { 0, 3, 2, 2, 1, 0};
+
+	loadedModels.push_back(ldModel);
 }
 
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)

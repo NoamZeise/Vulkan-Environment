@@ -1,4 +1,3 @@
-#pragma once
 #ifndef TEX_FONT_H
 #define TEX_FONT_H
 

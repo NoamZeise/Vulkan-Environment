@@ -34,10 +34,14 @@ App::App()
 	loadAssets();
 
 	freecam = camera::freecam(glm::vec3(3.0f, 0.0f, 2.0f));
+
 }
 
 App::~App()
 {
+	if(submitDraw.joinable())
+		submitDraw.join();
+	delete testFont;
 	delete mRender;
 	mRender = nullptr;
 	glfwDestroyWindow(mWindow);
@@ -47,8 +51,8 @@ App::~App()
 void App::loadAssets()
 {
 	testModel = mRender->LoadModel("models/testScene.fbx");
-	testModel2 = mRender->LoadModel("models/stone.fbx");
-	testModel3 = mRender->LoadModel("models/monkey.fbx");
+	testTex = mRender->LoadTexture("textures/error.png");
+	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
 
 	mRender->endResourceLoad();
 }
@@ -74,46 +78,32 @@ void App::resize(int windowWidth, int windowHeight)
 
 void App::update()
 {
-	glfwPollEvents();
-
 #ifdef TIME_APP_DRAW_UPDATE
 	auto start = std::chrono::high_resolution_clock::now();
 #endif
+	glfwPollEvents();
 
-	unsigned int index = 0;
-	for(size_t x = 0; x < 101; x++)
-	{
-		for(size_t y = 0; y < 100; y++)
+		int index = 0;
+	for(int i = 0; i < 100; i++)
+		for(int j = 0; j < 100; j++)
 		{
-			models[index] = glm::translate(glm::mat4(1.0f), glm::vec3(x * 14, y * 14, 0.0f));
-			switch(index % 4)
-			{
-				case 0:
-				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 0.0, 1.0));
-				break;
-				case 1:
-				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(0.0, 1.0, 1.0));
-				break;
-				case 2:
-				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(1.0, 0.0, 0.0));
-				break;
-				case 3:
-				models[index] = glm::rotate(models[index], time / 3000, glm::vec3(1.0, 1.0, 0.0));
-			}
-			normalMat[index] = glm::inverseTranspose(freecam.getViewMatrix() * models[index]);
-			index++;
+			matricies[index++] = vkhelper::calcMatFromRect(glm::vec4(0 + (i * 10), 0 + (j * 10), 10, 10), 0);
 		}
-	}
+	
 
+	postUpdate();
 #ifdef TIME_APP_DRAW_UPDATE
 	auto stop = std::chrono::high_resolution_clock::now();
-	std::cout << "update: "
-         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() << " microseconds" << std::endl;
+	std::cout 
+		 << "update: "
+         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
+		 << " microseconds" << std::endl;
 #endif
+}
 
+void App::postUpdate()
+{
 	time += timer.FrameElapsed();
-
-
 	freecam.update(input, previousInput, timer);
 	timer.Update();
 	previousInput = input;
@@ -121,33 +111,39 @@ void App::update()
 	mRender->setViewMatrixAndFov(freecam.getViewMatrix(), freecam.getZoom());
 }
 
+
 void App::draw()
 {
 #ifdef TIME_APP_DRAW_UPDATE
 	auto start = std::chrono::high_resolution_clock::now();
 #endif
 
-	mRender->startDraw();
+	if(!finishedDrawSubmit)
+		return;
+	finishedDrawSubmit = false;
+	if(submitDraw.joinable())
+		submitDraw.join();
+	mRender->begin2DDraw();
+	
+	for(int i = 0; i < 10000 - 1; i++)
+		mRender->DrawQuad(testTex, matricies[i], glm::vec4(1.0f));
 
-	for(size_t i = 0; i < 10100; i+=3)
-	{
-		mRender->DrawModel(testModel2, models[i], normalMat[i]);
-	}
-	for(size_t i = 1; i < 10100; i+=3)
-	{
-		mRender->DrawModel(testModel, models[i], normalMat[i]);
-	}
-	for(size_t i = 2; i < 10100; i+=3)
-	{
-		mRender->DrawModel(testModel3, models[i], normalMat[i]);
-	}
-			
-	mRender->endDraw();
+	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1.0f));
+	mRender->DrawString(testFont, "text here text here", glm::vec2(100, 200), 70, 0, glm::vec4(1.0f));
+
+	mRender->begin3DDraw();
+
+	glm::mat4 model = glm::mat4(1.0f);
+	mRender->DrawModel(testModel, model, glm::inverseTranspose(freecam.getViewMatrix() * model));
+	
+	submitDraw = std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));
 
 #ifdef TIME_APP_DRAW_UPDATE
 	auto stop = std::chrono::high_resolution_clock::now();
-	std::cout << "draw: " << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
-						<< " microseconds" << std::endl;
+	std::cout 
+	<< "draw: " 
+	<< std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
+	<< " microseconds" << std::endl;
 #endif
 }
 
@@ -160,7 +156,6 @@ glm::vec2 App::correctedMouse()
 {
 	return correctedPos(glm::vec2(input.X, input.Y));
 }
-
 
 #pragma region GLFW_CALLBACKS
 

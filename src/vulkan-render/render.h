@@ -16,6 +16,7 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <atomic>
 
 #include "vkinit.h"
 #include "vkhelper.h"
@@ -37,9 +38,15 @@ public:
 	Resource::Font* LoadFont(std::string filepath);
 	Resource::Model LoadModel(std::string filepath);
 	void endResourceLoad();
-	void startDraw();
-	void endDraw();
+
+	void begin3DDraw();
+	void begin2DDraw();
+
+	void endDraw(std::atomic<bool>& submit);
 	void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+	void DrawQuad(const Resource::Texture& texID, glm::mat4 modelMatrix, glm::vec4 colour);
+	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
+  	float MeasureString(Resource::Font* font, std::string text, float size);
 	bool framebufferResized = false;
 private:
 	GLFWwindow* mWindow;
@@ -54,18 +61,20 @@ private:
 	VkCommandPool mGeneralCommandPool;
 	VkCommandBuffer mTransferCommandBuffer;
 
-	Pipeline mainPipeline;
-	Pipeline flatPipeline;
+	Pipeline pipeline3D;
+	Pipeline pipeline2D;
 
 	//descriptor set members
 	VkDeviceMemory shaderMemory;
 	VkBuffer shaderBuffer;
-	DS::ShaderBufferSet mViewprojUbo;
+	DS::ShaderBufferSet mViewproj3DUbo;
+	DS::ShaderBufferSet mViewproj2DUbo;
 	DS::ShaderBufferSet mPerInstanceSSBO;
 	DS::ShaderBufferSet mLightingUbo;
 	DS::DescriptorSet mTexturesDS;
 
-	DS::viewProjection viewProjectionData;
+	DS::viewProjection viewProjectionData3D;
+	DS::viewProjection viewProjectionData2D;
 	DS::lighting lightingData;
 	DS::PerInstance perInstanceData;
 
@@ -74,6 +83,7 @@ private:
 
 	bool mBegunDraw = false;
 	bool mFinishedLoadingResources = false;
+	bool m3DRender = true;
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
 	float projectionFov = 45.0f;
@@ -81,10 +91,12 @@ private:
 	unsigned int modelRuns = 0;
 	unsigned int currentIndex = 0;
 	Resource::Model currentModel;
+	Resource::Texture currentTexture;
 	
 	void initRender(GLFWwindow* window);
 	void initFrameResources();
 	void destroyFrameResources();
+	void startDraw();
 	void resize();
 	void updateViewProjectionMatrix();
 	void drawBatch();

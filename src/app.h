@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef APP_H
 #define APP_H
 
@@ -14,6 +12,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
+#include <thread>
+#include <atomic>
 
 #include "vulkan-render/render.h"
 #include "input.h"
@@ -34,10 +34,7 @@ class App
 public:
 	App();
 	~App();
-	void loadAssets();
 	void run();
-	void update();
-	void draw();
 	void resize(int windowWidth, int windowHeight);
 
 #pragma region GLFW_CALLBACKS
@@ -51,9 +48,14 @@ public:
 
 	Input input;
 private:
+	void loadAssets();
+	void update();
+	void postUpdate();
+	void draw();
+
 	glm::vec2 correctedPos(glm::vec2 pos);
 	glm::vec2 correctedMouse();
-
+	
 	GLFWwindow* mWindow;
 	Render* mRender;
 	int mWindowWidth, mWindowHeight;
@@ -61,15 +63,16 @@ private:
 	Timer timer;
 	camera::freecam freecam;
 
+	std::thread submitDraw;
+	std::atomic<bool> finishedDrawSubmit = true;
+
 	float time = 0.0f;
 
 	Resource::Model testModel;
-	Resource::Model testModel2;
-	Resource::Model testModel3;
+	Resource::Texture testTex;
+	Resource::Font* testFont;
 
-	std::array<glm::mat4, 10100> models;
-	std::array<glm::mat4, 10100> normalMat;
-
+	std::array<glm::mat4, 1000*1000> matricies;
 };
 
 #endif

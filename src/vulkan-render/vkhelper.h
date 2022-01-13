@@ -29,6 +29,8 @@ struct vkhelper
 	static void createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount);
 	static void prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSet*> ds,
 		VkBuffer* buffer, VkDeviceMemory* memory);
+
+	static glm::mat4 calcMatFromRect(glm::vec4 rect, float rotate);
 };
 
 
