@@ -17,8 +17,10 @@
 bugs:
 * check for supported textures, then convert to supported format if supplied textures are not suitable
 * fix scroll wheel input on very short updates
+* 
 features:
 * skeletal animation (and distinguish between animated and non-animated draws)
+* 
 optimisations:
 * create and change pipelines from outside render class?
 
