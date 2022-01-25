@@ -24,6 +24,7 @@
 #include <array>
 
 //#define TIME_APP_DRAW_UPDATE
+//#define MULTI_UPDATE_ON_SLOW_DRAW
 
 const bool FIXED_RATIO = false;
 const int TARGET_WIDTH = 1920;
@@ -71,8 +72,6 @@ private:
 	Resource::Model testModel;
 	Resource::Texture testTex;
 	Resource::Font* testFont;
-
-	std::array<glm::mat4, 1000*1000> matricies;
 };
 
 #endif

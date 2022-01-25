@@ -3,18 +3,24 @@
 
 <h5>A 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp </h5>
 
-# Todo list:
+# Features:
 
+* Simultaneous 2D and 3D rendering
+* Import and Draw .fbx models
+* Import and Draw RGBA textures 
+* Import and Draw fonts
+* Instance rendering for fast drawing of the same objects in multiple positions
+* Blinn-Phong for 3D models
+
+
+# Todo list:
 bugs:
 * check for supported textures, then convert to supported format if supplied textures are not suitable
-
+* fix scroll wheel input on very short updates
 features:
-* blinn-phong lighting
-
+* skeletal animation (and distinguish between animated and non-animated draws)
 optimisations:
-* create and change pipelines from outside render
-* organise draw calls, by storing each call to render.draw then execute draws at render.enddraw  
-* use gl_BaseInstance when drawing as an index into an array of model matricies
+* create and change pipelines from outside render class?
 
 # dependancies:
 

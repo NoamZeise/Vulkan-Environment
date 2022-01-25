@@ -45,6 +45,7 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 	for(size_t i = 0; i < modelInfo->meshes.size(); i++)
 	{
 		fragPushConstants fps{
+			glm::vec4(1.0f), //colour
 			glm::vec4(0, 0, 1, 1), //texOffset
 			modelInfo->meshes[i].texture.ID
 		};   
@@ -58,10 +59,11 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 	}
 }
 
-void ModelLoader::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset)
+void ModelLoader::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset)
 {
 		fragPushConstants fps{
-			glm::vec4(0, 0, 1, 1), //texOffset
+			colour,
+			texOffset,
 			texID
 		};   
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,

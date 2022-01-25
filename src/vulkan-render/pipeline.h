@@ -28,7 +28,7 @@ public:
 	void begin(VkCommandBuffer cmdBuff, size_t frameIndex)
 	{
 		//bind descriptor sets
-		for (size_t i = 0; i < descriptorSets.size(); i++)
+		for (unsigned int i = 0; i < descriptorSets.size(); i++)
 			vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
 									 i, 1, &descriptorSets[i]->sets[frameIndex], 0, nullptr);
 		//bind graphics pipeline
@@ -91,6 +91,7 @@ struct vectPushConstants
 
 struct fragPushConstants
 {
+	glm::vec4 colour;
 	glm::vec4 texOffset;
 	uint32_t TexID;
 };

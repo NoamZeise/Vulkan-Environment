@@ -48,7 +48,7 @@ public:
 private:
 	std::map<char, Character*> _chars;
 	bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);
-	const int SIZE = 50;
+	const int SIZE = 100;
 };
 
 }

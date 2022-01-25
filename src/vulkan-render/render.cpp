@@ -262,8 +262,19 @@ void Render::begin2DDraw()
 		drawBatch();
 	m3DRender = false;
 
-		//2D 
-	viewProjectionData2D.proj = glm::ortho(0.0f, (float)mSwapchain.extent.width, 0.0f, (float)mSwapchain.extent.height, -1.0f, 1.0f);
+	float correction;
+	float deviceRatio = mSwapchain.extent.width / mSwapchain.extent.height;
+	float virtualRatio = targetResolution.x / targetResolution.y;
+	float xCorrection = mSwapchain.extent.width / targetResolution.x;
+	float yCorrection = mSwapchain.extent.height / targetResolution.y;
+
+	if (virtualRatio < deviceRatio) {
+		correction = yCorrection;
+	}
+	else {
+		correction = xCorrection;
+	}
+	viewProjectionData2D.proj = glm::ortho(0.0f, (float)mSwapchain.extent.width / correction, 0.0f, (float)mSwapchain.extent.height / correction, -1.0f, 1.0f);
 	viewProjectionData2D.view = glm::mat4(1.0f);
 
 	mViewproj2DUbo.storeSetData(mImg, &viewProjectionData2D);
@@ -375,7 +386,8 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, g
 		vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT,
 							0, sizeof(vectPushConstants), &vps);
 
-		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, texture.ID, 1, 0);
+		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, texture.ID,
+		 	1, 0, glm::vec4(1.0f), glm::vec4(0, 0, 1, 1));
 		return;
 	}
 
@@ -423,7 +435,8 @@ void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 positi
 			vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT,
 							0, sizeof(vectPushConstants), &vps);
 
-			mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, cTex->TextureID, 1, 0);
+			mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, cTex->TextureID, 1, 0,
+			 colour, glm::vec4(0, 0, 1, 1));
 		}
 		position.x += cTex->Advance * size;
 		
@@ -456,7 +469,7 @@ void Render::drawBatch()
 	if(m3DRender)
 		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, currentModel, modelRuns, currentIndex);
 	else
-		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, currentTexture.ID, modelRuns, currentIndex);
+		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, currentTexture.ID, modelRuns, currentIndex, glm::vec4(1.0f), glm::vec4(0, 0, 1, 1));
 
 	currentIndex += modelRuns;
 	modelRuns = 0;
@@ -477,8 +490,10 @@ void Render::updateViewProjectionMatrix()
 	else {
 		correction = xCorrection;
 	}
+
+	
 	viewProjectionData3D.proj = glm::perspective(glm::radians(projectionFov),
-			(float)mSwapchain.extent.width / (float)mSwapchain.extent.height, 0.1f, 10000.0f);
+			((float)mSwapchain.extent.width / correction) / ((float)mSwapchain.extent.height / correction), 0.1f, 500.0f);
 	viewProjectionData3D.proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 
 }

@@ -69,11 +69,12 @@ void App::run()
 
 void App::resize(int windowWidth, int windowHeight)
 {
+	if(submitDraw.joinable())
+		submitDraw.join();
 	mWindowWidth = windowWidth;
 	mWindowHeight = windowHeight;
-	if(mRender != nullptr)
+	if(mRender != nullptr && mWindowWidth != 0 && mWindowHeight != 0)
 		mRender->framebufferResized = true;
-
 }
 
 void App::update()
@@ -83,13 +84,7 @@ void App::update()
 #endif
 	glfwPollEvents();
 
-		int index = 0;
-	for(int i = 0; i < 100; i++)
-		for(int j = 0; j < 100; j++)
-		{
-			matricies[index++] = vkhelper::calcMatFromRect(glm::vec4(0 + (i * 10), 0 + (j * 10), 10, 10), 0);
-		}
-	
+
 
 	postUpdate();
 #ifdef TIME_APP_DRAW_UPDATE
@@ -118,18 +113,17 @@ void App::draw()
 	auto start = std::chrono::high_resolution_clock::now();
 #endif
 
+#ifdef MULTI_UPDATE_ON_SLOW_DRAW
 	if(!finishedDrawSubmit)
 		return;
 	finishedDrawSubmit = false;
+#endif
 	if(submitDraw.joinable())
 		submitDraw.join();
 	mRender->begin2DDraw();
-	
-	for(int i = 0; i < 10000 - 1; i++)
-		mRender->DrawQuad(testTex, matricies[i], glm::vec4(1.0f));
 
 	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1.0f));
-	mRender->DrawString(testFont, "text here text here", glm::vec2(100, 200), 70, 0, glm::vec4(1.0f));
+	//mRender->DrawString(testFont, "text here text here", glm::vec2(100, 200), 70, 0, glm::vec4(1.0f));
 
 	mRender->begin3DDraw();
 
@@ -154,7 +148,7 @@ glm::vec2 App::correctedPos(glm::vec2 pos)
 
 glm::vec2 App::correctedMouse()
 {
-	return correctedPos(glm::vec2(input.X, input.Y));
+	return correctedPos(glm::vec2(input.X, input.Y)); 
 }
 
 #pragma region GLFW_CALLBACKS

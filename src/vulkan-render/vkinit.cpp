@@ -562,8 +562,9 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
 	if(settings::SAMPLE_SHADING)
 	{	
-		multisampleInfo.minSampleShading = .1f;
+		multisampleInfo.minSampleShading = 1.0f;
 		multisampleInfo.sampleShadingEnable = VK_TRUE;
+		
 	}
 	//config depthStencil
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
