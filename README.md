@@ -32,11 +32,6 @@ optimisations:
 * GLFW handles windowing and input
 * (on UNIX) only setup for X11 with glfw
 * GLM handles glsl datatypes and matrix operations
-* freetype2 for font loading (comes with repo)
+* freetype2 for font loading
 * uses stb_image.h for image loading (comes with repo)
-
-libs (windows only):
-* freetyped.lib (included)
-* vulkan-1.lib (included)
-* glfw3.lib (included)
-* Winmm.lib (if on windows, for audio)
+* Assimp for model loading
