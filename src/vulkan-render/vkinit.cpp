@@ -371,7 +371,10 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	}
 
 	//create attachment resources
-	createMultisamplingBuffer(device, physicalDevice, swapchain); //this first as sets max msaa used by rest of attachments
+	if(settings::MULTISAMPLING)
+		createMultisamplingBuffer(device, physicalDevice, swapchain); //this first as sets max msaa used by rest of attachments
+	else
+		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	createDepthBuffer(device, physicalDevice, swapchain);
 }
 
@@ -384,13 +387,15 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	VkAttachmentDescription colourAttachment{};
 	colourAttachment.format = swapchain.format.format;
 	colourAttachment.samples = swapchain.maxMsaaSamples;
-	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
+	if(settings::MULTISAMPLING)
+		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	else
+		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	//depth attachment
 	VkAttachmentReference depthBufferRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 	VkAttachmentDescription depthAttachment {};
@@ -416,14 +421,18 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 
-	std::array<VkAttachmentDescription, 3> attachments = { colourAttachment, depthAttachment, resolveAttachment };
-
+	std::vector<VkAttachmentDescription> attachments;
+	if(settings::MULTISAMPLING)
+		attachments = { colourAttachment, depthAttachment, resolveAttachment }; 
+	else
+		attachments =  { colourAttachment, depthAttachment }; 
 	//create subpass
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colourAttachmentRef;
-	subpass.pResolveAttachments = &resolveAttachmentRef;
+	if(settings::MULTISAMPLING)
+		subpass.pResolveAttachments = &resolveAttachmentRef;
 	subpass.pDepthStencilAttachment = &depthBufferRef;
 
 	std::array<VkSubpassDescription, 1> subpasses = { subpass };
@@ -463,11 +472,18 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 
 	for (size_t i = 0; i < swapchain->frameData.size(); i++)
 	{
-		std::array<VkImageView, 3> attachments = 
-		{ 
-		  swapchain->multisampling.view,
-		  swapchain->depthBuffer.view,
-		  swapchain->frameData[i].view };
+		std::vector<VkImageView> attachments;
+		if(settings::MULTISAMPLING)
+			attachments = 
+			{ 
+		  		swapchain->multisampling.view,
+		  		swapchain->depthBuffer.view,
+		  		swapchain->frameData[i].view };
+		else
+			attachments = 
+			{ 
+		  		swapchain->frameData[i].view,
+				swapchain->depthBuffer.view };
 
 		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		createInfo.renderPass = renderPass;
@@ -560,7 +576,7 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	//config multisampler
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 	multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
-	if(settings::SAMPLE_SHADING)
+	if(settings::SAMPLE_SHADING && settings::MULTISAMPLING)
 	{	
 		multisampleInfo.minSampleShading = 1.0f;
 		multisampleInfo.sampleShadingEnable = VK_TRUE;
@@ -674,7 +690,8 @@ void initVulkan::fillFrameData(VkDevice device, FrameData* frame, uint32_t graph
 void initVulkan::destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
 {
 	destroyAttachmentImageResources(device, swapchainStruct->depthBuffer);
-	destroyAttachmentImageResources(device, swapchainStruct->multisampling);
+	if(settings::MULTISAMPLING)
+		destroyAttachmentImageResources(device, swapchainStruct->multisampling);
 
 	for (size_t i = 0; i < swapchainStruct->frameData.size(); i++)
 	{
@@ -749,12 +766,9 @@ void initVulkan::createMultisamplingBuffer(VkDevice device, VkPhysicalDevice phy
 	else if(samplesSupported & VK_SAMPLE_COUNT_8_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
 	else if(samplesSupported & VK_SAMPLE_COUNT_4_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
 	else if(samplesSupported & VK_SAMPLE_COUNT_2_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
-
-	if(!settings::MULTISAMPLING)
-		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 		
 	swapchain->multisampling.format = swapchain->format.format;
-
+	
 	createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
 		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 }

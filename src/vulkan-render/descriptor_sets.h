@@ -27,7 +27,7 @@ struct viewProjection
 	alignas(16) glm::mat4 proj;
 };
 
-const unsigned int MAX_BATCH_SIZE = 10000;
+const unsigned int MAX_BATCH_SIZE = 500;
 
 struct PerInstance
 {

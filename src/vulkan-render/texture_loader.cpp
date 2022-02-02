@@ -35,6 +35,7 @@ Texture TextureLoader::loadTexture(std::string path)
 //attention: should check if gpu supports image format, then adjust, eg add an extra channel if 3 channel unsupported
 	switch (tex->nrChannels)
 	{
+		/*
 	case 1:
 		if(settings::SRGB)
 			tex->format = VK_FORMAT_R8_SRGB;
@@ -53,6 +54,7 @@ Texture TextureLoader::loadTexture(std::string path)
 		else
 			tex->format = VK_FORMAT_R8G8B8_UNORM;
 		break;
+		*/
 	case 4:
 		if (settings::SRGB)
 			tex->format = VK_FORMAT_R8G8B8A8_SRGB;
@@ -60,7 +62,7 @@ Texture TextureLoader::loadTexture(std::string path)
 			tex->format = VK_FORMAT_R8G8B8A8_UNORM;
 		break;
 	default:
-		throw std::runtime_error("texture at " + path + " has an unsupported number of channels");
+		throw std::runtime_error("texture at " + path + " has an unsupported number of channels (only supports 4)");
 	}
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
@@ -77,6 +79,7 @@ uint32_t TextureLoader::loadTexture(unsigned char* data, int width, int height, 
 
 	switch (tex->nrChannels)
 	{
+		/*
 	case 1:
 		tex->format = VK_FORMAT_R8_SRGB;
 		break;
@@ -86,11 +89,15 @@ uint32_t TextureLoader::loadTexture(unsigned char* data, int width, int height, 
 	case 3:
 		tex->format = VK_FORMAT_R8G8B8_SRGB;
 		break;
+		*/
 	case 4:
+	if(settings::SRGB)
 		tex->format = VK_FORMAT_R8G8B8A8_SRGB;
+	else
+		tex->format = VK_FORMAT_R8G8B8A8_UNORM;
 		break;
 	default:
-		throw std::runtime_error("texture character has an unsupported number of channels");
+		throw std::runtime_error("texture has an unsupported number of channels (only support 4)");
 	}
 	return texToLoad.size() - 1;
 }
