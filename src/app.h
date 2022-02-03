@@ -15,10 +15,11 @@
 #include <thread>
 #include <atomic>
 
+#include <input.h>
+#include <audio.h>
+#include <timer.h>
+
 #include "vulkan-render/render.h"
-#include "input.h"
-#include "audio.h"
-#include "timer.h"
 #include "camera.h"
 
 #include <array>
@@ -46,7 +47,6 @@ public:
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 	static void error_callback(int error, const char* description);
 #pragma endregion
-
 	Input input;
 private:
 	void loadAssets();
@@ -56,7 +56,7 @@ private:
 
 	glm::vec2 correctedPos(glm::vec2 pos);
 	glm::vec2 correctedMouse();
-	
+
 	GLFWwindow* mWindow;
 	Render* mRender;
 	int mWindowWidth, mWindowHeight;

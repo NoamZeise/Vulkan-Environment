@@ -37,7 +37,7 @@ void ModelLoader::bindBuffers(VkCommandBuffer cmdBuff)
 void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
 {
 	if(model.ID >= models.size())
-	{	
+	{
 		std::cout << "the model ID is out of range, ID: " << model.ID << std::endl;
 		return;
 	}
@@ -48,7 +48,7 @@ void ModelLoader::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 			glm::vec4(1.0f), //colour
 			glm::vec4(0, 0, 1, 1), //texOffset
 			modelInfo->meshes[i].texture.ID
-		};   
+		};
 
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
@@ -65,7 +65,7 @@ void ModelLoader::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 			colour,
 			texOffset,
 			texID
-		};   
+		};
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
@@ -99,16 +99,16 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
 	Model model(currentIndex++);
 	Assimp::Importer importer;
-	const aiScene *scene = importer.ReadFile(path, 
+	const aiScene *scene = importer.ReadFile(path,
 		aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_FlipUVs |
 		aiProcess_JoinIdenticalVertices | aiProcess_GenNormals);
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
-	
+
 
 	LoadedModel ldModel;
 	ldModel.directory = path.substr(0, path.find_last_of('/'));
-	
+
 	//correct for blender's orientation
 	glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
 	transform = glm::scale(transform, glm::vec3(0.02f));
@@ -141,11 +141,11 @@ void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* s
 void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform)
 {
 	loadMaterials(mesh, scene->mMaterials[aimesh->mMaterialIndex], texLoader);
-	
+
 	//vertcies
 	for(unsigned int i = 0; i < aimesh->mNumVertices;i++)
 	{
-		aiVector3D transformedVertex = transform * aimesh->mVertices[i]; 
+		aiVector3D transformedVertex = transform * aimesh->mVertices[i];
 		Vertex vertex;
 		vertex.Position.x = transformedVertex.x;
 		vertex.Position.y = transformedVertex.y;
@@ -222,7 +222,7 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 		model.meshes.resize(loadedModels[i].meshes.size());
 		for(size_t j = 0 ; j <  loadedModels[i].meshes.size(); j++)
 		{
-			model.meshes[j] = MeshInfo( 
+			model.meshes[j] = MeshInfo(
 					loadedModels[i].meshes[j]->indicies.size(),
 					model.indexCount,
 					model.vertexCount,
@@ -262,7 +262,7 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 	loadedModels.clear();
 
 	//create final dest memory
-	vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &buffer, &memory, 
+	vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &buffer, &memory,
 		VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 

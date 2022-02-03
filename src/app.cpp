@@ -26,7 +26,7 @@ App::App()
 	if (glfwRawMouseMotionSupported())
     	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
-	
+
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
 
@@ -89,15 +89,34 @@ void App::update()
 	postUpdate();
 #ifdef TIME_APP_DRAW_UPDATE
 	auto stop = std::chrono::high_resolution_clock::now();
-	std::cout 
+	std::cout
 		 << "update: "
-         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
+         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()
 		 << " microseconds" << std::endl;
 #endif
 }
 
 void App::postUpdate()
 {
+	if (input.Keys[GLFW_KEY_F] && !previousInput.Keys[GLFW_KEY_F])
+	{
+		if (glfwGetWindowMonitor(mWindow) == nullptr)
+		{
+			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+			glfwSetWindowMonitor(mWindow, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
+		}
+		else
+		{
+			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+			glfwSetWindowMonitor(mWindow, NULL, 100, 100, mWindowWidth, mWindowHeight, mode->refreshRate);
+		}
+	}
+
+	if(input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE])
+	{
+		glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
+	}
+
 	time += timer.FrameElapsed();
 	freecam.update(input, previousInput, timer);
 	timer.Update();
@@ -120,23 +139,30 @@ void App::draw()
 #endif
 	if(submitDraw.joinable())
 		submitDraw.join();
+
 	mRender->begin2DDraw();
 
-	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1.0f));
-	//mRender->DrawString(testFont, "text here text here", glm::vec2(100, 200), 70, 0, glm::vec4(1.0f));
+	mRender->DrawQuad(testTex, vkhelper::getModelMatrix(glm::vec4(0, 0, 1920, 1080), 0), glm::vec4(1, 1, 1, 1.0), glm::vec4(0, 0, 1, 1));
 
 	mRender->begin3DDraw();
 
-	glm::mat4 model = glm::mat4(1.0f);
-	mRender->DrawModel(testModel, model, glm::inverseTranspose(freecam.getViewMatrix() * model));
-	
+	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(freecam.getViewMatrix() * glm::mat4(1.0f)));
+
+	mRender->begin2DDraw();
+
+	mRender->DrawQuad(testTex, vkhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 0.5), glm::vec4(-0.5f,-0.5f, 1, 1));
+	mRender->DrawQuad(testTex, vkhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 0), glm::vec4(0, 1, 1, 0.5), glm::vec4(0, 0, 1, 1));
+
+	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
+
+	//end Draw
 	submitDraw = std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));
 
 #ifdef TIME_APP_DRAW_UPDATE
 	auto stop = std::chrono::high_resolution_clock::now();
-	std::cout 
-	<< "draw: " 
-	<< std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count() 
+	std::cout
+	<< "draw: "
+	<< std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()
 	<< " microseconds" << std::endl;
 #endif
 }
@@ -148,7 +174,7 @@ glm::vec2 App::correctedPos(glm::vec2 pos)
 
 glm::vec2 App::correctedMouse()
 {
-	return correctedPos(glm::vec2(input.X, input.Y)); 
+	return correctedPos(glm::vec2(input.X, input.Y));
 }
 
 #pragma region GLFW_CALLBACKS
@@ -175,23 +201,6 @@ void App::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 void App::key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
 	App* app = reinterpret_cast<App*>(glfwGetWindowUserPointer(window));
-	if (key == GLFW_KEY_F && action == GLFW_RELEASE)
-	{
-		if (glfwGetWindowMonitor(window) == nullptr)
-		{
-			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-			glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height, mode->refreshRate);
-		}
-		else
-		{
-			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-			glfwSetWindowMonitor(window, NULL, 100, 100, app->mWindowWidth, app->mWindowHeight, mode->refreshRate);
-		}
-	}
-	if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
-	{
-		glfwSetWindowShouldClose(window, GLFW_TRUE);
-	}
 	if (key >= 0 && key < 1024)
 	{
 		if (action == GLFW_PRESS)

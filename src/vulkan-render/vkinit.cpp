@@ -404,7 +404,7 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE; 
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -423,9 +423,9 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 
 	std::vector<VkAttachmentDescription> attachments;
 	if(settings::MULTISAMPLING)
-		attachments = { colourAttachment, depthAttachment, resolveAttachment }; 
+		attachments = { colourAttachment, depthAttachment, resolveAttachment };
 	else
-		attachments =  { colourAttachment, depthAttachment }; 
+		attachments =  { colourAttachment, depthAttachment };
 	//create subpass
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -440,16 +440,16 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	//depenancy to external events
 	VkSubpassDependency externalDependancy{};
 	externalDependancy.srcSubpass = VK_SUBPASS_EXTERNAL;
-	externalDependancy.srcStageMask = 
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | 
+	externalDependancy.srcStageMask =
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
 		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 
 	externalDependancy.srcAccessMask = 0;
 	externalDependancy.dstSubpass = 0;
-	externalDependancy.dstStageMask = 
+	externalDependancy.dstStageMask =
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
 		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	externalDependancy.dstAccessMask = 
+	externalDependancy.dstAccessMask =
 		    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
 			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
@@ -474,16 +474,18 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 	{
 		std::vector<VkImageView> attachments;
 		if(settings::MULTISAMPLING)
-			attachments = 
-			{ 
+			attachments =
+			{
 		  		swapchain->multisampling.view,
 		  		swapchain->depthBuffer.view,
-		  		swapchain->frameData[i].view };
+		  		swapchain->frameData[i].view
+			};
 		else
-			attachments = 
-			{ 
+			attachments =
+			{
 		  		swapchain->frameData[i].view,
-				swapchain->depthBuffer.view };
+				swapchain->depthBuffer.view
+			};
 
 		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		createInfo.renderPass = renderPass;
@@ -499,9 +501,9 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 }
 
 void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
-	std::vector<DS::DescriptorSet*> descriptorSets, 
+	std::vector<DS::DescriptorSet*> descriptorSets,
 	std::vector<VkPushConstantRange> pushConstantsRanges,
-	std::string vertexShaderPath, std::string fragmentShaderPath)
+	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest)
 {
 	pipeline->descriptorSets = descriptorSets;
 
@@ -511,10 +513,10 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 
 	//create pipeline layout
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(descriptorSets.size());
-	
+
 	for (size_t i = 0; i < descriptorSets.size(); i++)
 		descriptorSetLayouts[i] = descriptorSets[i]->layout;
-	
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 	pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
 	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
@@ -577,29 +579,45 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
 	multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
 	if(settings::SAMPLE_SHADING && settings::MULTISAMPLING)
-	{	
+	{
 		multisampleInfo.minSampleShading = 1.0f;
 		multisampleInfo.sampleShadingEnable = VK_TRUE;
-		
+
 	}
 	//config depthStencil
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-	depthStencilInfo.depthTestEnable = VK_TRUE;
-	depthStencilInfo.depthWriteEnable = VK_TRUE;
+	if(useDepthTest)
+	{
+		depthStencilInfo.depthTestEnable = VK_TRUE;
+		depthStencilInfo.depthWriteEnable = VK_TRUE;
+	}
+	else
+	{
+		depthStencilInfo.depthTestEnable = VK_FALSE;
+		depthStencilInfo.depthWriteEnable = VK_FALSE;
+	}
+
 	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
 
 	//config colour blend attachment
 	VkPipelineColorBlendAttachmentState blendAttachment{};
 	blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	blendAttachment.blendEnable = VK_FALSE;
+	blendAttachment.blendEnable = VK_TRUE;
+	blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	blendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+	blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 	//config colour blend state
 	VkPipelineColorBlendStateCreateInfo blendInfo{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+	blendInfo.logicOpEnable = VK_FALSE;
 	blendInfo.attachmentCount = 1;
 	blendInfo.pAttachments = &blendAttachment;
 
 	//set dynamic states
-	std::array<VkDynamicState, 2> dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+	std::array<VkDynamicState, 2> dynamicStates{ };
 
 	VkPipelineDynamicStateCreateInfo dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
 	dynamicStateInfo.dynamicStateCount = dynamicStates.size();
@@ -749,7 +767,7 @@ void initVulkan::createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDev
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
-	createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain, 
+	createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain,
 									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
@@ -766,17 +784,17 @@ void initVulkan::createMultisamplingBuffer(VkDevice device, VkPhysicalDevice phy
 	else if(samplesSupported & VK_SAMPLE_COUNT_8_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
 	else if(samplesSupported & VK_SAMPLE_COUNT_4_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
 	else if(samplesSupported & VK_SAMPLE_COUNT_2_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
-		
+
 	swapchain->multisampling.format = swapchain->format.format;
-	
+
 	createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
 		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, 
+void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice,
 									AttachmentImage* attachIm, SwapChain& swapchain,
 									 VkImageUsageFlags usage, VkImageAspectFlags imgAspect)
-{	
+{
 //create attach image
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -799,9 +817,9 @@ void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevic
 	VkMemoryRequirements memreq;
 	vkGetImageMemoryRequirements(device, attachIm->image, &memreq);
 
-	vkhelper::createMemory(device, physicalDevice, memreq.size, &attachIm->memory, 
+	vkhelper::createMemory(device, physicalDevice, memreq.size, &attachIm->memory,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memreq.memoryTypeBits);
-	
+
 	vkBindImageMemory(device, attachIm->image, attachIm->memory, 0);
 
 	//create attach image view

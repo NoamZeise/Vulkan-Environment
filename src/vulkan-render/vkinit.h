@@ -50,11 +50,11 @@ public:
 	static void renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain);
 	static void framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
 	static void graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
-	std::vector<DS::DescriptorSet*> descriptorSets, 
+	std::vector<DS::DescriptorSet*> descriptorSets,
 	std::vector<VkPushConstantRange> pushConstantsRanges,
-	std::string vertexShaderPath, std::string fragmentShaderPath);
+	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest);
 	static void CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSet* descriptorSets,
-		 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, 
+		 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount,
 		 VkShaderStageFlagBits stageFlags);
 #ifndef NDEBUG
 	static void debugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);

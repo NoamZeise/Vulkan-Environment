@@ -27,7 +27,7 @@ namespace camera
 		glm::mat4 getViewMatrix();
 		float getZoom();
 		void update(Input &input, Input &prevInput, Timer &timer);
-		
+
 
 	private:
 		glm::vec3 _position;

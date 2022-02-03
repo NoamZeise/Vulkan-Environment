@@ -74,7 +74,7 @@ struct ShaderBufferSet
 {
 	DescriptorSet  ds;
 	BufferType type;
-	
+
 	size_t setCount;
 	size_t dsStructSize;
 

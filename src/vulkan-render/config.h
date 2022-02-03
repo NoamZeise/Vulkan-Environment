@@ -10,10 +10,10 @@ namespace settings
 
 const bool SRGB = false;
 const bool MIP_MAPPING = false;
-const bool PIXELATED = true;
-const bool VSYNC = true;
+const bool PIXELATED = false;
+const bool VSYNC = false;
 const bool MULTISAMPLING = false;
-const bool SAMPLE_SHADING = true;
+const bool SAMPLE_SHADING = false;
 
 const bool FIXED_RATIO = false;
 const int TARGET_WIDTH = 800;

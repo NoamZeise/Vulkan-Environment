@@ -93,10 +93,10 @@ void vkhelper::createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_
 	ds.sets.resize(setCount);
 	if (vkAllocateDescriptorSets(device, &allocInfo, ds.sets.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to allocate descriptor sets");
-	
+
 }
 
-void vkhelper::prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSet*> ds, 
+void vkhelper::prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSet*> ds,
 										VkBuffer* buffer, VkDeviceMemory* memory)
 {
 	size_t memorySize = 0;
@@ -113,15 +113,15 @@ void vkhelper::prepareShaderBufferSets(Base base,	std::vector<DS::ShaderBufferSe
 		ds[i]->offset = memorySize;
 		memorySize += slot * ds[i]->setCount;
 	}
-	
-	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory, 
-	VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+
+	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory,
+	VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 		(VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
 
-	
+
 	vkBindBufferMemory(base.device, *buffer, *memory, 0);
 	void* pointer;
-	vkMapMemory(base.device, *memory, 0, memorySize, 0, &pointer);	
+	vkMapMemory(base.device, *memory, 0, memorySize, 0, &pointer);
 
 	for (size_t dI = 0; dI < ds.size(); dI++)
 	{
@@ -162,8 +162,8 @@ glm::mat4 vkhelper::calcMatFromRect(glm::vec4 rect, float rotate)
 		{
 			model = glm::translate(model, glm::vec3(0.5 * rect.z, 0.5 * rect.w, 0.0));
 			model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
-			model = glm::translate(model, glm::vec3(-0.5 * rect.z, -0.5 * rect.w, 0.0)); 
+			model = glm::translate(model, glm::vec3(-0.5 * rect.z, -0.5 * rect.w, 0.0));
 		}
-		model = glm::scale(model, glm::vec3(rect.z, rect.w, 1.0f)); 
+		model = glm::scale(model, glm::vec3(rect.z, rect.w, 1.0f));
 		return model;
 	}

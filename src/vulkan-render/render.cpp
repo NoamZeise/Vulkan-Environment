@@ -92,16 +92,16 @@ void Render::initFrameResources()
 		VK_SHADER_STAGE_FRAGMENT_BIT);
 
 	initVulkan::graphicsPipeline(mBase.device, &pipeline3D, mSwapchain, mRenderPass, 
-	{ &mViewproj3DUbo.ds, &mPerInstanceSSBO.ds, &mTexturesDS, &mLightingUbo.ds},
-	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
-	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-	"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv");
+			{ &mViewproj3DUbo.ds, &mPerInstanceSSBO.ds, &mTexturesDS, &mLightingUbo.ds},
+			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
+			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
+			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true);
 
 	initVulkan::graphicsPipeline(mBase.device, &pipeline2D, mSwapchain, mRenderPass, 
-	{ &mViewproj2DUbo.ds, &mPerInstanceSSBO.ds, &mTexturesDS,},
-	{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
-	{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-	"shaders/vflat.spv", "shaders/fflat.spv");
+			{ &mViewproj2DUbo.ds, &mPerInstanceSSBO.ds, &mTexturesDS,},
+			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
+			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
+			"shaders/vflat.spv", "shaders/fflat.spv", false);
 	
 	mViewproj3DUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::viewProjection), DS::BufferType::Uniform);
 	mViewproj2DUbo.setPerUboProperties(mSwapchain.frameData.size(), sizeof(DS::viewProjection), DS::BufferType::Uniform);
@@ -371,7 +371,7 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 		drawBatch();
 }
 
-void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour)
+void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset)
 {
 	if(currentIndex >= DS::MAX_BATCH_SIZE)
 	{
@@ -387,16 +387,23 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, g
 							0, sizeof(vectPushConstants), &vps);
 
 		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, texture.ID,
-		 	1, 0, glm::vec4(1.0f), glm::vec4(0, 0, 1, 1));
+		 	1, 0, colour, texOffset);
 		return;
 	}
 
-	if(currentTexture.ID != currentTexture.ID && modelRuns != 0)
+	if( modelRuns != 0 && 
+		(currentTexture.ID != currentTexture.ID ||
+		 currentTexOffset != texOffset ||
+		 currentColour    != colour))
+	{
 		drawBatch();
+	}
+
 	//add model to buffer
 	currentTexture = texture;
+	currentColour = colour;
+	currentTexOffset = texOffset;
 	perInstanceData.model[currentIndex + modelRuns] = modelMatrix;
-	//perInstanceData.normalMat[currentIndex + modelRuns] = glm::mat4(1.0f);
 	modelRuns++;
 
 	if(currentIndex + modelRuns == DS::MAX_BATCH_SIZE)
@@ -469,7 +476,7 @@ void Render::drawBatch()
 	if(m3DRender)
 		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, currentModel, modelRuns, currentIndex);
 	else
-		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, currentTexture.ID, modelRuns, currentIndex, glm::vec4(1.0f), glm::vec4(0, 0, 1, 1));
+		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, pipeline3D.layout, currentTexture.ID, modelRuns, currentIndex, currentColour, currentTexOffset);
 
 	currentIndex += modelRuns;
 	modelRuns = 0;

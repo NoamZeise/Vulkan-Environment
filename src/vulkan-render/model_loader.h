@@ -107,7 +107,7 @@ private:
 	VkDeviceMemory memory;
 	unsigned int vertexDataSize = 0;
 	unsigned int indexDataSize = 0;
-	
+
 	unsigned int currentIndex = 0;
 };
 

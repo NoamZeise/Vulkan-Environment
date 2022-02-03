@@ -1,3 +1,5 @@
 build/*
 .vscode/*
-include/*
+include/freetype/*
+include/ft2build.h
+*.gch

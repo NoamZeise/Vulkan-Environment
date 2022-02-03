@@ -22,10 +22,10 @@ int main()
 		#ifndef NDEBUG
 			int x;
 			std::cin >> x;
-		#endif	
+		#endif
 		return EXIT_FAILURE;
 	}
-	/* 
+	/*
 	int x = 0;
 	std::cin >> x;
 	*/

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <thread>
 #include <cstring>
+
 class Audio
 {
 public:
@@ -131,7 +132,7 @@ public:
 
 	void play()
 	{
-		
+
 	}
 
 	void pause()
@@ -174,4 +175,5 @@ private:
 
 
 #endif //os end
+
 #endif //header end

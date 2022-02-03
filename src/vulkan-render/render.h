@@ -44,7 +44,7 @@ public:
 
 	void endDraw(std::atomic<bool>& submit);
 	void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
-	void DrawQuad(const Resource::Texture& texID, glm::mat4 modelMatrix, glm::vec4 colour);
+	void DrawQuad(const Resource::Texture& texID, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
 	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
   	float MeasureString(Resource::Font* font, std::string text, float size);
 	bool framebufferResized = false;
@@ -92,7 +92,9 @@ private:
 	unsigned int currentIndex = 0;
 	Resource::Model currentModel;
 	Resource::Texture currentTexture;
-	
+	glm::vec4 currentTexOffset = glm::vec4(0, 0, 1, 1);
+	glm::vec4 currentColour = glm::vec4(1, 1, 1, 1);
+
 	void initRender(GLFWwindow* window);
 	void initFrameResources();
 	void destroyFrameResources();
