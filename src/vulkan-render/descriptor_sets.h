@@ -29,12 +29,22 @@ struct viewProjection
 	alignas(16) glm::mat4 proj;
 };
 
-const unsigned int MAX_BATCH_SIZE = 500;
-
-struct PerInstance
+struct Per3DInstance
 {
-	alignas(16) glm::mat4 model[MAX_BATCH_SIZE];
-	alignas(16) glm::mat4 normalMat[MAX_BATCH_SIZE];
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 normalMat;
+};
+
+struct Per2DVert
+{
+	alignas(16) glm::mat4 model;
+};
+
+struct Per2DFrag
+{
+	alignas(16) glm::vec4 colour;
+	alignas(16) glm::vec4 texOffset;
+	alignas(4) uint32_t texID;
 };
 
 struct lighting
@@ -51,11 +61,6 @@ struct lighting
 	alignas(16) glm::vec4 diffuse;
 	alignas(16) glm::vec4 specular;
 	alignas(16) glm::vec4 direction;
-};
-
-struct lightingTest
-{
-	uint32_t texID;
 };
 
 } //end shader struct namespace

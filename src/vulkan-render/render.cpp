@@ -70,44 +70,68 @@ void Render::_initFrameResources()
 	size_t frameCount = mSwapchain.frameData.size();
 	
 	//vertex descriptor sets
-	mVP3D.setBufferProps(frameCount,			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
-	initVulkan::DescriptorSetAndLayout(mBase.device, mVP3Dds, 	  {&mVP3D.binding}, 		  							VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+	mVP3D.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mVP3Dds,{&mVP3D.binding},VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
-	mVP2D.setBufferProps(frameCount, 			VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds, 1);
-	initVulkan::DescriptorSetAndLayout(mBase.device, mVP2Dds, 	  {&mVP2D.binding},		  							VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+	mVP2D.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds, 1);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mVP2Dds,{&mVP2D.binding},VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
-	mPerInstance.setBufferProps(frameCount,	 	VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mPIds, 1);
-	initVulkan::DescriptorSetAndLayout(mBase.device, mPIds,   	  {&mPerInstance.binding}, 							VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+	mPerInstance.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mPerInstance3Dds, MAX_3D_INSTANCE);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mPerInstance3Dds,   	  {&mPerInstance.binding},VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+
+	mPer2Dvert.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mPer2DVertds, MAX_2D_INSTANCE);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mPer2DVertds,   	  {&mPer2Dvert.binding},VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
 	//fragment descriptor sets
-	mLighting.setBufferProps(frameCount, 		VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLds, 1);
-	initVulkan::DescriptorSetAndLayout(mBase.device, mLds,	  	  {&mLighting.binding}, 				VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+	mLighting.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds, 1);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mLightingds,{&mLighting.binding},VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
-	mTextureSampler.setBufferProps(frameCount,	VK_DESCRIPTOR_TYPE_SAMPLER, 	   &mTexturesDS, 1, nullptr, mTextureLoader.getSamplerP());
-	mTextureViews.setBufferProps(frameCount,	VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  &mTexturesDS, Resource::MAX_TEXTURES_SUPPORTED, mTextureLoader.getImageViewsP(), nullptr);
-	initVulkan::DescriptorSetAndLayout(mBase.device, mTexturesDS, {&mTextureSampler.binding, &mTextureViews.binding},   VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+	mTextureSampler.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_SAMPLER,&mTexturesds, 1, nullptr, mTextureLoader.getSamplerP());
+	mTextureViews.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &mTexturesds, Resource::MAX_TEXTURES_SUPPORTED, mTextureLoader.getImageViewsP(), nullptr);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mTexturesds, {&mTextureSampler.binding, &mTextureViews.binding},   VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+
+	mPer2Dfrag.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mPer2Dfragds, MAX_2D_INSTANCE);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mPer2Dfragds, {&mPer2Dfrag.binding}, VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
 
-	initVulkan::PrepareShaderBufferSets(mBase, {&mVP3D.binding, &mVP2D.binding,  &mPerInstance.binding,  &mLighting.binding, &mTextureSampler.binding, &mTextureViews.binding}, &mShaderBuffer, &mShaderMemory);
+	initVulkan::PrepareShaderBufferSets(mBase, 
+		{
+			&mVP3D.binding, 
+			&mVP2D.binding,  
+			&mPerInstance.binding, 
+			&mPer2Dvert.binding,  
+			&mLighting.binding, 
+			&mTextureSampler.binding, 
+			&mTextureViews.binding,
+			&mPer2Dfrag.binding
+		}, &mShaderBuffer, &mShaderMemory);
 
 
 	initVulkan::GraphicsPipeline(mBase.device, &mPipeline3D, mSwapchain, mRenderPass, 
-			{ &mVP3Dds, &mPIds, &mTexturesDS, &mLds},
+			{ &mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true);
 
 	initVulkan::GraphicsPipeline(mBase.device, &mPipeline2D, mSwapchain, mRenderPass, 
-			{ &mVP2Dds, &mPIds, &mTexturesDS},
+			{ &mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 			"shaders/vflat.spv", "shaders/fflat.spv", false);
 	
 	_updateViewProjectionMatrix();
-	for(size_t i = 0; i < DS::ShaderStructs::MAX_BATCH_SIZE; i++)
+	for(size_t i = 0; i < MAX_3D_INSTANCE; i++)
 	{
-		mPerInstance.data[0].model[i] = glm::mat4(1.0f);
-		mPerInstance.data[0].normalMat[i] = glm::mat4(1.0f);
+		mPerInstance.data[i].model = glm::mat4(1.0f);
+		mPerInstance.data[i].normalMat = glm::mat4(1.0f);
+	}
+	for(size_t i = 0; i < MAX_2D_INSTANCE; i++)
+	{
+		mPer2Dvert.data[i].model = glm::mat4(1.0f);
+
+		mPer2Dfrag.data[i].colour = glm::vec4(1.0f);
+		mPer2Dfrag.data[i].texOffset = glm::vec4(0, 0, 1, 1);
+		mPer2Dfrag.data[i].texID = 0;
 	}
 }
 
@@ -118,9 +142,11 @@ void Render::_destroyFrameResources()
 
 	mVP3Dds.destroySet(mBase.device);
 	mVP2Dds.destroySet(mBase.device);
-	mPIds.destroySet(mBase.device);
-	mLds.destroySet(mBase.device);
-	mTexturesDS.destroySet(mBase.device);
+	mPerInstance3Dds.destroySet(mBase.device);
+	mPer2DVertds.destroySet(mBase.device);
+	mLightingds.destroySet(mBase.device);
+	mTexturesds.destroySet(mBase.device);
+	mPer2Dfragds.destroySet(mBase.device);
 
 	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
 		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
@@ -246,6 +272,8 @@ void Render::begin3DDraw()
 		_startDraw();
 	if(modelRuns > 0)
 		_drawBatch();
+	if(instance2Druns > 0)
+		_drawBatch();
 	m3DRender = true; 
 		
 	mVP3D.storeData(mImg);
@@ -261,6 +289,8 @@ void Render::begin2DDraw()
 	if(!mBegunDraw)
 		_startDraw();
 	if(modelRuns > 0)
+		_drawBatch();
+	if(instance2Druns > 0)
 		_drawBatch();
 	m3DRender = false;
 
@@ -296,18 +326,23 @@ void Render::_drawBatch()
 							0, sizeof(vectPushConstants), &vps);
 
 	if(m3DRender)
-		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, currentModel, modelRuns, currentIndex);
+	{
+		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, currentModel, modelRuns, current3DInstanceIndex);
+		current3DInstanceIndex += modelRuns;
+		modelRuns = 0;
+	}
 	else
-		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, currentTexture.ID, modelRuns, currentIndex, currentColour, currentTexOffset);
-
-	currentIndex += modelRuns;
-	modelRuns = 0;
+	{
+		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, 0, instance2Druns, current2DInstanceIndex, currentColour, currentTexOffset);
+		current2DInstanceIndex += instance2Druns;
+		instance2Druns = 0;
+	}
 
 }
 
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
 {
-	if(currentIndex >= DS::ShaderStructs::MAX_BATCH_SIZE)
+	if(current3DInstanceIndex >= MAX_3D_INSTANCE)
 	{
 		std::cout << "single" << std::endl;
 		vectPushConstants vps{
@@ -326,17 +361,17 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 		_drawBatch();
 	//add model to buffer
 	currentModel = model;
-	mPerInstance.data[0].model[currentIndex + modelRuns] = modelMatrix;
-	mPerInstance.data[0].normalMat[currentIndex + modelRuns] = normalMat;
+	mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+	mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
 	modelRuns++;
 
-	if(currentIndex + modelRuns == DS::ShaderStructs::MAX_BATCH_SIZE)
+	if(current3DInstanceIndex + modelRuns == MAX_3D_INSTANCE)
 		_drawBatch();
 }
 
 void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset)
 {
-	if(currentIndex >= DS::ShaderStructs::MAX_BATCH_SIZE)
+	if(current2DInstanceIndex >= MAX_2D_INSTANCE)
 	{
 		std::cout << "single" << std::endl;
 
@@ -354,22 +389,15 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, g
 		return;
 	}
 
-	if( modelRuns != 0 && 
-		(currentTexture.ID != currentTexture.ID ||
-		 currentTexOffset != texOffset ||
-		 currentColour    != colour))
-	{
-		_drawBatch();
-	}
 
-	//add model to buffer
-	currentTexture = texture;
-	currentColour = colour;
-	currentTexOffset = texOffset;
-	mPerInstance.data[0].model[currentIndex + modelRuns] = modelMatrix;
-	modelRuns++;
+	mPer2Dvert.data[current2DInstanceIndex + instance2Druns].model = modelMatrix;
 
-	if(currentIndex + modelRuns == DS::ShaderStructs::MAX_BATCH_SIZE)
+	mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].colour = colour;
+	mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texOffset = texOffset;
+	mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texID = texture.ID;
+	instance2Druns++;
+
+	if(current2DInstanceIndex + instance2Druns == MAX_2D_INSTANCE)
 		_drawBatch();
 }
 
@@ -407,19 +435,13 @@ void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 positi
 			thisPos.z /= 1;
 			thisPos.w /= 1;
 
-			vectPushConstants vps{
-				glmhelper::calcMatFromRect(thisPos, 0),
-				glm::mat4(1.0f)
-				};   
-			vps.normalMat[3][3] = 1.0;
-			vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT,
-							0, sizeof(vectPushConstants), &vps);
 
-			mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, cTex->TextureID, 1, 0,
-			 colour, glm::vec4(0, 0, 1, 1));
+			glm::mat4 model = glmhelper::calcMatFromRect(thisPos, 0);
+
+			Resource::Texture tex(cTex->TextureID, glm::vec2(0), "");
+			DrawQuad(tex, model, colour);
 		}
 		position.x += cTex->Advance * size;
-		
 	}
 }
 
@@ -429,11 +451,27 @@ void Render::endDraw(std::atomic<bool>& submit)
 		throw std::runtime_error("start draw before ending it");
 	mBegunDraw = false;
 
-	if(modelRuns != 0 && currentIndex < DS::ShaderStructs::MAX_BATCH_SIZE)
-		_drawBatch();
+	if(m3DRender)
+	{
+		if(modelRuns != 0 && current3DInstanceIndex < MAX_3D_INSTANCE)
+			_drawBatch();
+	}
+	else
+	{
+		if(instance2Druns != 0 && current2DInstanceIndex < MAX_2D_INSTANCE)
+			_drawBatch();
+	}
 
-	mPerInstance.storeData(mImg);
-	currentIndex = 0;
+	for(size_t i = 0; i < current3DInstanceIndex; i++)
+		mPerInstance.storeData(mImg, i);
+	current3DInstanceIndex = 0;
+
+	for(size_t i = 0; i < current2DInstanceIndex; i++)
+	{
+		mPer2Dvert.storeData(mImg, i);
+		mPer2Dfrag.storeData(mImg, i);
+	}
+	current2DInstanceIndex = 0;
  
 	//end render pass
 	vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);

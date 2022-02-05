@@ -29,6 +29,9 @@
 #include "texfont.h"
 #include "model_loader.h"
 
+const size_t MAX_3D_INSTANCE = 100;
+const size_t MAX_2D_INSTANCE = 300; 
+
 class Render
 {
 public:
@@ -74,15 +77,19 @@ private:
 
 	DS::DescriptorSet mVP3Dds;
 	DS::DescriptorSet mVP2Dds;
-	DS::DescriptorSet mPIds;
-	DS::DescriptorSet mLds;
-	DS::DescriptorSet mTexturesDS;
+	DS::DescriptorSet mPerInstance3Dds;
+	DS::DescriptorSet mPer2DVertds;
+	DS::DescriptorSet mLightingds;
+	DS::DescriptorSet mTexturesds;
+	DS::DescriptorSet mPer2Dfragds;
 
 	DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
 	DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
-	DS::BindingAndData<DS::ShaderStructs::PerInstance> mPerInstance;
+	DS::BindingAndData<DS::ShaderStructs::Per3DInstance> mPerInstance;
+	DS::BindingAndData<DS::ShaderStructs::Per2DVert> mPer2Dvert;
 	DS::BindingAndData<bool> mTextureViews;
 	DS::BindingAndData<bool> mTextureSampler;
+	DS::BindingAndData<DS::ShaderStructs::Per2DFrag> mPer2Dfrag;
 	DS::BindingAndData<DS::ShaderStructs::lighting> mLighting;
 
 	Resource::TextureLoader mTextureLoader;
@@ -96,11 +103,14 @@ private:
 	float mProjectionFov = 45.0f;
 
 	unsigned int modelRuns = 0;
-	unsigned int currentIndex = 0;
+	unsigned int current3DInstanceIndex = 0;
 	Resource::Model currentModel;
 	Resource::Texture currentTexture;
 	glm::vec4 currentTexOffset = glm::vec4(0, 0, 1, 1);
 	glm::vec4 currentColour = glm::vec4(1, 1, 1, 1);
+
+	unsigned int instance2Druns = 0;
+	unsigned int current2DInstanceIndex = 0;
 
 	void _initRender(GLFWwindow* window);
 	void _initFrameResources();

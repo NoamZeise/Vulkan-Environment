@@ -12,11 +12,10 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
     mat4 proj;
 } ubo;
 
-const uint MAX_BATCH_SIZE = 10000;
-layout(set = 1, binding = 0) readonly buffer PerFrameBuffer {
-    mat4 model[MAX_BATCH_SIZE];
-    mat4 normalMat[MAX_BATCH_SIZE];
-} pfb;
+layout(set = 1, binding = 0) readonly buffer PerInstanceData {
+    mat4 model;
+    mat4 normalMat;
+} pid[100];
 
 
 layout(location = 0) in vec3 inPos;
@@ -35,8 +34,8 @@ void main()
     vec4 fragPos = vec4(0.0);
     if(pcs.normalMat[3][3] == 0.0) //draw instance (use per frame buffer)
     {
-        fragPos = ubo.view * pfb.model[gl_InstanceIndex] * vec4(inPos, 1.0);
-        outNormal = mat3(pfb.normalMat[gl_InstanceIndex]) * inNormal;
+        fragPos = ubo.view * pid[gl_InstanceIndex].model * vec4(inPos, 1.0);
+        outNormal = mat3(pid[gl_InstanceIndex].normalMat) * inNormal;
     }
     else //draw once (use push constants)
     {

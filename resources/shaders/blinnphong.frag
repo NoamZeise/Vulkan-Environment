@@ -19,7 +19,6 @@ layout(set = 3, binding = 0) uniform LightingUBO
     vec4 direction;
 } lighting;
 
-
 layout(location = 0) in vec2 inTexCoord;
 layout(location = 1) in vec3 inFragPos;
 layout(location = 2) in vec3 inNormal;
@@ -43,10 +42,10 @@ void main()
     vec3 normal = normalize(inNormal);
     vec3 lightDir = normalize(-lighting.direction.xyz);
 
-    vec3 ambient = lighting.ambient.xyz * lighting.ambient.w * objectColour.xyz;
+    vec3 ambient = lighting.ambient.xyz * lighting.ambient.w;
 
     float lambertian = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = lighting.diffuse.xyz * lighting.diffuse.w * lambertian * objectColour.xyz;
+    vec3 diffuse = lighting.diffuse.xyz * lighting.diffuse.w * lambertian;
 
     float specularIntensity = 0.0;
     if(lambertian > 0.0)
@@ -55,12 +54,8 @@ void main()
         
         vec3 halfDir = normalize(lightDir + viewDir);
         specularIntensity = pow(max(dot(normal, halfDir), 0.0), lighting.specular.w);
-        /*
-        vec3 ref = reflect(-lightDir, normal);
-        specularIntensity = pow(max(dot(ref, viewDir), 0.0), lighting.specular.w);
-        */
     }
     vec3 specular = lighting.specular.xyz * specularIntensity;
 
-    outColour = vec4(ambient + diffuse + specular, 1.0);
+    outColour = vec4(ambient + diffuse + specular, 1.0) * objectColour;
 }
