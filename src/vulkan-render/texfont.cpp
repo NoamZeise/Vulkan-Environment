@@ -94,6 +94,19 @@ Character* Font::getChar(char c)
 	return _chars[c];
 }
 
+float Font::MeasureString(Resource::Font* font, std::string text, float size)
+{
+	float sz = 0;
+	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
+	{
+		Resource::Character* cTex = font->getChar(*c);
+		if (cTex == nullptr)
+			continue;
+		sz += cTex->Advance * size;
+	}
+	return sz;
+}
+
 
 }
 //end

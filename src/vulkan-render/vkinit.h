@@ -38,26 +38,25 @@ const std::array<const char*, 1> REQUESTED_DEVICE_EXTENSIONS = {
 const std::array<const char*, 1> REQUESTED_DEVICE_EXTENSIONS = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-#endif //NDEBUG
+#endif 
 
 struct initVulkan
 {
 public:
-	static void instance(VkInstance* instance);
-	static void device(VkInstance instance, VkPhysicalDevice& device, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families);
-	static void swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex);
-	static void destroySwapchain(SwapChain* swapchain, const VkDevice& device);
-	static void renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain);
-	static void framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
-	static void graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
-	std::vector<DS::DescriptorSet*> descriptorSets,
-	std::vector<VkPushConstantRange> pushConstantsRanges,
-	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest);
-	static void CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSet* descriptorSets,
-		 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount,
-		 VkShaderStageFlagBits stageFlags);
+	static void Instance(VkInstance* instance);
+	static void Device(VkInstance instance, VkPhysicalDevice& device, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families);
+	static void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex);
+	static void DestroySwapchain(SwapChain* swapchain, const VkDevice& device);
+	static void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain);
+	static void Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
+	static void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
+									std::vector<DS::DescriptorSet*> descriptorSets,
+									std::vector<VkPushConstantRange> pushConstantsRanges,
+									std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest);
+	static void DescriptorSetAndLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags, size_t setCount);
+	static void PrepareShaderBufferSets(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
 #ifndef NDEBUG
-	static void debugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
+	static void DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
 	static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
 		VkDebugUtilsMessengerEXT debugMessenger,
 		const VkAllocationCallbacks* pAllocator);
@@ -65,27 +64,30 @@ public:
 
 private:
 
-	static void fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex);
-	static void destroySwapchain(SwapChain* swapchain, const VkDevice& device, const VkSwapchainKHR& oldSwapChain);
-	static VkShaderModule loadShaderModule(VkDevice device, std::string file);
-	static void createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
-	static void createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
-	static void createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, AttachmentImage* attachIm, SwapChain& swapchain, VkImageUsageFlags usage, VkImageAspectFlags imgAspect);
-	static VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
-	static void destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment);
+	static void _fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex);
+	static void _destroySwapchain(SwapChain* swapchain, const VkDevice& device, const VkSwapchainKHR& oldSwapChain);
+	static VkShaderModule _loadShaderModule(VkDevice device, std::string file);
+	static void _createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
+	static void _createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
+	static void _createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, AttachmentImage* attachIm, SwapChain& swapchain, VkImageUsageFlags usage, VkImageAspectFlags imgAspect);
+	static VkFormat _findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
+	static void _destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment);
+	static size_t _createHostVisibleShaderBufferMemory(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
+	static void _createDescriptorSetLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> &bindings, VkShaderStageFlagBits stageFlags);
+	static void _createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount);
 	//DEBUG MEMBERS
 #ifndef NDEBUG
 
-	static bool validationLayersSupported();
+	static bool _validationLayersSupported();
 
-	static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfo);
+	static void _populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfo);
 
-	static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+	static VkResult _createDebugUtilsMessengerEXT(VkInstance instance,
 		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 		const VkAllocationCallbacks* pAllocator,
 		VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-	static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
+	static VKAPI_ATTR VkBool32 VKAPI_CALL _debugUtilsMessengerCallback(
 		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 		VkDebugUtilsMessageTypeFlagsEXT messageType,
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,

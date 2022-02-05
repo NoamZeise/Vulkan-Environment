@@ -1,7 +1,7 @@
 #include "vkinit.h"
 
 
-void initVulkan::instance(VkInstance* instance)
+void initVulkan::Instance(VkInstance* instance)
 {
 	VkInstanceCreateInfo instanceCreateInfo{ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 
@@ -25,7 +25,7 @@ void initVulkan::instance(VkInstance* instance)
 
 	//setup debug features
 #ifndef NDEBUG
-	if (!validationLayersSupported())
+	if (!_validationLayersSupported())
 		throw std::runtime_error("validation layers were requested, but aren't supported");
 
 	instanceCreateInfo.enabledLayerCount = OPTIONAL_LAYERS.size();
@@ -38,7 +38,7 @@ void initVulkan::instance(VkInstance* instance)
 
 													//setup debug messenger for just the creation of an instance
 	VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo{};
-	populateDebugMessengerCreateInfo(&debugMessengerInfo);
+	_populateDebugMessengerCreateInfo(&debugMessengerInfo);
 	validationFeatures.pNext = &debugMessengerInfo; //call after validation feature creation
 #else
 	instanceCreateInfo.enabledLayerCount = 0;
@@ -52,7 +52,7 @@ void initVulkan::instance(VkInstance* instance)
 	}
 }
 
-void initVulkan::device(VkInstance instance, VkPhysicalDevice& physicalDevice, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families)
+void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families)
 {
 	uint32_t deviceCount;
 	if (vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr) != VK_SUCCESS)
@@ -180,7 +180,7 @@ void initVulkan::device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 	vkGetDeviceQueue(*logicalDevice, families->graphicsPresentFamilyIndex, 0, &families->graphicsPresentQueue);
 }
 
-void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex)
+void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex)
 {
 	//get surface formats
 	uint32_t formatCount;
@@ -334,7 +334,7 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 
 	if (oldSwapChain != VK_NULL_HANDLE)
 	{
-		destroySwapchain(swapchain, device, oldSwapChain);
+		_destroySwapchain(swapchain, device, oldSwapChain);
 	}
 
 	//get swapchain images
@@ -367,18 +367,23 @@ void initVulkan::swapChain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	//init frame data
 	for (size_t i = 0; i < imageCount; i++)
 	{
-		fillFrameData(device, &swapchain->frameData[i], graphicsQueueIndex);
+		_fillFrameData(device, &swapchain->frameData[i], graphicsQueueIndex);
 	}
 
 	//create attachment resources
 	if(settings::MULTISAMPLING)
-		createMultisamplingBuffer(device, physicalDevice, swapchain); //this first as sets max msaa used by rest of attachments
+		_createMultisamplingBuffer(device, physicalDevice, swapchain); //this first as sets max msaa used by rest of attachments
 	else
 		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
-	createDepthBuffer(device, physicalDevice, swapchain);
+	_createDepthBuffer(device, physicalDevice, swapchain);
 }
 
-void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain)
+void initVulkan::DestroySwapchain(SwapChain* swapchainStruct, const VkDevice& device)
+{
+	_destroySwapchain(swapchainStruct, device, swapchainStruct->swapChain);
+}
+
+void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain)
 {
 	//create attachments
 
@@ -387,15 +392,21 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	VkAttachmentDescription colourAttachment{};
 	colourAttachment.format = swapchain.format.format;
 	colourAttachment.samples = swapchain.maxMsaaSamples;
-	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	if(settings::MULTISAMPLING)
+	{
+		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	}
+	else
+	{
+		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	}
 	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	if(settings::MULTISAMPLING)
-		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	else
-		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	//depth attachment
 	VkAttachmentReference depthBufferRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 	VkAttachmentDescription depthAttachment {};
@@ -467,7 +478,7 @@ void initVulkan::renderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 		throw std::runtime_error("failed to create render pass!");
 }
 
-void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass)
+void initVulkan::Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass)
 {
 
 	for (size_t i = 0; i < swapchain->frameData.size(); i++)
@@ -500,7 +511,7 @@ void initVulkan::framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 	}
 }
 
-void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
+void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
 	std::vector<DS::DescriptorSet*> descriptorSets,
 	std::vector<VkPushConstantRange> pushConstantsRanges,
 	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest)
@@ -508,8 +519,8 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	pipeline->descriptorSets = descriptorSets;
 
 	//load shader modules
-	auto vertexShaderModule = loadShaderModule(device, vertexShaderPath);
-	auto fragmentShaderModule = loadShaderModule(device, fragmentShaderPath);
+	auto vertexShaderModule = _loadShaderModule(device, vertexShaderPath);
+	auto fragmentShaderModule = _loadShaderModule(device, fragmentShaderPath);
 
 	//create pipeline layout
 	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(descriptorSets.size());
@@ -648,35 +659,82 @@ void initVulkan::graphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
 }
 
-
-
-void initVulkan::CreateDescriptorSetLayout(VkDevice device, DS::DescriptorSet* descriptorSets,
-	 std::vector<VkDescriptorType> descriptorTypes, std::vector<uint32_t> descriptorCount, VkShaderStageFlagBits stageFlags)
+void initVulkan::DescriptorSetAndLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags, size_t setCount)
 {
-	//create layout
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings(descriptorTypes.size());
-	descriptorSets->poolSize.resize(descriptorTypes.size());
-	for(size_t i = 0; i < descriptorTypes.size(); i++)
-	{
-		layoutBindings[i].binding = i;
-		layoutBindings[i].descriptorType = descriptorTypes[i];
-		layoutBindings[i].descriptorCount = descriptorCount[i];
-		layoutBindings[i].stageFlags = stageFlags;
-
-		descriptorSets->poolSize[i].type = descriptorTypes[i];
-		descriptorSets->poolSize[i].descriptorCount = descriptorCount[i];
-	}
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layoutInfo.bindingCount = layoutBindings.size();
-	layoutInfo.pBindings = layoutBindings.data();
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSets->layout) != VK_SUCCESS)
-		throw std::runtime_error("failed to create descriptor sets");
+	_createDescriptorSetLayout(device, ds, bindings, stageFlags);
+	_createDescriptorSet(device, ds, setCount);
 }
+
+void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
+{
+	size_t memSize = _createHostVisibleShaderBufferMemory(base, ds, buffer, memory);
+
+	vkBindBufferMemory(base.device, *buffer, *memory, 0);
+	void* pointer;
+	vkMapMemory(base.device, *memory, 0, memSize, 0, &pointer);
+
+	for (size_t descI = 0; descI < ds.size(); descI++)
+	{
+		ds[descI]->pointer = nullptr;
+
+		std::vector<VkWriteDescriptorSet> writes(ds[descI]->setCount, {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+		std::vector<VkDescriptorBufferInfo> buffInfos;
+		std::vector<VkDescriptorImageInfo> imageInfos;
+		if(ds[descI]->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER || ds[descI]->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		{
+			buffInfos.resize(ds[descI]->setCount * ds[descI]->descriptorCount);
+			ds[descI]->pointer = pointer;
+		}
+		if(ds[descI]->type == VK_DESCRIPTOR_TYPE_SAMPLER || ds[descI]->type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
+			imageInfos.resize(ds[descI]->setCount * ds[descI]->descriptorCount);
+
+		for (size_t i = 0; i < ds[descI]->setCount; i++)
+		{
+			writes[i].dstSet = ds[descI]->ds->sets[i];
+			writes[i].dstBinding = ds[descI]->binding;
+			writes[i].dstArrayElement = 0;
+			writes[i].descriptorCount = ds[descI]->descriptorCount;
+			writes[i].descriptorType = ds[descI]->type;
+			switch(ds[descI]->type)
+			{
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+					for (size_t j = 0; j < ds[descI]->descriptorCount; j++)
+					{
+						size_t buffIndex = (ds[descI]->descriptorCount * i) + j;
+						buffInfos[buffIndex].buffer = *buffer;
+						buffInfos[buffIndex].offset = ds[descI]->offset + (ds[descI]->slotSize * ds[descI]->descriptorCount * i) + (ds[descI]->slotSize * j);
+						buffInfos[buffIndex].range = ds[descI]->slotSize;
+					}
+					writes[i].pBufferInfo = buffInfos.data() + (i * ds[descI]->descriptorCount);
+					break;
+				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+					for (size_t j = 0; j < ds[descI]->descriptorCount; j++)
+					{
+						size_t imageIndex = (ds[descI]->descriptorCount * i) + j;
+						imageInfos[imageIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+						imageInfos[imageIndex].imageView = *(ds[descI]->imageViews + j);
+					}
+					writes[i].pImageInfo = imageInfos.data() + (i * ds[descI]->descriptorCount);
+					break;
+				case VK_DESCRIPTOR_TYPE_SAMPLER:
+					for (size_t j = 0; j < ds[descI]->descriptorCount; j++)
+					{
+						size_t imageIndex = (ds[descI]->descriptorCount * i) + j;
+						imageInfos[imageIndex].sampler = *(ds[descI]->samplers + j);
+					}
+					writes[i].pImageInfo = imageInfos.data() + (i * ds[descI]->descriptorCount);
+					break;
+			}
+		}
+		vkUpdateDescriptorSets(base.device, writes.size(), writes.data(), 0, nullptr);
+	}
+}
+
 
 //HELPERS
 
-void initVulkan::fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex)
+void initVulkan::_fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex)
 {
 	//create command pool
 	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
@@ -705,11 +763,11 @@ void initVulkan::fillFrameData(VkDevice device, FrameData* frame, uint32_t graph
 		throw std::runtime_error("failed to create frame finished fence");
 }
 
-void initVulkan::destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
+void initVulkan::_destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
 {
-	destroyAttachmentImageResources(device, swapchainStruct->depthBuffer);
+	_destroyAttachmentImageResources(device, swapchainStruct->depthBuffer);
 	if(settings::MULTISAMPLING)
-		destroyAttachmentImageResources(device, swapchainStruct->multisampling);
+		_destroyAttachmentImageResources(device, swapchainStruct->multisampling);
 
 	for (size_t i = 0; i < swapchainStruct->frameData.size(); i++)
 	{
@@ -728,12 +786,7 @@ void initVulkan::destroySwapchain(SwapChain* swapchainStruct, const VkDevice& de
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
-void initVulkan::destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device)
-{
-	destroySwapchain(swapchainStruct, device, swapchainStruct->swapChain);
-}
-
-VkShaderModule initVulkan::loadShaderModule(VkDevice device, std::string file)
+VkShaderModule initVulkan::_loadShaderModule(VkDevice device, std::string file)
 {
 	VkShaderModule shaderModule;
 
@@ -758,20 +811,20 @@ VkShaderModule initVulkan::loadShaderModule(VkDevice device, std::string file)
 	return shaderModule;
 }
 
-void initVulkan::createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
+void initVulkan::_createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
 {
 	//get a supported format for depth buffer
-	swapchain->depthBuffer.format = findSupportedFormat( physicalDevice,
+	swapchain->depthBuffer.format = _findSupportedFormat( physicalDevice,
         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
-	createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain,
+	_createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain,
 									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void initVulkan::createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
+void initVulkan::_createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
 {
 	//get max msaa samples supported by physical device
 	swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -787,11 +840,11 @@ void initVulkan::createMultisamplingBuffer(VkDevice device, VkPhysicalDevice phy
 
 	swapchain->multisampling.format = swapchain->format.format;
 
-	createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
+	_createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
 		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice,
+void initVulkan::_createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice,
 									AttachmentImage* attachIm, SwapChain& swapchain,
 									 VkImageUsageFlags usage, VkImageAspectFlags imgAspect)
 {
@@ -838,7 +891,7 @@ void initVulkan::createAttachmentImageResources(VkDevice device, VkPhysicalDevic
 		throw std::runtime_error("Failed to create image view for attachment!");
 }
 
-VkFormat initVulkan::findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat initVulkan::_findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
 	for (const auto& format : formats)
 	{
@@ -853,26 +906,101 @@ VkFormat initVulkan::findSupportedFormat(VkPhysicalDevice physicalDevice, const 
 	throw std::runtime_error("None of the formats supplied were supported!");
 }
 
-void initVulkan::destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment)
+void initVulkan::_destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment)
 {
 	vkDestroyImageView(device, attachment.view, nullptr);
 	vkDestroyImage(device, attachment.image, nullptr);
 	vkFreeMemory(device, attachment.memory, nullptr);
 }
+
+void initVulkan::_createDescriptorSetLayout(VkDevice device, DS::DescriptorSet &ds,
+	 std::vector<DS::Binding*> &bindings, VkShaderStageFlagBits stageFlags)
+{
+	//create layout
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings(bindings.size());
+	ds.poolSize.resize(bindings.size());
+	for(size_t i = 0; i < bindings.size(); i++)
+	{
+		bindings[i]->binding = i;
+		layoutBindings[i].binding = bindings[i]->binding;
+		layoutBindings[i].descriptorType = bindings[i]->type;
+		layoutBindings[i].descriptorCount = bindings[i]->descriptorCount;
+		layoutBindings[i].stageFlags = stageFlags;
+
+		ds.poolSize[i].type = bindings[i]->type;
+		ds.poolSize[i].descriptorCount = bindings[i]->descriptorCount;
+	}
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layoutInfo.bindingCount = layoutBindings.size();
+	layoutInfo.pBindings = layoutBindings.data();
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &ds.layout) != VK_SUCCESS)
+		throw std::runtime_error("failed to create descriptor sets");
+}
+
+void initVulkan::_createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount)
+{
+	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+	poolInfo.poolSizeCount = ds.poolSize.size();
+	poolInfo.pPoolSizes = ds.poolSize.data();
+	poolInfo.maxSets = setCount;
+	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &ds.pool) != VK_SUCCESS)
+		throw std::runtime_error("failed to create descriptor pool");
+
+	std::vector<VkDescriptorSetLayout> layouts(setCount, ds.layout);
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = ds.pool;
+	allocInfo.descriptorSetCount = layouts.size();
+	allocInfo.pSetLayouts = layouts.data();
+	ds.sets.resize(setCount);
+	if (vkAllocateDescriptorSets(device, &allocInfo, ds.sets.data()) != VK_SUCCESS)
+		throw std::runtime_error("failed to allocate descriptor sets");
+
+}
+
+
+
+size_t initVulkan::_createHostVisibleShaderBufferMemory(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
+{
+	size_t memorySize = 0;
+	for (size_t i = 0; i < ds.size(); i++)
+	{
+		if(ds[i]->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER && ds[i]->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+			continue;
+		VkDeviceSize slot = ds[i]->dataStructSize;
+		VkPhysicalDeviceProperties physDevProps;
+		vkGetPhysicalDeviceProperties(base.physicalDevice, &physDevProps);
+		if (slot % physDevProps.limits.minUniformBufferOffsetAlignment != 0)
+			slot = slot + physDevProps.limits.minUniformBufferOffsetAlignment
+			- (slot % physDevProps.limits.minUniformBufferOffsetAlignment);
+
+		ds[i]->slotSize = slot;
+		ds[i]->offset = memorySize;
+		memorySize += ds[i]->slotSize * ds[i]->descriptorCount * ds[i]->setCount;
+	}
+
+	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory,
+		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+
+	return memorySize;
+}
+
+
 //DEBUG FUNCTIONS
 #ifndef NDEBUG
-void initVulkan::debugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger)
+void initVulkan::DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger)
 {
 	//setup debug messenger for all operations
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-	populateDebugMessengerCreateInfo(&createInfo);
-	if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, messenger) != VK_SUCCESS)
+	_populateDebugMessengerCreateInfo(&createInfo);
+	if (_createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, messenger) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to set up debug messenger!");
 	}
 }
 
-void initVulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfo)
+void initVulkan::_populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT* createInfo)
 {
 	//debug messenger settings
 	createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -885,11 +1013,11 @@ void initVulkan::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInf
 	createInfo->messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT //all types
 		| VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
 		| VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo->pfnUserCallback = debugUtilsMessengerCallback;
+	createInfo->pfnUserCallback = _debugUtilsMessengerCallback;
 	createInfo->pUserData = nullptr; //optional pointer to user type
 }
 
-bool initVulkan::validationLayersSupported()
+bool initVulkan::_validationLayersSupported()
 {
 	//check if validation layer and selected optional layers are supported
 	uint32_t layerCount;
@@ -914,7 +1042,7 @@ bool initVulkan::validationLayersSupported()
 	return true;
 }
 
-VkResult initVulkan::CreateDebugUtilsMessengerEXT(VkInstance instance,
+VkResult initVulkan::_createDebugUtilsMessengerEXT(VkInstance instance,
 	const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 	const VkAllocationCallbacks* pAllocator,
 	VkDebugUtilsMessengerEXT* pDebugMessenger)
@@ -947,7 +1075,7 @@ void initVulkan::DestroyDebugUtilsMessengerEXT(VkInstance instance,
 }
 
 
-VKAPI_ATTR VkBool32 VKAPI_CALL initVulkan::debugUtilsMessengerCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL initVulkan::_debugUtilsMessengerCallback(
 	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 	VkDebugUtilsMessageTypeFlagsEXT messageType,
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,

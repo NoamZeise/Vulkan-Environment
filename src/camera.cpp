@@ -2,13 +2,13 @@
 
 namespace camera
 {
-	freecam::freecam(glm::vec3 position)
+	firstPerson::firstPerson(glm::vec3 position)
 	{
 		_position = position;
 		calculateVectors();
 	}
 
-	glm::mat4 freecam::getViewMatrix()
+	glm::mat4 firstPerson::getViewMatrix()
 	{
 		if(viewUpdated)
 		{
@@ -19,13 +19,13 @@ namespace camera
 		return view;
 	}
 
-	float freecam::getZoom()
+	float firstPerson::getZoom()
 	{
 		return _zoom;
 	}
 
 
-	void freecam::update(Input &input, Input &prevInput, Timer &timer)
+	void firstPerson::update(Input &input, Input &prevInput, Timer &timer)
 	{
 		viewUpdated = true;
 		//keyboard
@@ -44,8 +44,8 @@ namespace camera
 			_position -= _worldUp * velocity;
 
 		//mouse
-		_pitch   += (prevInput.Y - input.Y) * _sensitivity;
-		_yaw 	 += (prevInput.X - input.X) * _sensitivity;
+		_pitch   += (float)(prevInput.Y - input.Y) * _sensitivity;
+		_yaw 	 += (float)(prevInput.X - input.X) * _sensitivity;
 	
 		if(_pitch > 89.0f)
 			_pitch = 89.0f;
@@ -53,7 +53,7 @@ namespace camera
 		 _pitch = -89.0f;
 		
 		//scroll
-		_zoom -= input.offset * timer.FrameElapsed();
+		_zoom -= (float)input.offset * timer.FrameElapsed();
 		if(_zoom < 1.0f)
 			_zoom = 1.0f;
 		if(_zoom > 100.0f)
@@ -63,7 +63,7 @@ namespace camera
 		//std::cout << "X:" << _position.x << " Y:" << _position.y << " Z:" << _position.z << std::endl;
 	}
 	
-	void freecam::calculateVectors()
+	void firstPerson::calculateVectors()
 	{
 		_front.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
 		_front.y = sin(glm::radians(_yaw)) * cos(glm::radians(_pitch));

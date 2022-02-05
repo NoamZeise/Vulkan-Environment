@@ -11,6 +11,11 @@ TextureLoader::TextureLoader(Base base, VkCommandPool pool)
 
 TextureLoader::~TextureLoader()
 {
+	UnloadTextures();
+}
+
+void TextureLoader::UnloadTextures()
+{
 	if (textures.size() <= 0)
 		return;
 	for (const auto& tex : textures)
@@ -18,7 +23,7 @@ TextureLoader::~TextureLoader()
 		vkDestroyImageView(base.device, tex.view, nullptr);
 		vkDestroyImage(base.device, tex.image, nullptr);
 	}
-	vkDestroySampler(base.device, sampler, nullptr);
+	vkDestroySampler(base.device, textureSampler, nullptr);
 	vkFreeMemory(base.device, memory, nullptr);
 }
 
@@ -385,13 +390,18 @@ void TextureLoader::endLoading()
 	samplerInfo.mipLodBias = 0.0f;
 	samplerInfo.maxLod = static_cast<float>(minMips);
 	samplerInfo.minLod = 0.0f;
-	if (vkCreateSampler(base.device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+	if (vkCreateSampler(base.device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
 		throw std::runtime_error("Failed create sampler");
 
 	vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
+
+	for(size_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
+	{
+		imageViews[i] = _getImageView(i);
+	}
 }
 
-VkImageView TextureLoader::getImageView(uint32_t texID)
+VkImageView TextureLoader::_getImageView(uint32_t texID)
 {
 	if (texID < textures.size())
 		return textures[texID].view;
@@ -400,47 +410,5 @@ VkImageView TextureLoader::getImageView(uint32_t texID)
 	else
 		throw std::runtime_error("no textures to replace error id with");
 }
-
-void TextureLoader::prepareFragmentDescriptorSet(DS::DescriptorSet &textureDS, size_t frameCount)
-{
-	vkhelper::createDescriptorSet(base.device, textureDS, frameCount);
-
-	std::vector<VkDescriptorImageInfo> texInfos(MAX_TEXTURES_SUPPORTED);
-	for (uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
-	{
-		texInfos[i].sampler = nullptr;
-		texInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		texInfos[i].imageView = getImageView(i);
-	}
-
-	VkDescriptorImageInfo imgSamplerInfo = {};
-	imgSamplerInfo.sampler = this->sampler;
-
-	//sampler
-	std::vector<VkWriteDescriptorSet> sampDSWrite(frameCount * 2, { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET });
-	int index = 0;
-	for (size_t i = 0; i < frameCount * 2; i+=2)
-	{
-		sampDSWrite[i].dstSet = textureDS.sets[index];
-		sampDSWrite[i].pBufferInfo = 0;
-		sampDSWrite[i].dstBinding = 0;
-		sampDSWrite[i].dstArrayElement = 0;
-		sampDSWrite[i].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-		sampDSWrite[i].descriptorCount = 1;
-		sampDSWrite[i].pImageInfo = &imgSamplerInfo; 
-
-		sampDSWrite[i + 1].dstSet = textureDS.sets[index];
-		sampDSWrite[i + 1].pBufferInfo = 0;
-		sampDSWrite[i + 1].dstBinding = 1;
-		sampDSWrite[i + 1].dstArrayElement = 0;
-		sampDSWrite[i + 1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		sampDSWrite[i + 1].descriptorCount = MAX_TEXTURES_SUPPORTED;
-		sampDSWrite[i + 1].pImageInfo = texInfos.data();
-		index++;
-	}
-	vkUpdateDescriptorSets(base.device, sampDSWrite.size(), sampDSWrite.data(), 0, nullptr);
-}
-
-
 
 }//end namesapce

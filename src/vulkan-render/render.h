@@ -18,6 +18,8 @@
 #include <cstring>
 #include <atomic>
 
+#include <glmhelper.h>
+
 #include "vkinit.h"
 #include "vkhelper.h"
 #include "render_structs.h"
@@ -41,14 +43,16 @@ public:
 
 	void begin3DDraw();
 	void begin2DDraw();
-
-	void endDraw(std::atomic<bool>& submit);
 	void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
-	void DrawQuad(const Resource::Texture& texID, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
+	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
+	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour);
+	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix);
 	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
-  	float MeasureString(Resource::Font* font, std::string text, float size);
-	bool framebufferResized = false;
+	void endDraw(std::atomic<bool>& submit);
+	void framebufferResize();
 private:
+	bool mFramebufferResized = false;
+
 	GLFWwindow* mWindow;
 	glm::vec2 targetResolution;
 	VkInstance mInstance;
@@ -61,22 +65,25 @@ private:
 	VkCommandPool mGeneralCommandPool;
 	VkCommandBuffer mTransferCommandBuffer;
 
-	Pipeline pipeline3D;
-	Pipeline pipeline2D;
+	Pipeline mPipeline3D;
+	Pipeline mPipeline2D;
 
 	//descriptor set members
-	VkDeviceMemory shaderMemory;
-	VkBuffer shaderBuffer;
-	DS::ShaderBufferSet mViewproj3DUbo;
-	DS::ShaderBufferSet mViewproj2DUbo;
-	DS::ShaderBufferSet mPerInstanceSSBO;
-	DS::ShaderBufferSet mLightingUbo;
+	VkDeviceMemory mShaderMemory;
+	VkBuffer mShaderBuffer;
+
+	DS::DescriptorSet mVP3Dds;
+	DS::DescriptorSet mVP2Dds;
+	DS::DescriptorSet mPIds;
+	DS::DescriptorSet mLds;
 	DS::DescriptorSet mTexturesDS;
 
-	DS::viewProjection viewProjectionData3D;
-	DS::viewProjection viewProjectionData2D;
-	DS::lighting lightingData;
-	DS::PerInstance perInstanceData;
+	DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
+	DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
+	DS::BindingAndData<DS::ShaderStructs::PerInstance> mPerInstance;
+	DS::BindingAndData<bool> mTextureViews;
+	DS::BindingAndData<bool> mTextureSampler;
+	DS::BindingAndData<DS::ShaderStructs::lighting> mLighting;
 
 	Resource::TextureLoader mTextureLoader;
 	Resource::ModelLoader mModelLoader;
@@ -86,7 +93,7 @@ private:
 	bool m3DRender = true;
 	uint32_t mImg;
 	VkSemaphore mImgAquireSem;
-	float projectionFov = 45.0f;
+	float mProjectionFov = 45.0f;
 
 	unsigned int modelRuns = 0;
 	unsigned int currentIndex = 0;
@@ -95,13 +102,13 @@ private:
 	glm::vec4 currentTexOffset = glm::vec4(0, 0, 1, 1);
 	glm::vec4 currentColour = glm::vec4(1, 1, 1, 1);
 
-	void initRender(GLFWwindow* window);
-	void initFrameResources();
-	void destroyFrameResources();
-	void startDraw();
-	void resize();
-	void updateViewProjectionMatrix();
-	void drawBatch();
+	void _initRender(GLFWwindow* window);
+	void _initFrameResources();
+	void _destroyFrameResources();
+	void _startDraw();
+	void _resize();
+	void _updateViewProjectionMatrix();
+	void _drawBatch();
 
 #ifndef NDEBUG
 	VkDebugUtilsMessengerEXT mDebugMessenger;

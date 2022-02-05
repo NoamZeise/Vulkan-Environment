@@ -183,10 +183,8 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader 
 		aiString aistring;
 		material->GetTexture(aiTextureType_DIFFUSE, i, &aistring);
 		std::string texLocation = aistring.C_Str();
-		texLocation = "textures/" + texLocation;
-	#ifndef NDEBUG
-		std::cout << "loading texture " << texLocation << std::endl;
-	#endif
+		texLocation = MODEL_TEXTURE_LOCATION + texLocation;
+
 		bool skip = false;
 		for(unsigned int j = 0; j < alreadyLoaded.size(); j++)
 		{

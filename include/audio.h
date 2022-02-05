@@ -69,7 +69,7 @@ public:
 		if (!isMp3)
 			throw std::runtime_error("non mp3 files do not support volume setting, convert " + filename + " to mp3!");
 		volume < 0 ? volume = 0 : volume > 1 ? volume = 1 : volume = volume;
-		int vol = volume * 1000;
+		int vol = (int)(volume * 1000.0f);
 		std::string msg = "setaudio " + filename + " volume to " + std::to_string(vol);
 		mciSendStringA(msg.c_str(), NULL, 0, 0);
 	}

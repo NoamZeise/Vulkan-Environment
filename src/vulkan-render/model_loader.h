@@ -6,6 +6,9 @@
 #endif
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -22,8 +25,6 @@
 #include "render_structs.h"
 #include "pipeline.h"
 #include "vkhelper.h"
-
-#include <chrono>
 
 namespace Resource
 {
@@ -92,7 +93,9 @@ private:
 		unsigned int indexOffset = 0;
 		std::vector<MeshInfo> meshes;
 	};
-
+	
+	const char* MODEL_TEXTURE_LOCATION = "textures/";
+	
     void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);
 	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);

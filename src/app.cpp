@@ -25,15 +25,13 @@ App::App()
 	glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported())
     	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-
-
+	
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
-
+		
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
-	loadAssets();
-
-	freecam = camera::freecam(glm::vec3(3.0f, 0.0f, 2.0f));
+		loadAssets();
+	freecam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
 
 }
 
@@ -53,7 +51,6 @@ void App::loadAssets()
 	testModel = mRender->LoadModel("models/testScene.fbx");
 	testTex = mRender->LoadTexture("textures/error.png");
 	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-
 	mRender->endResourceLoad();
 }
 
@@ -74,7 +71,7 @@ void App::resize(int windowWidth, int windowHeight)
 	mWindowWidth = windowWidth;
 	mWindowHeight = windowHeight;
 	if(mRender != nullptr && mWindowWidth != 0 && mWindowHeight != 0)
-		mRender->framebufferResized = true;
+		mRender->framebufferResize();
 }
 
 void App::update()
@@ -142,7 +139,6 @@ void App::draw()
 
 	mRender->begin2DDraw();
 
-	mRender->DrawQuad(testTex, vkhelper::getModelMatrix(glm::vec4(0, 0, 1920, 1080), 0), glm::vec4(1, 1, 1, 1.0), glm::vec4(0, 0, 1, 1));
 
 	mRender->begin3DDraw();
 
@@ -150,8 +146,8 @@ void App::draw()
 
 	mRender->begin2DDraw();
 
-	mRender->DrawQuad(testTex, vkhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 0.5), glm::vec4(-0.5f,-0.5f, 1, 1));
-	mRender->DrawQuad(testTex, vkhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 0), glm::vec4(0, 1, 1, 0.5), glm::vec4(0, 0, 1, 1));
+	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 0.5), glm::vec4(-0.5f,-0.5f, 1, 1));
+	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 0), glm::vec4(0, 1, 1, 0.5), glm::vec4(0, 0, 1, 1));
 
 	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
 

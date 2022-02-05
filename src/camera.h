@@ -14,16 +14,17 @@
 
 #include <iostream>
 
-#include "input.h"
-#include "timer.h"
+#include <input.h>
+#include <timer.h>
 
 namespace camera
 {
-	class freecam
+	class firstPerson
 	{
+		
 	public:
-		freecam() { _position = glm::vec3(0.0f, 0.0f, 0.0f); };
-		freecam(glm::vec3 position);
+		firstPerson() { _position = glm::vec3(0.0f, 0.0f, 0.0f); };
+		firstPerson(glm::vec3 position);
 		glm::mat4 getViewMatrix();
 		float getZoom();
 		void update(Input &input, Input &prevInput, Timer &timer);

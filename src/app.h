@@ -1,6 +1,10 @@
 #ifndef APP_H
 #define APP_H
 
+#include <input.h>
+#include <audio.h>
+#include <timer.h>
+
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -15,9 +19,7 @@
 #include <thread>
 #include <atomic>
 
-#include <input.h>
-#include <audio.h>
-#include <timer.h>
+#include <glmhelper.h>
 
 #include "vulkan-render/render.h"
 #include "camera.h"
@@ -62,7 +64,7 @@ private:
 	int mWindowWidth, mWindowHeight;
 	Input previousInput;
 	Timer timer;
-	camera::freecam freecam;
+	camera::firstPerson freecam;
 
 	std::thread submitDraw;
 	std::atomic<bool> finishedDrawSubmit = true;

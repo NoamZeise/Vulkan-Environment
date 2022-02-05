@@ -15,12 +15,14 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <stdexcept>
 
 
 
 namespace DS
 {
-
+namespace ShaderStructs
+{
 struct viewProjection
 {
 	alignas(16) glm::mat4 view;
@@ -51,6 +53,13 @@ struct lighting
 	alignas(16) glm::vec4 direction;
 };
 
+struct lightingTest
+{
+	uint32_t texID;
+};
+
+} //end shader struct namespace
+
 struct DescriptorSet
 {
 	void destroySet(VkDevice device)
@@ -64,34 +73,72 @@ struct DescriptorSet
 	std::vector<VkDescriptorPoolSize> poolSize;
 };
 
-enum class BufferType
-{
-	Uniform,
-	Storage
-};
 
-struct ShaderBufferSet
+struct Binding
 {
-	DescriptorSet  ds;
-	BufferType type;
+	DescriptorSet* ds;
+	VkDescriptorType type;
 
 	size_t setCount;
-	size_t dsStructSize;
+	size_t dataStructSize;
+	size_t binding = 0;
+	size_t descriptorCount = 1;
 
 	size_t offset;
 	VkDeviceSize slotSize;
 	void* pointer;
+	VkImageView* imageViews;
+	VkSampler* samplers;
 
-	void setPerUboProperties(size_t setCount, size_t dsStructSize, DS::BufferType type)
+	void storeSetData(size_t frameIndex, void* data, size_t index)
 	{
-		this->setCount = setCount;
-		this->dsStructSize = dsStructSize;
-		this->type = type;
+		if(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+			std::memcpy(static_cast<char*>(pointer) + offset + ((frameIndex * slotSize * descriptorCount) + (index * slotSize)) , data, dataStructSize);
+		else
+			throw std::runtime_error("Descriptor Shader Buffer: tried to store data in non uniform or storage buffer!");
 	}
-	void storeSetData(size_t frameIndex, void* data)
+};
+
+template <typename T>
+struct BindingAndData
+{
+	Binding binding;
+	std::vector<T> data;
+
+	void setBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet* set, uint32_t dataCount, VkImageView* pImgViews, VkSampler* pSamplers)
 	{
-		std::memcpy(static_cast<char*>(pointer) + offset + (frameIndex * slotSize), data, dsStructSize);
+		data.resize(dataCount);
+		binding.ds = set;
+		binding.descriptorCount = dataCount;
+		binding.setCount = setCount;
+		binding.dataStructSize = sizeof(T);
+		binding.type = type;
+		binding.imageViews = pImgViews;
+		binding.samplers = pSamplers;
+
+		if(binding.type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE && pImgViews == nullptr)
+			throw std::runtime_error("Descriptor Set Binding: type is sampled image but pImgViews was a nullptr!");
+		if(binding.type == VK_DESCRIPTOR_TYPE_SAMPLER && pSamplers == nullptr)
+			throw std::runtime_error("Descriptor Set Binding: type is sampled image but pImgViews was a nullptr!");
 	}
+
+	void setBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet* set, uint32_t dataCount)
+	{
+		setBufferProps(setCount, type, set, dataCount, nullptr, nullptr);
+	}
+	void storeData(size_t frameIndex)
+	{
+		for(size_t i = 0 ; i < data.size(); i++)
+			storeData(frameIndex, i);
+	}
+	
+	void storeData(size_t frameIndex, size_t arrayIndex)
+	{
+		if(arrayIndex >= data.size())
+			throw std::runtime_error("Descriptor Set Binding: tried to store data in an index outside of the data range");
+		binding.storeSetData(frameIndex, &data[arrayIndex], arrayIndex);
+	}
+	
 };
 
 } //end DS namespace

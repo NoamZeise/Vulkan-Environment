@@ -53,55 +53,58 @@ struct Texture
 	TextureType type;
 };
 
-struct TempTexture
-{
-	std::string path;
-	unsigned char* pixelData;
-	int width;
-	int height;
-	int nrChannels;
-	VkFormat format;
-	VkDeviceSize fileSize;
-};
-
-struct LoadedTexture
-{
-	LoadedTexture(){}
-	LoadedTexture(TempTexture tex)
-	{
-		width = tex.width;
-		height = tex.height;
-		mipLevels = std::floor(std::log2(width > height ? width : height)) + 1;
-	}
-	uint32_t width;
-	uint32_t height;
-	VkImage image;
-	VkImageView view;
-	uint32_t mipLevels;
-	VkDeviceSize imageMemSize;
-};
-
 class TextureLoader
 {
 public:
 	TextureLoader() {};
 	TextureLoader(Base base, VkCommandPool pool);
 	~TextureLoader();
+	void UnloadTextures();
 	Texture loadTexture(std::string path);
 	uint32_t loadTexture(unsigned char* data, int width, int height, int nrChannels);
-	VkImageView getImageView(uint32_t texID);
 	void endLoading();
-	void prepareFragmentDescriptorSet(DS::DescriptorSet &textureDS, size_t frameCount);
-
-	VkSampler sampler;
+	VkSampler* getSamplerP() { return &textureSampler; }
+	VkImageView* getImageViewsP() { return &imageViews[0]; }
 
 private:
+	struct TempTexture
+	{
+		std::string path;
+		unsigned char* pixelData;
+		int width;
+		int height;
+		int nrChannels;
+		VkFormat format;
+		VkDeviceSize fileSize;
+	};
+
+	struct LoadedTexture
+	{
+		LoadedTexture(){}
+		LoadedTexture(TempTexture tex)
+		{
+			width = tex.width;
+			height = tex.height;
+			mipLevels = (int)std::floor(std::log2(width > height ? width : height)) + 1;
+		}
+		uint32_t width;
+		uint32_t height;
+		VkImage image;
+		VkImageView view;
+		uint32_t mipLevels;
+		VkDeviceSize imageMemSize;
+	};
+
+	VkImageView _getImageView(uint32_t texID);
+
 	Base base;
 	VkCommandPool pool;
 
 	std::vector<TempTexture> texToLoad;
 	std::vector<LoadedTexture> textures;
 	VkDeviceMemory memory;
+	VkImageView imageViews[MAX_TEXTURES_SUPPORTED];
+	VkSampler textureSampler;
 };
 
 }

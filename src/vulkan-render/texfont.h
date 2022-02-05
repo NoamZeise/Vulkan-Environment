@@ -45,6 +45,7 @@ public:
 	Font(std::string file, TextureLoader* texLoader);
 	~Font();
 	Character* getChar(char c);
+	static float MeasureString(Resource::Font* font, std::string text, float size);
 private:
 	std::map<char, Character*> _chars;
 	bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);
