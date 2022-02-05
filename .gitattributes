@@ -1,4 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 include/** linguist-vendored
-src/vulkan-render/stb_image.h -linguist-vendored
+*.c linguist-language=C++
+*.h linguist-language=C++
