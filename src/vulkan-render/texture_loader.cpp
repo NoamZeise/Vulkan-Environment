@@ -25,54 +25,31 @@ void TextureLoader::UnloadTextures()
 	}
 	vkDestroySampler(base.device, textureSampler, nullptr);
 	vkFreeMemory(base.device, memory, nullptr);
+
+	textures.clear();
 }
 
 Texture TextureLoader::loadTexture(std::string path)
 {
 	texToLoad.push_back({ path });
 	TempTexture* tex = &texToLoad.back();
-	tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 0);
+	tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);
 	if (!tex->pixelData)
 		throw std::runtime_error("failed to load texture at " + path);
 
+	tex->nrChannels = 4;
+	
 	tex->fileSize = tex->width * tex->height * tex->nrChannels;
 
-//attention: should check if gpu supports image format, then adjust, eg add an extra channel if 3 channel unsupported
-	switch (tex->nrChannels)
-	{
-		/*
-	case 1:
-		if(settings::SRGB)
-			tex->format = VK_FORMAT_R8_SRGB;
-		else
-			tex->format = VK_FORMAT_R8_UNORM;
-		break;
-	case 2:
-		if (settings::SRGB)
-			tex->format = VK_FORMAT_R8G8_SRGB;
-		else
-			tex->format = VK_FORMAT_R8G8_UNORM;
-		break;
-	case 3:
-		if (settings::SRGB)
-			tex->format = VK_FORMAT_R8G8B8_SRGB;
-		else
-			tex->format = VK_FORMAT_R8G8B8_UNORM;
-		break;
-		*/
-	case 4:
-		if (settings::SRGB)
-			tex->format = VK_FORMAT_R8G8B8A8_SRGB;
-		else
-			tex->format = VK_FORMAT_R8G8B8A8_UNORM;
-		break;
-	default:
-		throw std::runtime_error("texture at " + path + " has an unsupported number of channels (only supports 4)");
-	}
+	if(settings::SRGB)
+		tex->format = VK_FORMAT_R8G8B8A8_SRGB;
+	else
+		tex->format = VK_FORMAT_R8G8B8A8_UNORM;
+
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 
-uint32_t TextureLoader::loadTexture(unsigned char* data, int width, int height, int nrChannels)
+Texture TextureLoader::loadTexture(unsigned char* data, int width, int height, int nrChannels)
 {
 	texToLoad.push_back({ "NULL" });
 	TempTexture* tex = &texToLoad.back();
@@ -82,31 +59,15 @@ uint32_t TextureLoader::loadTexture(unsigned char* data, int width, int height, 
 	tex->nrChannels = nrChannels;
 	tex->fileSize = tex->width * tex->height * tex->nrChannels;
 
-	switch (tex->nrChannels)
-	{
-		/*
-	case 1:
-		tex->format = VK_FORMAT_R8_SRGB;
-		break;
-	case 2:
-		tex->format = VK_FORMAT_R8G8_SRGB;
-		break;
-	case 3:
-		tex->format = VK_FORMAT_R8G8B8_SRGB;
-		break;
-		*/
-	case 4:
+	if(nrChannels != 4)
+		throw std::runtime_error("nrChannels for pixel data not 4");
 	if(settings::SRGB)
 		tex->format = VK_FORMAT_R8G8B8A8_SRGB;
 	else
 		tex->format = VK_FORMAT_R8G8B8A8_UNORM;
-		break;
-	default:
-		throw std::runtime_error("texture has an unsupported number of channels (only support 4)");
-	}
-	return texToLoad.size() - 1;
-}
 
+	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), "NULL");
+}
 
 void TextureLoader::endLoading()
 {
@@ -142,7 +103,6 @@ void TextureLoader::endLoading()
 	uint32_t minMips = UINT32_MAX;
 	for (size_t i = 0; i < texToLoad.size(); i++)
 	{
-		//copy texture from pixel data to mappable gpu memory
 		std::memcpy(static_cast<char*>(pMem) + bufferOffset, texToLoad[i].pixelData, texToLoad[i].fileSize);
 
 		if (texToLoad[i].path != "NULL")
@@ -165,7 +125,6 @@ void TextureLoader::endLoading()
 			minMips = textures[i].mipLevels;
 
 
-		//create image
 		VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.extent.width = textures[i].width;
@@ -183,7 +142,7 @@ void TextureLoader::endLoading()
 		if (vkCreateImage(base.device, &imageInfo, nullptr, &textures[i].image) != VK_SUCCESS)
 			throw std::runtime_error("failed to create image from texture at: " + texToLoad[i].path);
 
-		//get memory requirements for image
+
 		vkGetImageMemoryRequirements(base.device, textures[i].image, &memreq);
 		memoryTypeBits |= memreq.memoryTypeBits;
 		textures[i].imageMemSize = memreq.size;
@@ -198,19 +157,17 @@ void TextureLoader::endLoading()
 	vkhelper::createMemory(base.device, base.physicalDevice, finalMemSize, &memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
 
 	//transition image to required format
-//create command buffer
 	VkCommandBufferAllocateInfo cmdAllocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	cmdAllocInfo.commandBufferCount = 1;
 	cmdAllocInfo.commandPool = pool;
 	VkCommandBuffer tempCmdBuffer;
 	vkAllocateCommandBuffers(base.device, &cmdAllocInfo, &tempCmdBuffer);
-	//begin command buffer
+
 	VkCommandBufferBeginInfo cmdBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
 
-	//create image memory barrier for layout transition - info true for all images
 	VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 	barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; //for mipmapping
@@ -223,7 +180,6 @@ void TextureLoader::endLoading()
 	barrier.srcAccessMask = 0;
 	barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-	//region to copy
 	VkBufferImageCopy region{};
 	region.bufferRowLength = 0;
 	region.bufferImageHeight = 0;
@@ -238,7 +194,7 @@ void TextureLoader::endLoading()
 	{
 		vkBindImageMemory(base.device, textures[i].image, memory, finalMemoryOffset);
 		finalMemoryOffset += textures[i].imageMemSize;
-		//transition layout cmd
+
 		barrier.image = textures[i].image;
 		barrier.subresourceRange.levelCount = textures[i].mipLevels;
 		vkCmdPipelineBarrier(tempCmdBuffer,
@@ -252,7 +208,7 @@ void TextureLoader::endLoading()
 		vkCmdCopyBufferToImage(tempCmdBuffer, stagingBuffer, textures[i].image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			1, &region);
 	}
-	//end cmd and submit for execution
+
 	if (vkEndCommandBuffer(tempCmdBuffer) != VK_SUCCESS)
 		throw std::runtime_error("failed to end command buffer");
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
@@ -260,16 +216,14 @@ void TextureLoader::endLoading()
 	submitInfo.pCommandBuffers = &tempCmdBuffer;
 	vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(base.queue.graphicsPresentQueue);
-	//free staging buffer/memory
+
 	vkUnmapMemory(base.device, stagingMemory);
 	vkDestroyBuffer(base.device, stagingBuffer, nullptr);
 	vkFreeMemory(base.device, stagingMemory, nullptr);
 
-	//begin command buffer for blitting
 	vkResetCommandPool(base.device, pool, 0);
 	vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
 
-	//generate mipmaps
 	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -282,7 +236,7 @@ void TextureLoader::endLoading()
 		barrier.image = tex.image;
 		int32_t mipW = tex.width;
 		int32_t mipH = tex.height;
-		//for each mip level insert a pipeline barrier to blit image and change layout to shader-read-only
+
 		for (size_t i = 1; i < tex.mipLevels; i++) //start at one as 0 is original image
 		{
 			//transfer previous image to be optimal for image transfer source
@@ -363,7 +317,6 @@ void TextureLoader::endLoading()
 			throw std::runtime_error("Failed to create image view from texture at: " + texToLoad[i].path);
 	}
 
-	//create image sampler
 	VkPhysicalDeviceProperties deviceProps{};
 	vkGetPhysicalDeviceProperties(base.physicalDevice, &deviceProps);
 	VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
@@ -399,6 +352,8 @@ void TextureLoader::endLoading()
 	{
 		imageViews[i] = _getImageView(i);
 	}
+
+	texToLoad.clear();
 }
 
 VkImageView TextureLoader::_getImageView(uint32_t texID)

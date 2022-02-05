@@ -23,7 +23,6 @@ void Render::_initRender(GLFWwindow* window)
 		throw std::runtime_error("failed to create window surface!");
 	initVulkan::Device(mInstance, mBase.physicalDevice, &mBase.device, mSurface, &mBase.queue);
 
-
 	//create general command pool
 	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 	commandPoolInfo.queueFamilyIndex = mBase.queue.graphicsPresentFamilyIndex;
@@ -153,6 +152,11 @@ void Render::_destroyFrameResources()
 	mPipeline3D.destroy(mBase.device);
 	mPipeline2D.destroy(mBase.device);
 	vkDestroyRenderPass(mBase.device, mRenderPass, nullptr);
+}
+
+void Render::restartResourceLoad()
+{
+	mTextureLoader.UnloadTextures();
 }
 
 
@@ -423,25 +427,23 @@ void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 positi
 		Resource::Character* cTex = font->getChar(*c);
 		if (cTex == nullptr)
 			continue;
-		else if (cTex->TextureID != 0) //if character is added but no texture loaded for it (eg space)
+		else if (cTex->texture.ID != 0) //if character is added but no texture loaded for it (eg space)
 		{
 			glm::vec4 thisPos = glm::vec4(position.x, position.y, 0, 0);
-			thisPos.x += cTex->Bearing.x * size;
-			thisPos.y += (cTex->Size.y - cTex->Bearing.y) * size;
-			thisPos.y -= cTex->Size.y * size;
+			thisPos.x += cTex->bearing.x * size;
+			thisPos.y += (cTex->size.y - cTex->bearing.y) * size;
+			thisPos.y -= cTex->size.y * size;
 
-			thisPos.z = cTex->Size.x * size;
-			thisPos.w = cTex->Size.y * size;
+			thisPos.z = cTex->size.x * size;
+			thisPos.w = cTex->size.y * size;
 			thisPos.z /= 1;
 			thisPos.w /= 1;
 
-
 			glm::mat4 model = glmhelper::calcMatFromRect(thisPos, 0);
 
-			Resource::Texture tex(cTex->TextureID, glm::vec2(0), "");
-			DrawQuad(tex, model, colour);
+			DrawQuad(cTex->texture, model, colour);
 		}
-		position.x += cTex->Advance * size;
+		position.x += cTex->advance * size;
 	}
 }
 

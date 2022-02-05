@@ -61,7 +61,7 @@ public:
 	~TextureLoader();
 	void UnloadTextures();
 	Texture loadTexture(std::string path);
-	uint32_t loadTexture(unsigned char* data, int width, int height, int nrChannels);
+	Texture loadTexture(unsigned char* data, int width, int height, int nrChannels);
 	void endLoading();
 	VkSampler* getSamplerP() { return &textureSampler; }
 	VkImageView* getImageViewsP() { return &imageViews[0]; }

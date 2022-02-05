@@ -22,21 +22,21 @@ namespace Resource
 
 struct Character
 {
-	Character(unsigned int TextureID, glm::vec2 Size, glm::vec2 Bearing, double Advance)
+	Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, double advance)
 	{
-		this->TextureID = TextureID;
-		this->Size = Size;
-		this->Bearing = Bearing;
-		this->Advance = Advance;
+		this->texture = texture;
+		this->size = size;
+		this->bearing = bearing;
+		this->advance = advance;
 	}
 	~Character()
 	{
 
 	}
-	unsigned int TextureID;
-	glm::vec2 Size;
-	glm::vec2 Bearing;
-	double Advance;
+	Resource::Texture texture;
+	glm::vec2 size;
+	glm::vec2 bearing;
+	double advance;
 };
 
 class Font

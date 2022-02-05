@@ -41,7 +41,7 @@ bool Font::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 	{
 		std::cout << "error loading " << c << std::endl;
 		_chars.insert(std::pair<char, Character*>(c, new Character(
-			0,
+			Resource::Texture(0, glm::vec2(0, 0), "NULL"),
 			glm::vec2(face->glyph->bitmap.width / (double)SIZE, face->glyph->bitmap.rows / (double)SIZE),
 			glm::vec2(face->glyph->bitmap_left / (double)SIZE, face->glyph->bitmap_top / (double)SIZE),
 			(face->glyph->advance.x >> 6) / (double)SIZE
@@ -51,7 +51,7 @@ bool Font::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 	if (face->glyph->bitmap.width == 0)
 	{
 		_chars.insert(std::pair<char, Character*>(c, new Character(
-			0,
+			Resource::Texture(0, glm::vec2(0, 0), "NULL"),
 			glm::vec2(face->glyph->bitmap.width / (double)SIZE, face->glyph->bitmap.rows / (double)SIZE),
 			glm::vec2(face->glyph->bitmap_left / (double)SIZE, face->glyph->bitmap_top / (double)SIZE),
 			(face->glyph->advance.x >> 6) / (double)SIZE
@@ -74,7 +74,7 @@ bool Font::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 			std::memcpy(buffer + buffIndex - 1, &blank, 1);
 	}
 
-	unsigned int texture = textureLoader->loadTexture(
+	Resource::Texture texture = textureLoader->loadTexture(
 		buffer, face->glyph->bitmap.width, face->glyph->bitmap.rows, 4);
 
 
@@ -102,7 +102,7 @@ float Font::MeasureString(Resource::Font* font, std::string text, float size)
 		Resource::Character* cTex = font->getChar(*c);
 		if (cTex == nullptr)
 			continue;
-		sz += cTex->Advance * size;
+		sz += cTex->advance * size;
 	}
 	return sz;
 }

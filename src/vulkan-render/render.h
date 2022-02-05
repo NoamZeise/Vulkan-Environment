@@ -39,6 +39,7 @@ public:
 	Render(GLFWwindow* window, glm::vec2 target);
 	void setViewMatrixAndFov(glm::mat4 view, float fov);
 	~Render();
+	void restartResourceLoad();
 	Resource::Texture LoadTexture(std::string filepath);
 	Resource::Font* LoadFont(std::string filepath);
 	Resource::Model LoadModel(std::string filepath);
@@ -53,6 +54,7 @@ public:
 	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
 	void endDraw(std::atomic<bool>& submit);
 	void framebufferResize();
+
 private:
 	bool mFramebufferResized = false;
 

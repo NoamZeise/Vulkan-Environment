@@ -51,6 +51,7 @@ void App::loadAssets()
 	testModel = mRender->LoadModel("models/testScene.fbx");
 	testTex = mRender->LoadTexture("textures/error.png");
 	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
+	threeChannelTest = mRender->LoadTexture("textures/error.jpg");
 	mRender->endResourceLoad();
 }
 
@@ -148,6 +149,8 @@ void App::draw()
 
 	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 0.5), glm::vec4(-0.5f,-0.5f, 1, 1));
 	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 0), glm::vec4(0, 1, 1, 0.5), glm::vec4(0, 0, 1, 1));
+
+	mRender->DrawQuad(threeChannelTest, glmhelper::getModelMatrix(glm::vec4(1050, 750, 400, 400), 0), glm::vec4(1, 1, 1, 0.8));
 
 	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
 
