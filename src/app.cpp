@@ -31,7 +31,7 @@ App::App()
 		
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
 		loadAssets();
-	freecam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
+	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
 
 }
 
@@ -82,20 +82,6 @@ void App::update()
 #endif
 	glfwPollEvents();
 
-
-
-	postUpdate();
-#ifdef TIME_APP_DRAW_UPDATE
-	auto stop = std::chrono::high_resolution_clock::now();
-	std::cout
-		 << "update: "
-         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()
-		 << " microseconds" << std::endl;
-#endif
-}
-
-void App::postUpdate()
-{
 	if (input.Keys[GLFW_KEY_F] && !previousInput.Keys[GLFW_KEY_F])
 	{
 		if (glfwGetWindowMonitor(mWindow) == nullptr)
@@ -109,18 +95,29 @@ void App::postUpdate()
 			glfwSetWindowMonitor(mWindow, NULL, 100, 100, mWindowWidth, mWindowHeight, mode->refreshRate);
 		}
 	}
-
 	if(input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE])
 	{
 		glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
 	}
 
+	postUpdate();
+#ifdef TIME_APP_DRAW_UPDATE
+	auto stop = std::chrono::high_resolution_clock::now();
+	std::cout
+		 << "update: "
+         << std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count()
+		 << " microseconds" << std::endl;
+#endif
+}
+
+void App::postUpdate()
+{
 	time += timer.FrameElapsed();
-	freecam.update(input, previousInput, timer);
+	fpcam.update(input, previousInput, timer);
 	timer.Update();
 	previousInput = input;
 	input.offset = 0;
-	mRender->setViewMatrixAndFov(freecam.getViewMatrix(), freecam.getZoom());
+	mRender->setViewMatrixAndFov(fpcam.getViewMatrix(), fpcam.getZoom());
 }
 
 
@@ -143,16 +140,16 @@ void App::draw()
 
 	mRender->begin3DDraw();
 
-	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(freecam.getViewMatrix() * glm::mat4(1.0f)));
+	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-	mRender->begin2DDraw();
+	//mRender->begin2DDraw();
 
-	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 0.5), glm::vec4(-0.5f,-0.5f, 1, 1));
-	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 0), glm::vec4(0, 1, 1, 0.5), glm::vec4(0, 0, 1, 1));
+	//mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
+	//mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 1), glm::vec4(-0.5f,-0.5f, 1, 1));
 
-	mRender->DrawQuad(threeChannelTest, glmhelper::getModelMatrix(glm::vec4(1050, 750, 400, 400), 0), glm::vec4(1, 1, 1, 0.8));
+	//mRender->DrawQuad(threeChannelTest, glmhelper::getModelMatrix(glm::vec4(1050, 750, 400, 400), 0), glm::vec4(1, 1, 1, 0.8));
 
-	mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
+	//mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
 
 	//end Draw
 	submitDraw = std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));

@@ -52,6 +52,7 @@ public:
 	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour);
 	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix);
 	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
+	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour, float depth);
 	void endDraw(std::atomic<bool>& submit);
 	void framebufferResize();
 

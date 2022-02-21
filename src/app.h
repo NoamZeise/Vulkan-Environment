@@ -64,7 +64,7 @@ private:
 	int mWindowWidth, mWindowHeight;
 	Input previousInput;
 	Timer timer;
-	camera::firstPerson freecam;
+	camera::firstPerson fpcam;
 
 	std::thread submitDraw;
 	std::atomic<bool> finishedDrawSubmit = true;

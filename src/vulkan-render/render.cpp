@@ -103,7 +103,8 @@ void Render::_initFrameResources()
 			&mTextureSampler.binding, 
 			&mTextureViews.binding,
 			&mPer2Dfrag.binding
-		}, &mShaderBuffer, &mShaderMemory);
+		},
+			&mShaderBuffer, &mShaderMemory);
 
 
 	initVulkan::GraphicsPipeline(mBase.device, &mPipeline3D, mSwapchain, mRenderPass, 
@@ -116,7 +117,7 @@ void Render::_initFrameResources()
 			{ &mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-			"shaders/vflat.spv", "shaders/fflat.spv", false);
+			"shaders/vflat.spv", "shaders/fflat.spv", true);
 	
 	_updateViewProjectionMatrix();
 	for(size_t i = 0; i < MAX_3D_INSTANCE; i++)
@@ -310,7 +311,7 @@ void Render::begin2DDraw()
 	else {
 		correction = xCorrection;
 	}
-	mVP2D.data[0].proj = glm::ortho(0.0f, (float)mSwapchain.extent.width / correction, 0.0f, (float)mSwapchain.extent.height / correction, -1.0f, 1.0f);
+	mVP2D.data[0].proj = glm::ortho(0.0f, (float)mSwapchain.extent.width / correction, 0.0f, (float)mSwapchain.extent.height / correction, -10.0f, 10.0f);
 	mVP2D.data[0].view = glm::mat4(1.0f);
 
 	mVP2D.storeData(mImg);
@@ -415,7 +416,7 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix)
 	DrawQuad(texture, modelMatrix, glm::vec4(1), glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour)
+void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour, float depth)
 {
 	if (font == nullptr)
 	{
@@ -439,12 +440,17 @@ void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 positi
 			thisPos.z /= 1;
 			thisPos.w /= 1;
 
-			glm::mat4 model = glmhelper::calcMatFromRect(thisPos, 0);
+			glm::mat4 model = glmhelper::calcMatFromRect(thisPos, rotate, depth);
 
 			DrawQuad(cTex->texture, model, colour);
 		}
 		position.x += cTex->advance * size;
 	}
+}
+
+void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour)
+{
+	DrawString(font, text, position, size, rotate, colour, 0.0);
 }
 
 void Render::endDraw(std::atomic<bool>& submit)
