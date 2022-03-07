@@ -25,12 +25,12 @@ App::App()
 	glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported())
     	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-	
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
 		
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
-		loadAssets();
+
+	loadAssets();
 	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
 	audioManager.Play("audio/test.ogg", true, 0.5f);
 }

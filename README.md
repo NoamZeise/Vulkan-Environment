@@ -21,6 +21,7 @@ bugs:
 
 features:
 * skeletal animation (and distinguish between animated and non-animated draws)
+* post processing (draw to seperate texture before drawing to backbuffer)
 
 optimisations:
 * convert model data to proprietary format with another program to remove assimp dependancy from this project
@@ -33,6 +34,8 @@ optimisations:
 * [stb_image.h](https://github.com/nothings/stb) handles image loading
 * [freetype2](https://freetype.org/) handles font loading
 * [Assimp](https://github.com/assimp/assimp) handles model loading
+* [libsndfile](https://github.com/libsndfile/libsndfile) handles audio loading
+* [portaudio](http://www.portaudio.com/) handles audio playback
 
 # setup
 
@@ -50,6 +53,11 @@ optimisations:
 * download [freetype](https://freetype.org/download.html) compile and put in your lib and include directories
 
 * download [assimp](https://github.com/assimp/assimp/blob/master/Build.md) compile and put in your lib and include directories, and distribute the dll with your binaries
+
+* download [libsndfile](http://www.mega-nerd.com/libsndfile/#Download) compile and put in your lib and include directories, and distrubute dll with your binaries
+
+* download [portaudio](http://files.portaudio.com/docs/v19-doxydocs/compile_windows.html) compile and put in your lib and include directories, and distrubute dll with your binaries
+
 
 * set your lib and include paths at the start of the cmake file
 ```
@@ -73,5 +81,5 @@ $ vkcube
 ```
 additional libraries
 ```
-$ sudo apt-get install libglfw3-dev libglm-dev libfreetype-dev libassimp-dev
+$ sudo apt-get install libglfw3-dev libglm-dev libfreetype-dev libassimp-dev libsndfile1-dev libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0
 ```

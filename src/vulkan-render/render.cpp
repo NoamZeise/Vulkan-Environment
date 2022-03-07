@@ -349,14 +349,16 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 {
 	if(current3DInstanceIndex >= MAX_3D_INSTANCE)
 	{
+		#ifndef NDEBUG
 		std::cout << "single" << std::endl;
+		#endif
 		vectPushConstants vps{
 			modelMatrix,
 			normalMat
 		};   
 		vps.normalMat[3][3] = 1.0;
-		vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT,
-							0, sizeof(vectPushConstants), &vps);
+		vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout,
+							 VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants), &vps);
 
 		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, model, 1, 0);
 		return;
@@ -378,8 +380,9 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, g
 {
 	if(current2DInstanceIndex >= MAX_2D_INSTANCE)
 	{
+		#ifndef NDEBUG
 		std::cout << "single" << std::endl;
-
+		#endif
 		vectPushConstants vps{
 			modelMatrix,
 			glm::mat4(1.0f)
