@@ -1,14 +1,13 @@
 # Work in progress Vulkan Rendering Framework
-A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp
+A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp. Works with Windows or Linux.
 
 ## Features:
 
 * Simultaneous 2D and 3D rendering
-* Import and Draw .fbx models
+* Import and Draw .fbx models -> only supports base colour image textures
 * Import and Draw image textures 
 * Import and Draw fonts
-* Instance rendering for fast drawing of the same model data in multiple positions
-* Blinn-Phong for 3D models
+* Play .wav and .ogg audio files
 
 ## Projects using this framework:
 * [Get Back Jaxx](https://github.com/NoamZeise/GGJ22) -> Adventure Game
