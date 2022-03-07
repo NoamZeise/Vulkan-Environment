@@ -44,7 +44,7 @@ optimisations:
 ### windows
 
 
-* download the [vulkan sdk](https://vulkan.lunarg.com/), run installer and put the nesseacry files in your lib and include directories
+* download the [vulkan sdk](https://vulkan.lunarg.com/), run installer and put the necessary files in your lib and include directories
 
 * download [glfw3](https://www.glfw.org/), compile and put in your lib and include directories
 
