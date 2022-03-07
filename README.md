@@ -17,7 +17,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 
 ## Todo list:
 bugs:
-* fix scroll wheel input on very short updates
+*
 
 features:
 * skeletal animation (and distinguish between animated and non-animated draws)
