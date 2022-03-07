@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 #customize
 set(ProjectName "Vulkan-Environment")
+
+#windows only
 set(Lib "D:/noam4/Libraries/VS/lib/x64/")
 set(Include "D:/noam4/Libraries/VS/include")
 
