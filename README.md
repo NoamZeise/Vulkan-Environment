@@ -81,5 +81,5 @@ $ vkcube
 ```
 additional libraries
 ```
-$ sudo apt-get install libglfw3-dev libglm-dev libfreetype-dev libassimp-dev libsndfile1-dev libasound-dev portaudio19-dev libportaudio2 libportaudiocpp0
+$ sudo apt-get install libglfw3-dev libglm-dev libfreetype-dev libassimp-dev libsndfile1-dev libasound-dev portaudio19-dev
 ```
