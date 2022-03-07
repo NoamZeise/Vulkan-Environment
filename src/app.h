@@ -68,7 +68,7 @@ private:
 	Audio::Manager audioManager;
 
 	std::thread submitDraw;
-	std::atomic<bool> finishedDrawSubmit = true;
+	std::atomic<bool> finishedDrawSubmit;
 
 	float time = 0.0f;
 

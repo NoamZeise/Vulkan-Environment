@@ -17,7 +17,9 @@
 #include <string>
 #include <stdexcept>
 
-
+#ifdef __linux__
+	#include <cstring>
+#endif
 
 namespace DS
 {
@@ -98,7 +100,11 @@ struct Binding
 	void storeSetData(size_t frameIndex, void* data, size_t index)
 	{
 		if(type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER || type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+#ifdef __linux__
+			memcpy(static_cast<char*>(pointer) + offset + ((frameIndex * slotSize * descriptorCount) + (index * slotSize)) , data, dataStructSize);
+#else
 			std::memcpy(static_cast<char*>(pointer) + offset + ((frameIndex * slotSize * descriptorCount) + (index * slotSize)) , data, dataStructSize);
+#endif
 		else
 			throw std::runtime_error("Descriptor Shader Buffer: tried to store data in non uniform or storage buffer!");
 	}
@@ -136,14 +142,14 @@ struct BindingAndData
 		for(size_t i = 0 ; i < data.size(); i++)
 			storeData(frameIndex, i);
 	}
-	
+
 	void storeData(size_t frameIndex, size_t arrayIndex)
 	{
 		if(arrayIndex >= data.size())
 			throw std::runtime_error("Descriptor Set Binding: tried to store data in an index outside of the data range");
 		binding.storeSetData(frameIndex, &data[arrayIndex], arrayIndex);
 	}
-	
+
 };
 
 } //end DS namespace

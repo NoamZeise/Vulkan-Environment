@@ -93,9 +93,9 @@ private:
 		unsigned int indexOffset = 0;
 		std::vector<MeshInfo> meshes;
 	};
-	
+
 	const char* MODEL_TEXTURE_LOCATION = "textures/";
-	
+
     void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);
 	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);

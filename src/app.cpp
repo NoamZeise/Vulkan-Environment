@@ -27,19 +27,20 @@ App::App()
     	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 	if(FIXED_RATIO)
 		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
-		
+
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
 
 	loadAssets();
 	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
-	audioManager.Play("audio/test.ogg", true, 0.5f);
+	audioManager.Play("audio/test.wav", true, 0.5f);
+	finishedDrawSubmit = true;
 }
 
 App::~App()
 {
 	if(submitDraw.joinable())
 		submitDraw.join();
-	delete testFont;
+//	delete testFont;
 	delete mRender;
 	mRender = nullptr;
 	glfwDestroyWindow(mWindow);
@@ -48,10 +49,10 @@ App::~App()
 
 void App::loadAssets()
 {
-	testModel = mRender->LoadModel("models/testScene.fbx");
+//	testModel = mRender->LoadModel("models/testScene.fbx");
 	testTex = mRender->LoadTexture("textures/error.png");
-	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-	threeChannelTest = mRender->LoadTexture("textures/error.jpg");
+//	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
+//	threeChannelTest = mRender->LoadTexture("textures/error.jpg");
 	mRender->endResourceLoad();
 }
 
@@ -137,10 +138,11 @@ void App::draw()
 
 	mRender->begin2DDraw();
 
+	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
 
-	mRender->begin3DDraw();
+//	mRender->begin3DDraw();
 
-	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+//	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
 	//mRender->begin2DDraw();
 

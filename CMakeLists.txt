@@ -32,7 +32,7 @@ endif()
 #add executables
 file(GLOB SOURCES src/*)
 file(GLOB VULKAN-RENDER src/vulkan-render/*)
-add_executable(${ProjectName} ${SOURCES} 
+add_executable(${ProjectName} ${SOURCES}
                               ${VULKAN-RENDER}
                               ${PROJ_INCLUDE})
 
@@ -46,6 +46,7 @@ if(UNIX)
     target_link_libraries(${ProjectName} glfw
                                          Vulkan::Vulkan
                                          ${FREETYPE_LIBRARIES}
+                                         assimp
                                          sndfile
                                          portaudio)
     #add assimp

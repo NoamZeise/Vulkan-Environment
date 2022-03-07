@@ -2,7 +2,7 @@
 #define AUDIO_H
 
 #include <sndfile.h>
-#include <portaudio/portaudio.h>
+#include <portaudio.h>
 
 #include <stdexcept>
 #include <string>

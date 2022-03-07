@@ -24,9 +24,9 @@ public:
 	}
 
 private:
-	std::chrono::steady_clock::time_point start;
-	std::chrono::steady_clock::time_point lastUpdate;
-	std::chrono::steady_clock::time_point currentUpdate;
+	std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::duration<long int, std::ratio<1, 1000000000> > > start;
+	std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::duration<long int, std::ratio<1, 1000000000> > > lastUpdate;
+	std::chrono::time_point<std::chrono::_V2::system_clock, std::chrono::duration<long int, std::ratio<1, 1000000000> > > currentUpdate;
 };
 
 
