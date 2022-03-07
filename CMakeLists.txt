@@ -43,14 +43,18 @@ if(UNIX)
                                                  PUBLIC ${VULKAN_INCLUDE_DIRS}
                                                  PUBLIC ${FREETYPE_INCLUDE_DIRS}
                                                  PUBLIC ${PROJECT_BINARY_DIR})
-    target_link_libraries(${ProjectName} glfw)
-    target_link_libraries(${ProjectName} Vulkan::Vulkan)
-    target_link_libraries(${ProjectName} ${FREETYPE_LIBRARIES})
+    target_link_libraries(${ProjectName} glfw
+                                         Vulkan::Vulkan
+                                         ${FREETYPE_LIBRARIES}
+                                         sndfile
+                                         portaudio)
     #add assimp
 elseif(MSVC)
     target_include_directories(${ProjectName} PUBLIC ${Include})
-    target_link_libraries(${ProjectName} ${Lib}glfw3.lib)
-    target_link_libraries(${ProjectName} ${Lib}freetyped.lib)
-    target_link_libraries(${ProjectName} ${Lib}vulkan-1.lib)
-    target_link_libraries(${ProjectName} ${Lib}assimp-vc140-mt.lib)
+    target_link_libraries(${ProjectName} ${Lib}glfw3.lib
+                                         ${Lib}freetyped.lib
+                                         ${Lib}vulkan-1.lib
+                                         ${Lib}assimp-vc140-mt.lib
+                                         ${Lib}portaudio_x64.lib
+                                         ${Lib}sndfile.lib)
 endif()

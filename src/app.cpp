@@ -32,7 +32,7 @@ App::App()
 	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
 		loadAssets();
 	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
-
+	audioManager.Play("audio/test.ogg", true, 0.5f);
 }
 
 App::~App()

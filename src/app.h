@@ -65,6 +65,7 @@ private:
 	Input previousInput;
 	Timer timer;
 	camera::firstPerson fpcam;
+	Audio::Manager audioManager;
 
 	std::thread submitDraw;
 	std::atomic<bool> finishedDrawSubmit = true;

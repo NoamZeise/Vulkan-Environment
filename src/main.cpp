@@ -10,10 +10,8 @@ int main()
 		#ifndef NDEBUG
 		std::cout << "In debug mode" << std::endl;
 		#endif
-		App* app = new App();
-		app->run();
-		delete app;
-		app = nullptr;
+		App app;
+		app.run();
 	}
 	catch (const std::exception& e)
 	{

@@ -1,179 +1,239 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
+#include <sndfile.h>
+#include <portaudio/portaudio.h>
 
-#if defined(_WIN32) || defined(WIN32)
-
-#include <tchar.h>
-#include <Windows.h>
-
+#include <stdexcept>
 #include <string>
-#include <iostream>
-#include <thread>
+#include <vector>
+#include <map>
 #include <cstring>
 
-class Audio
+namespace Audio
 {
-public:
-	Audio(std::string filename)
+
+namespace {
+
+const int FRAMES_PER_BUFFER = 64;
+
+static int instanceCallback(const void *input, void *output,
+						 unsigned long framesPerBuffer,
+						 const PaStreamCallbackTimeInfo* time,
+						 PaStreamCallbackFlags statusFlags,
+						 void *userData);
+
+struct AudioData
+{
+	AudioData()
 	{
-		if (std::strcmp(filename.substr(filename.find_last_of('.'), 3).c_str(), "mp3"))
-			isMp3 = true;
-		this->filename = filename;
-		std::string cmd = "open \"" + filename + "\" alias " + filename;
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
+		data = nullptr;
+		sampleCount = 0;
 	}
-	Audio() {}
-	~Audio()
+	AudioData(std::string filename)
 	{
-		std::string cmd = "close " + filename;
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-	}
-
-	void play()
-	{
-		std::string cmd = "play " + filename;
-
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		playing = true;
-	}
-
-	void pause()
-	{
-		std::string cmd = "pause " + filename;
-
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		playing = false;
-	}
-
-	void stop()
-	{
-		std::string cmd = "stop " + filename;
-
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		playing = false;
-	}
-
-	void loop()
-	{
-		if (!isMp3)
-			throw std::runtime_error("non mp3 files do not support looping, convert " + filename + " to mp3!");
-		std::string cmd = "play " + filename + " repeat";
-
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		playing = true;
-	}
-
-	void setVolume(float volume)
-	{
-		if (!isMp3)
-			throw std::runtime_error("non mp3 files do not support volume setting, convert " + filename + " to mp3!");
-		volume < 0 ? volume = 0 : volume > 1 ? volume = 1 : volume = volume;
-		int vol = (int)(volume * 1000.0f);
-		std::string msg = "setaudio " + filename + " volume to " + std::to_string(vol);
-		mciSendStringA(msg.c_str(), NULL, 0, 0);
-	}
-
-
-	bool isplaying()
-	{
-		if(!playing)
-			return playing;
-		else
+		SNDFILE* file = sf_open(filename.c_str(), SFM_READ, &this->info);
+    	if (sf_error(file) != SF_ERR_NO_ERROR)
+			throw std::runtime_error("failed to load audio data at " + filename);
+		this->sampleCount = info.frames * info.channels;
+		this->data = new float[sampleCount];
+		if(sf_readf_float(file, this->data, info.frames) != info.frames)
 		{
-			char* out = new char[8];
-			std::string cmd = "status " + filename + " mode";
-			mciSendStringA(cmd.c_str(), out, 8, 0);
-			if (strncmp(out, "paused", 6) == 0 || strncmp(out, "stopped", 7) == 0)
-				playing = false;
-			delete[] out;
+			sf_close(file);
+			throw std::runtime_error("incorect num of sampels loaded from audio data at " + filename);
 		}
-	}
+		sf_close(file);
 
-	void oneTime(std::string path, float volume)
+		this->filename = filename;
+	}
+	~AudioData()
 	{
-		std::string cmd = "open \"" + path + "\" alias " + path + std::to_string(count);
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		cmd = "play " + path + std::to_string(count);
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		volume < 0 ? volume = 0 : volume > 1 ? volume = 1 : volume = volume;
-		int vol = volume * 1000;
-		cmd = "setaudio " + path + std::to_string(count) + " volume to " + std::to_string(vol);
-		mciSendStringA(cmd.c_str(), NULL, 0, 0);
-		count++;
+		delete[] data;
 	}
-
-private:
-	int count = 0;
+	float* data;
+	SF_INFO  info;
+	sf_count_t sampleCount;
 	std::string filename;
-	bool playing = false;
-	bool isMp3 = false;
 };
 
+struct Instance
+{
+	Instance(AudioData* audio, bool loop, float volume)
+	{
+		this->current = 0;
+		this->audio = audio;
+		this->loop = loop;
+		this->volume = volume;
+		this->paused = false;
+		PaError err = Pa_OpenDefaultStream(&stream,
+											0,
+											audio->info.channels,
+											paFloat32,
+											audio->info.samplerate,
+											FRAMES_PER_BUFFER,
+											instanceCallback,
+											this);
+		if(err != paNoError)
+			throw std::runtime_error("failed to open default stream for file at " + this->audio->filename);
+	}
 
+	~Instance()
+	{
+		Pa_CloseStream(stream);
+		//if(err != paNoError) throw std::runtime_error("failed to close stream");
+	}
 
+	void Play()
+	{
+		this->paused = false;
+		PaError err = Pa_StartStream(stream);
+		if(err != paNoError)
+			throw std::runtime_error("failed to start stream at " + audio->filename + " Pa Error: " + std::string(Pa_GetErrorText(err)));
+	}
 
-#else
+	void Pause()
+	{
+		this->paused = true;
+		PaError err = Pa_StopStream(stream);
+		if(err != paNoError)
+			throw std::runtime_error("failed to stop stream at " + audio->filename + " Pa Error: " + std::string(Pa_GetErrorText(err)));
+	}
 
-#include <iostream>
+	bool Playing()
+	{
+		return Pa_IsStreamActive(stream);
+	}
 
-class Audio
+	AudioData* audio;
+	int current;
+	float volume;
+	PaStream *stream;
+	bool loop;
+	bool paused;
+};
+
+static int instanceCallback(const void *input, void *output,
+						 unsigned long framesPerBuffer,
+						 const PaStreamCallbackTimeInfo* time,
+						 PaStreamCallbackFlags statusFlags,
+						 void *userData)
+{
+	Instance *data = (Instance*)userData;
+	float *out = (float*)output;
+	for (unsigned int frame = 0; frame < framesPerBuffer; frame++)
+		for (int channel = 0; channel < data->audio->info.channels; channel++)
+		{
+			*out++ = data->audio->data[data->current++] * data->volume;
+			if (data->current >= data->audio->sampleCount)
+			{
+				if(data->loop)
+					data->current = 0;
+				else
+				{
+					memset(out, 0, (framesPerBuffer - frame - 1) * data->audio->info.channels);
+					return paComplete;
+				}
+			}
+		}
+	return paContinue;
+}
+
+} //unnamed end
+
+class Manager
 {
 public:
-	Audio(std::string filename)
+	Manager()
 	{
-		std::cout << "audio not supported on this OS" << std::endl;
+		if(sizeof(float) != 4)
+			throw std::runtime_error("float must be 32bit");
+		PaError err;
+		err = Pa_Initialize();
+		if(err != paNoError) throw std::runtime_error("Failed to initialize Port Audio\n Err: " + std::string(Pa_GetErrorText(err)));
 	}
-	Audio() {}
-	~Audio()
+	~Manager()
 	{
-
-	}
-
-	void play()
-	{
-
-	}
-
-	void pause()
-	{
-
-	}
-
-	void stop()
-	{
-
+		StopAll();
+		for(auto &audio : loaded)
+		{
+			delete audio.second;
+		}
+		PaError err = Pa_Terminate();
+		//if(err != paNoError) throw std::runtime_error("failed to terminate Port Audio");
 	}
 
-	void loop()
+	void RemovePlayed()
 	{
-
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			if(!activeAudio[i]->paused && !activeAudio[i]->Playing())
+				activeAudio.erase(activeAudio.begin() + i--);
 	}
 
-	void setVolume(float volume)
+//optional, can frontload loading to make Play() faster the first time on a file
+	void LoadAudioFile(std::string filename)
 	{
-;
+		loaded[filename] = new AudioData(filename);
 	}
 
-
-	bool isplaying()
+	void Play(std::string filename, bool loop, float volume)
 	{
+		if(loaded.count(filename) == 0)
+			this->LoadAudioFile(filename);
+		activeAudio.push_back(new Instance(loaded[filename], loop, volume));
+		activeAudio.back()->Play();
+	}
 
+	void Resume(std::string filename)
+	{
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			if(activeAudio[i]->audio->filename == filename && activeAudio[i]->paused)
+				activeAudio[i]->Play();
+	}
+
+	void Pause(std::string filename)
+	{
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			if(activeAudio[i]->audio->filename == filename && !activeAudio[i]->paused)
+					activeAudio[i]->Pause();
+	}
+
+	void Stop(std::string filename)
+	{
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			if(activeAudio[i]->audio->filename == filename)
+			{
+				delete activeAudio[i];
+				activeAudio.erase(activeAudio.begin() + i--);
+			}
+	}
+
+	void StopAll()
+	{
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			delete activeAudio[i];
+		activeAudio.clear();
+	}
+
+	void SetVolume(std::string filename, float volume)
+	{
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			if(activeAudio[i]->audio->filename == filename)
+				activeAudio[i]->volume = volume;
+	}
+
+	bool Playing(std::string filename)
+	{
+		for (size_t i = 0; i < activeAudio.size(); i++)
+			if(activeAudio[i]->audio->filename == filename && activeAudio[i]->Playing())
+				return true;
 		return false;
 	}
 
-	void oneTime(std::string path, float volume)
-	{
-
-	}
-
 private:
-	std::string filename;
-	bool playing = false;
-	bool isMp3 = false;
+	std::map<std::string, AudioData*> loaded;
+	std::vector<Instance*> activeAudio;
 };
 
+} //audio namespace end
 
-#endif //os end
-
-#endif //header end
+#endif
