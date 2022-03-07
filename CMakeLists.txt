@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
+#customize
 set(ProjectName "Vulkan-Environment")
-# set the project name
+set(Lib "D:/noam4/Libraries/VS/lib/x64/")
+set(Include "D:/noam4/Libraries/VS/include")
+
 project(${ProjectName} VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -43,9 +46,9 @@ if(UNIX)
     target_link_libraries(${ProjectName} ${FREETYPE_LIBRARIES})
     #add assimp
 elseif(MSVC)
-    target_include_directories(${ProjectName} PUBLIC D:/noam4/Libraries/VS/include)
-    target_link_libraries(${ProjectName} D:/noam4/Libraries/VS/lib/x64/glfw3.lib)
-    target_link_libraries(${ProjectName} D:/noam4/Libraries/VS/lib/x64/freetyped.lib)
-    target_link_libraries(${ProjectName} D:/noam4/Libraries/VS/lib/x64/vulkan-1.lib)
-    target_link_libraries(${ProjectName} D:/noam4/Libraries/VS/lib/x64/assimp-vc140-mt.lib)
+    target_include_directories(${ProjectName} PUBLIC ${Include})
+    target_link_libraries(${ProjectName} ${Lib}glfw3.lib)
+    target_link_libraries(${ProjectName} ${Lib}freetyped.lib)
+    target_link_libraries(${ProjectName} ${Lib}vulkan-1.lib)
+    target_link_libraries(${ProjectName} ${Lib}assimp-vc140-mt.lib)
 endif()
