@@ -99,19 +99,19 @@ void Render::_initFrameResources()
 	VkPhysicalDeviceProperties deviceProps{};
 	vkGetPhysicalDeviceProperties(mBase.physicalDevice, &deviceProps);
 	VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-//	if (settings::PIXELATED)
-//	{
-//		samplerInfo.magFilter = VK_FILTER_NEAREST;
-//		samplerInfo.minFilter = VK_FILTER_NEAREST;
-//	}
-//	else
-//	{
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = samplerInfo.addressModeU;
+	samplerInfo.addressModeW = samplerInfo.addressModeU;
+	if (settings::PIXELATED)
+	{
+		samplerInfo.magFilter = VK_FILTER_NEAREST;
+		samplerInfo.minFilter = VK_FILTER_NEAREST;
+	}
+	else
+	{
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
 		samplerInfo.minFilter = VK_FILTER_LINEAR;
-	//}
+	}
 	samplerInfo.maxAnisotropy = 1.0f;
 	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
