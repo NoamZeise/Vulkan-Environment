@@ -232,30 +232,39 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount)
 		imageCount = surfaceCapabilities.maxImageCount;
 
+	imageCount = surfaceCapabilities.maxImageCount;
+
 	//set extent
-	swapchain->extent = { 0, 0 };
+	swapchain->swapchainExtent = { 0, 0 };
 	if (surfaceCapabilities.currentExtent.width != UINT32_MAX)	//cant be modified
 	{
-		swapchain->extent = surfaceCapabilities.currentExtent;
+		swapchain->swapchainExtent = surfaceCapabilities.currentExtent;
 	}
 	else
 	{
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
-		swapchain->extent = {
+		swapchain->swapchainExtent = {
 			static_cast<uint32_t>(width),
 			static_cast<uint32_t>(height) };
 		//clamp width
 		if (width > surfaceCapabilities.maxImageExtent.width)
-			swapchain->extent.width = surfaceCapabilities.maxImageExtent.width;
+			swapchain->swapchainExtent.width = surfaceCapabilities.maxImageExtent.width;
 		else if (width < surfaceCapabilities.minImageExtent.width)
-			swapchain->extent.width = surfaceCapabilities.minImageExtent.width;
+			swapchain->swapchainExtent.width = surfaceCapabilities.minImageExtent.width;
 		//clamp height
 		if (height > surfaceCapabilities.maxImageExtent.height)
-			swapchain->extent.width = surfaceCapabilities.maxImageExtent.height;
+			swapchain->swapchainExtent.width = surfaceCapabilities.maxImageExtent.height;
 		else if (height < surfaceCapabilities.minImageExtent.height)
-			swapchain->extent.width = surfaceCapabilities.minImageExtent.height;
+			swapchain->swapchainExtent.width = surfaceCapabilities.minImageExtent.height;
 	}
+
+	//set offscreen extent
+
+	if(settings::USE_TARGET_RESOLUTION)
+		swapchain->offscreenExtent = { settings::TARGET_WIDTH, settings::TARGET_HEIGHT };
+	else
+		swapchain->offscreenExtent = swapchain->swapchainExtent;
 
 	//choose present mode
 	VkPresentModeKHR presentMode;
@@ -321,7 +330,7 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	createInfo.presentMode = presentMode;
 	createInfo.imageFormat = swapchain->format.format;
 	createInfo.imageColorSpace = swapchain->format.colorSpace;
-	createInfo.imageExtent = swapchain->extent;
+	createInfo.imageExtent = swapchain->swapchainExtent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -376,6 +385,9 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	else
 		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	_createDepthBuffer(device, physicalDevice, swapchain);
+	swapchain->offscreen.format = swapchain->format.format;
+	_createAttachmentImageResources(device, physicalDevice, &swapchain->offscreen, *swapchain,
+		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT);
 }
 
 void initVulkan::DestroySwapchain(SwapChain* swapchainStruct, const VkDevice& device)
@@ -387,7 +399,7 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 {
 	//create attachments
 
-	//present attachment
+		//present attachment
 	VkAttachmentReference colourAttachmentRef{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 	VkAttachmentDescription colourAttachment{};
 	colourAttachment.format = swapchain.format.format;
@@ -395,19 +407,18 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	if(settings::MULTISAMPLING)
 	{
 		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	}
 	else
 	{
-		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
+	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	//depth attachment
+
+		//depth attachment
 	VkAttachmentReference depthBufferRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 	VkAttachmentDescription depthAttachment {};
 	depthAttachment.format = swapchain.depthBuffer.format;
@@ -429,14 +440,14 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	resolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	resolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 
 	std::vector<VkAttachmentDescription> attachments;
 	if(settings::MULTISAMPLING)
 		attachments = { colourAttachment, depthAttachment, resolveAttachment };
 	else
-		attachments =  { colourAttachment, depthAttachment };
+		attachments =  {colourAttachment, depthAttachment };
 	//create subpass
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -449,30 +460,92 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	std::array<VkSubpassDescription, 1> subpasses = { subpass };
 
 	//depenancy to external events
-	VkSubpassDependency externalDependancy{};
-	externalDependancy.srcSubpass = VK_SUBPASS_EXTERNAL;
-	externalDependancy.srcStageMask =
+	std::array<VkSubpassDependency, 2> dependencies;
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].srcStageMask =
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[0].srcAccessMask = 0;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].dstStageMask =
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
 		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-
-	externalDependancy.srcAccessMask = 0;
-	externalDependancy.dstSubpass = 0;
-	externalDependancy.dstStageMask =
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	externalDependancy.dstAccessMask =
+	dependencies[0].dstAccessMask =
 		    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
 			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-	std::array<VkSubpassDependency, 1> dependancies = { externalDependancy };
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+	
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].srcStageMask =
+				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+		VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].dstStageMask =
+		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	dependencies[1].dstAccessMask =
+		    VK_ACCESS_SHADER_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 	VkRenderPassCreateInfo createInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
 	createInfo.attachmentCount = attachments.size();
 	createInfo.pAttachments = attachments.data();
 	createInfo.subpassCount = subpasses.size();
 	createInfo.pSubpasses = subpasses.data();
-	createInfo.dependencyCount = dependancies.size();
-	createInfo.pDependencies = dependancies.data();
+	createInfo.dependencyCount = dependencies.size();
+	createInfo.pDependencies = dependencies.data();
+
+	if (vkCreateRenderPass(device, &createInfo, nullptr, renderPass) != VK_SUCCESS)
+		throw std::runtime_error("failed to create render pass!");
+}
+
+void initVulkan::FinalRenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain)
+{
+	//create attachments
+
+		//present attachment
+	VkAttachmentReference colourAttachmentRef{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+	VkAttachmentDescription colourAttachment{};
+	colourAttachment.format = swapchain.format.format;
+	colourAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+
+	std::vector<VkAttachmentDescription> attachments;
+	attachments =  {colourAttachment };
+	//create subpass
+	VkSubpassDescription subpass{};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &colourAttachmentRef;
+
+	std::array<VkSubpassDescription, 1> subpasses = { subpass };
+
+	//depenancy to external events
+	std::array<VkSubpassDependency, 1> dependencies;
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].srcStageMask =
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = 0;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].dstStageMask =
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].dstAccessMask =
+		    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	VkRenderPassCreateInfo createInfo{ VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
+	createInfo.attachmentCount = attachments.size();
+	createInfo.pAttachments = attachments.data();
+	createInfo.subpassCount = subpasses.size();
+	createInfo.pSubpasses = subpasses.data();
+	createInfo.dependencyCount = dependencies.size();
+	createInfo.pDependencies = dependencies.data();
 
 	if (vkCreateRenderPass(device, &createInfo, nullptr, renderPass) != VK_SUCCESS)
 		throw std::runtime_error("failed to create render pass!");
@@ -481,27 +554,43 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 void initVulkan::Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass)
 {
 
-	for (size_t i = 0; i < swapchain->frameData.size(); i++)
-	{
 		std::vector<VkImageView> attachments;
 		if(settings::MULTISAMPLING)
 			attachments =
 			{
-		  		swapchain->multisampling.view,
-		  		swapchain->depthBuffer.view,
-		  		swapchain->frameData[i].view
+				swapchain->multisampling.view,
+				swapchain->depthBuffer.view,
+		  		swapchain->offscreen.view
 			};
 		else
 			attachments =
 			{
-		  		swapchain->frameData[i].view,
+				swapchain->offscreen.view,
 				swapchain->depthBuffer.view
 			};
 
 		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
 		createInfo.renderPass = renderPass;
-		createInfo.width = swapchain->extent.width;
-		createInfo.height = swapchain->extent.height;
+		createInfo.width = swapchain->offscreenExtent.width;
+		createInfo.height = swapchain->offscreenExtent.height;
+		createInfo.layers = 1;
+		createInfo.attachmentCount = attachments.size();
+		createInfo.pAttachments = attachments.data();
+
+		if (vkCreateFramebuffer(device, &createInfo, nullptr, &swapchain->offscreenFramebuffer) != VK_SUCCESS)
+			throw std::runtime_error("failed to create framebuffer");
+}
+
+void initVulkan::FinalFramebuffer(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass)
+{
+	for (size_t i = 0; i < swapchain->frameData.size(); i++)
+	{
+		std::vector<VkImageView> attachments { swapchain->frameData[i].view };
+
+		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+		createInfo.renderPass = renderPass;
+		createInfo.width = swapchain->swapchainExtent.width;
+		createInfo.height = swapchain->swapchainExtent.height;
 		createInfo.layers = 1;
 		createInfo.attachmentCount = attachments.size();
 		createInfo.pAttachments = attachments.data();
@@ -555,10 +644,10 @@ void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	VkViewport viewport
 	{
 		0.0f, 0.0f, // x  y
-		(float)swapchain.extent.width, (float)swapchain.extent.height, //width  height
+		(float)swapchain.offscreenExtent.width, (float)swapchain.offscreenExtent.height, //width  height
 		0.0f, 1.0f // min/max depth
 	};
-	VkRect2D scissor{ VkOffset2D{0, 0}, swapchain.extent };
+	VkRect2D scissor{ VkOffset2D{0, 0}, swapchain.offscreenExtent };
 
 	VkPipelineViewportStateCreateInfo viewportInfo{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
 	viewportInfo.viewportCount = 1;
@@ -621,6 +710,132 @@ void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+	//config colour blend state
+	VkPipelineColorBlendStateCreateInfo blendInfo{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
+	blendInfo.logicOpEnable = VK_FALSE;
+	blendInfo.attachmentCount = 1;
+	blendInfo.pAttachments = &blendAttachment;
+
+	//set dynamic states
+	std::array<VkDynamicState, 2> dynamicStates{ };
+
+	VkPipelineDynamicStateCreateInfo dynamicStateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+	dynamicStateInfo.dynamicStateCount = dynamicStates.size();
+	dynamicStateInfo.pDynamicStates = dynamicStates.data();
+
+
+	std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = { vertexStageInfo, fragmentStageInfo };
+
+	//create graphics pipeline
+	VkGraphicsPipelineCreateInfo createInfo{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
+	createInfo.layout = pipeline->layout;
+	createInfo.renderPass = renderPass;
+	createInfo.pViewportState = &viewportInfo;
+	createInfo.pInputAssemblyState = &inputAssemblyInfo;
+	createInfo.pVertexInputState = &vertexInputInfo;
+	createInfo.pRasterizationState =  &rasterizationInfo;
+	createInfo.stageCount = shaderStages.size();
+	createInfo.pStages = shaderStages.data();
+	createInfo.pMultisampleState = &multisampleInfo;
+	createInfo.pDepthStencilState = &depthStencilInfo;
+	createInfo.pColorBlendState = &blendInfo;
+
+	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline->pipeline) != VK_SUCCESS)
+		throw std::runtime_error("failed to create graphics pipelines!");
+
+	//destory shader modules
+	vkDestroyShaderModule(device, vertexShaderModule, nullptr);
+	vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
+}
+
+void initVulkan::FinalGraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
+	std::vector<DS::DescriptorSet*> descriptorSets,
+	std::vector<VkPushConstantRange> pushConstantsRanges,
+	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest)
+{
+	pipeline->descriptorSets = descriptorSets;
+
+	//load shader modules
+	auto vertexShaderModule = _loadShaderModule(device, vertexShaderPath);
+	auto fragmentShaderModule = _loadShaderModule(device, fragmentShaderPath);
+
+	//create pipeline layout
+	std::vector<VkDescriptorSetLayout> descriptorSetLayouts(descriptorSets.size());
+
+	for (size_t i = 0; i < descriptorSets.size(); i++)
+		descriptorSetLayouts[i] = descriptorSets[i]->layout;
+
+	VkPipelineLayoutCreateInfo pipelineLayoutInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+	pipelineLayoutInfo.setLayoutCount = descriptorSetLayouts.size();
+	pipelineLayoutInfo.pSetLayouts = descriptorSetLayouts.data();
+	pipelineLayoutInfo.pushConstantRangeCount = pushConstantsRanges.size();
+	pipelineLayoutInfo.pPushConstantRanges = pushConstantsRanges.data();
+	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipeline->layout) != VK_SUCCESS)
+		throw std::runtime_error("failed to create pipeline layout");
+
+	//config input assemby
+	VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+	inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
+
+
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+	vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+	vertexInputInfo.vertexBindingDescriptionCount = 0;
+	vertexInputInfo.pVertexBindingDescriptions = nullptr;
+
+	//config viewport and scissor
+	VkViewport viewport
+	{
+		0.0f, 0.0f, // x  y
+		(float)swapchain.swapchainExtent.width, (float)swapchain.swapchainExtent.height, //width  height
+		0.0f, 1.0f // min/max depth
+	};
+	VkRect2D scissor{ VkOffset2D{0, 0}, swapchain.swapchainExtent };
+
+	VkPipelineViewportStateCreateInfo viewportInfo{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
+	viewportInfo.viewportCount = 1;
+	viewportInfo.pViewports = &viewport;
+	viewportInfo.scissorCount = 1;
+	viewportInfo.pScissors = &scissor;
+
+	//config vertex shader
+	VkPipelineShaderStageCreateInfo vertexStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+	vertexStageInfo.module = vertexShaderModule;
+	vertexStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+	vertexStageInfo.pName = "main";
+
+	//config rasterization
+	VkPipelineRasterizationStateCreateInfo rasterizationInfo{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
+	rasterizationInfo.depthClampEnable = VK_FALSE;
+	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+	rasterizationInfo.lineWidth = 1.0f;
+	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+	//fragment shader
+	VkPipelineShaderStageCreateInfo fragmentStageInfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+	fragmentStageInfo.module = fragmentShaderModule;
+	fragmentStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragmentStageInfo.pName = "main";
+
+	//config multisampler
+	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	//config depthStencil
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+	depthStencilInfo.depthTestEnable = VK_FALSE;
+	depthStencilInfo.depthWriteEnable = VK_FALSE;
+
+	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+
+	//config colour blend attachment
+	VkPipelineColorBlendAttachmentState blendAttachment{};
+	blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	blendAttachment.blendEnable = VK_FALSE;
 	//config colour blend state
 	VkPipelineColorBlendStateCreateInfo blendInfo{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
 	blendInfo.logicOpEnable = VK_FALSE;
@@ -765,6 +980,7 @@ void initVulkan::_fillFrameData(VkDevice device, FrameData* frame, uint32_t grap
 
 void initVulkan::_destroySwapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
 {
+	_destroyAttachmentImageResources(device, swapchainStruct->offscreen);
 	_destroyAttachmentImageResources(device, swapchainStruct->depthBuffer);
 	if(settings::MULTISAMPLING)
 		_destroyAttachmentImageResources(device, swapchainStruct->multisampling);
@@ -821,7 +1037,7 @@ void initVulkan::_createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDe
     );
 
 	_createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain,
-									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, swapchain->maxMsaaSamples);
 }
 
 void initVulkan::_createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
@@ -841,18 +1057,18 @@ void initVulkan::_createMultisamplingBuffer(VkDevice device, VkPhysicalDevice ph
 	swapchain->multisampling.format = swapchain->format.format;
 
 	_createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
-		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT, swapchain->maxMsaaSamples);
 }
 
 void initVulkan::_createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice,
 									AttachmentImage* attachIm, SwapChain& swapchain,
-									 VkImageUsageFlags usage, VkImageAspectFlags imgAspect)
+									 VkImageUsageFlags usage, VkImageAspectFlags imgAspect, VkSampleCountFlagBits samples)
 {
 //create attach image
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = swapchain.extent.width;
-	imageInfo.extent.height = swapchain.extent.height;
+	imageInfo.extent.width = swapchain.offscreenExtent.width;
+	imageInfo.extent.height = swapchain.offscreenExtent.height;
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
@@ -861,7 +1077,7 @@ void initVulkan::_createAttachmentImageResources(VkDevice device, VkPhysicalDevi
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.usage = usage;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = swapchain.maxMsaaSamples;
+	imageInfo.samples = samples;
 
 	if (vkCreateImage(device, &imageInfo, nullptr, &attachIm->image) != VK_SUCCESS)
 		throw std::runtime_error("failed to create attachment image");

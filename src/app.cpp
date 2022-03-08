@@ -4,7 +4,7 @@ App::App()
 {
 	//set member variables
 	mWindowWidth = 800;
-	mWindowHeight = 450;
+	mWindowHeight = 800;
 	//init glfw window
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())
@@ -32,7 +32,7 @@ App::App()
 
 	loadAssets();
 	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
-	audioManager.Play("audio/test.wav", true, 0.5f);
+	//audioManager.Play("audio/test.flac", true, 0.5f);
 	finishedDrawSubmit = true;
 }
 
@@ -40,7 +40,7 @@ App::~App()
 {
 	if(submitDraw.joinable())
 		submitDraw.join();
-//	delete testFont;
+	delete testFont;
 	delete mRender;
 	mRender = nullptr;
 	glfwDestroyWindow(mWindow);
@@ -49,10 +49,9 @@ App::~App()
 
 void App::loadAssets()
 {
-//	testModel = mRender->LoadModel("models/testScene.fbx");
+	testModel = mRender->LoadModel("models/testScene.fbx");
 	testTex = mRender->LoadTexture("textures/error.png");
-//	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-//	threeChannelTest = mRender->LoadTexture("textures/error.jpg");
+	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
 	mRender->endResourceLoad();
 }
 
@@ -140,20 +139,11 @@ void App::draw()
 
 	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
 
-//	mRender->begin3DDraw();
+	mRender->begin3DDraw();
 
-//	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-	//mRender->begin2DDraw();
 
-	//mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
-	//mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 1), glm::vec4(-0.5f,-0.5f, 1, 1));
-
-	//mRender->DrawQuad(threeChannelTest, glmhelper::getModelMatrix(glm::vec4(1050, 750, 400, 400), 0), glm::vec4(1, 1, 1, 0.8));
-
-	//mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
-
-	//end Draw
 	submitDraw = std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));
 
 #ifdef TIME_APP_DRAW_UPDATE

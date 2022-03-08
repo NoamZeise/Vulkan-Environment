@@ -75,7 +75,6 @@ private:
 	Resource::Model testModel;
 	Resource::Texture testTex;
 	Resource::Font* testFont;
-	Resource::Texture threeChannelTest;
 };
 
 #endif

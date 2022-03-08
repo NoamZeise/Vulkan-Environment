@@ -67,12 +67,14 @@ private:
 	FrameData mFrame;
 	SwapChain mSwapchain;
 	VkRenderPass mRenderPass;
+	VkRenderPass mFinalRenderPass;
 
 	VkCommandPool mGeneralCommandPool;
 	VkCommandBuffer mTransferCommandBuffer;
 
 	Pipeline mPipeline3D;
 	Pipeline mPipeline2D;
+	Pipeline mPipelineFinal;
 
 	//descriptor set members
 	VkDeviceMemory mShaderMemory;
@@ -85,6 +87,7 @@ private:
 	DS::DescriptorSet mLightingds;
 	DS::DescriptorSet mTexturesds;
 	DS::DescriptorSet mPer2Dfragds;
+	DS::DescriptorSet mOffscreends;
 
 	DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
 	DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
@@ -94,6 +97,9 @@ private:
 	DS::BindingAndData<bool> mTextureSampler;
 	DS::BindingAndData<DS::ShaderStructs::Per2DFrag> mPer2Dfrag;
 	DS::BindingAndData<DS::ShaderStructs::lighting> mLighting;
+	DS::BindingAndData<bool> mOffscreenSampler;
+	DS::BindingAndData<bool> mOffscreenView;
+	VkSampler offscreenSampler;
 
 	Resource::TextureLoader mTextureLoader;
 	Resource::ModelLoader mModelLoader;
