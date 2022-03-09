@@ -3,8 +3,8 @@
 App::App()
 {
 	//set member variables
-	mWindowWidth = 800;
-	mWindowHeight = 800;
+	mWindowWidth = 1000;
+	mWindowHeight = 1000;
 	//init glfw window
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())
@@ -98,7 +98,7 @@ void App::update()
 		else
 		{
 			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-			glfwSetWindowMonitor(mWindow, NULL, 100, 100, mWindowWidth, mWindowHeight, mode->refreshRate);
+			glfwSetWindowMonitor(mWindow, NULL, 0, 0, mWindowWidth, mWindowHeight, mode->refreshRate);
 		}
 	}
 	if(input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE])
@@ -143,7 +143,7 @@ void App::draw()
 
 	mRender->begin2DDraw();
 
-	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
+	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0), glm::vec4(1, 1, 1, 1), glm::vec4(0, 0, 1, 1));
 
 	mRender->begin3DDraw();
 
