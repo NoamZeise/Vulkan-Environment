@@ -97,6 +97,7 @@ void ModelLoader::loadQuad()
 
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
+#ifndef NO_ASSIMP
 	Model model(currentIndex++);
 	Assimp::Importer importer;
 	const aiScene *scene = importer.ReadFile(path,
@@ -117,13 +118,17 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 		transform[1][0], transform[1][1], transform[1][2], transform[1][3],
 		transform[2][0], transform[2][1], transform[2][2], transform[2][3],
 		transform[3][0], transform[3][1], transform[3][2], transform[3][3]);
-
 	processNode(&ldModel, scene->mRootNode, scene, texLoader, aiTransform);
 
 	loadedModels.push_back(ldModel);
 
 	return model;
+#else
+	throw std::runtime_error("tried to load model but NO_ASSIMP is defined!");
+#endif
 }
+
+#ifndef NO_ASSIMP
 void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform)
 {
 	aiMatrix4x4 transform = parentTransform * node->mTransformation;
@@ -203,6 +208,7 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader 
 		}
 	}
 }
+#endif
 
 void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 {

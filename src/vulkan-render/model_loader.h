@@ -9,10 +9,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#ifndef NO_ASSIMP
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
+#endif
 #include <vector>
 #include <array>
 #include <string>
@@ -95,10 +96,11 @@ private:
 	};
 
 	const char* MODEL_TEXTURE_LOCATION = "textures/";
-
+#ifndef NO_ASSIMP
     void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
 	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);
 	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);
+#endif
 	void loadQuad();
 
 	Base base;

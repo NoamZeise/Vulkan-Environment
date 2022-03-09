@@ -3,7 +3,7 @@
 Render::Render(GLFWwindow* window)
 {
 	_initRender(window);
-	targetResolution = glm::vec2(mSwapchain.extent.width, mSwapchain.extent.height);
+	targetResolution = glm::vec2(mSwapchain.swapchainExtent.width, mSwapchain.swapchainExtent.height);
 }
 
 Render::Render(GLFWwindow* window, glm::vec2 target)
@@ -63,8 +63,11 @@ Render::~Render()
 void Render::_initFrameResources()
 {
 	initVulkan::Swapchain(mBase.device, mBase.physicalDevice, mSurface, &mSwapchain, mWindow, mBase.queue.graphicsPresentFamilyIndex);
-	initVulkan::RenderPass(mBase.device, &mRenderPass, mSwapchain);
-	initVulkan::Framebuffers(mBase.device, &mSwapchain, mRenderPass);
+
+	initVulkan::RenderPass(mBase.device, &mRenderPass, mSwapchain, false);
+	initVulkan::RenderPass(mBase.device, &mFinalRenderPass, mSwapchain, true);
+	initVulkan::Framebuffers(mBase.device, &mSwapchain, mRenderPass, false);
+	initVulkan::Framebuffers(mBase.device, &mSwapchain, mFinalRenderPass, true);
 
 	size_t frameCount = mSwapchain.frameData.size();
 	
@@ -92,6 +95,39 @@ void Render::_initFrameResources()
 	mPer2Dfrag.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mPer2Dfragds, MAX_2D_INSTANCE);
 	initVulkan::DescriptorSetAndLayout(mBase.device, mPer2Dfragds, {&mPer2Dfrag.binding}, VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
+	//temp, move somewhere else later
+
+	VkPhysicalDeviceProperties deviceProps{};
+	vkGetPhysicalDeviceProperties(mBase.physicalDevice, &deviceProps);
+	VkSamplerCreateInfo samplerInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = samplerInfo.addressModeU;
+	samplerInfo.addressModeW = samplerInfo.addressModeU;
+	if (settings::PIXELATED)
+	{
+		samplerInfo.magFilter = VK_FILTER_NEAREST;
+		samplerInfo.minFilter = VK_FILTER_NEAREST;
+	}
+	else
+	{
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+	}
+	samplerInfo.maxAnisotropy = 1.0f;
+	samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.mipLodBias = 0.0f;
+	samplerInfo.maxLod = 1.0f;
+	samplerInfo.minLod = 0.0f;
+	if (vkCreateSampler(mBase.device, &samplerInfo, nullptr, &offscreenSampler) != VK_SUCCESS)
+		throw std::runtime_error("Failed create sampler");
+
+	//end
+
+	mOffscreenSampler.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER, &mOffscreends, 1, nullptr, &offscreenSampler);
+	mOffscreenView.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &mOffscreends, 1, &mSwapchain.offscreen.view, nullptr);
+	initVulkan::DescriptorSetAndLayout(mBase.device, mOffscreends, {&mOffscreenSampler.binding, &mOffscreenView.binding}, VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
 	initVulkan::PrepareShaderBufferSets(mBase, 
 		{
@@ -102,7 +138,9 @@ void Render::_initFrameResources()
 			&mLighting.binding, 
 			&mTextureSampler.binding, 
 			&mTextureViews.binding,
-			&mPer2Dfrag.binding
+			&mPer2Dfrag.binding,
+			&mOffscreenSampler.binding,
+			&mOffscreenView.binding
 		},
 			&mShaderBuffer, &mShaderMemory);
 
@@ -111,13 +149,16 @@ void Render::_initFrameResources()
 			{ &mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true);
+			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false);
 
 	initVulkan::GraphicsPipeline(mBase.device, &mPipeline2D, mSwapchain, mRenderPass, 
 			{ &mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-			"shaders/vflat.spv", "shaders/fflat.spv", true);
+			"shaders/vflat.spv", "shaders/fflat.spv", true, false);
+
+	initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain, mFinalRenderPass,
+				{&mOffscreends}, {}, "shaders/vfinal.spv", "shaders/ffinal.spv", false, true);
 	
 	_updateViewProjectionMatrix();
 	for(size_t i = 0; i < MAX_3D_INSTANCE; i++)
@@ -140,6 +181,8 @@ void Render::_destroyFrameResources()
 	vkDestroyBuffer(mBase.device, mShaderBuffer, nullptr);
 	vkFreeMemory(mBase.device, mShaderMemory, nullptr);
 
+	vkDestroySampler(mBase.device, offscreenSampler, nullptr);
+
 	mVP3Dds.destroySet(mBase.device);
 	mVP2Dds.destroySet(mBase.device);
 	mPerInstance3Dds.destroySet(mBase.device);
@@ -147,12 +190,18 @@ void Render::_destroyFrameResources()
 	mLightingds.destroySet(mBase.device);
 	mTexturesds.destroySet(mBase.device);
 	mPer2Dfragds.destroySet(mBase.device);
+	mOffscreends.destroySet(mBase.device);
 
+	vkDestroyFramebuffer(mBase.device, mSwapchain.offscreenFramebuffer, nullptr);
 	for (size_t i = 0; i < mSwapchain.frameData.size(); i++)
+	{
 		vkDestroyFramebuffer(mBase.device, mSwapchain.frameData[i].framebuffer, nullptr);
+	}
 	mPipeline3D.destroy(mBase.device);
 	mPipeline2D.destroy(mBase.device);
+	mPipelineFinal.destroy(mBase.device);
 	vkDestroyRenderPass(mBase.device, mRenderPass, nullptr);
+	vkDestroyRenderPass(mBase.device, mFinalRenderPass, nullptr);
 }
 
 void Render::restartResourceLoad()
@@ -254,10 +303,10 @@ void Render::_startDraw()
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = mRenderPass;
-	renderPassInfo.framebuffer = mSwapchain.frameData[mImg].framebuffer; //framebuffer for each swapchain image
+	renderPassInfo.framebuffer = mSwapchain.offscreenFramebuffer; //framebuffer for each swapchain image
 												   //should match size of attachments
 	renderPassInfo.renderArea.offset = { 0, 0 };
-	renderPassInfo.renderArea.extent = mSwapchain.extent;
+	renderPassInfo.renderArea.extent = mSwapchain.offscreenExtent;
 	//clear colour -> values for VK_ATTACHMENT_LOAD_OP_CLEAR load operation in colour attachment
 	//need colour for each attachment being cleared (colour, depth)
 	std::array<VkClearValue, 2> clearColours {};
@@ -267,6 +316,16 @@ void Render::_startDraw()
 	renderPassInfo.pClearValues = clearColours.data();
 
 	vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport
+	{
+		0.0f, 0.0f, // x  y
+		(float)mSwapchain.offscreenExtent.width, (float)mSwapchain.offscreenExtent.height, //width  height
+		0.0f, 1.0f // min/max depth
+	};
+	VkRect2D scissor{ VkOffset2D{0, 0}, mSwapchain.offscreenExtent };
+	vkCmdSetViewport(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &scissor);
 
 	mModelLoader.bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
 }
@@ -300,10 +359,10 @@ void Render::begin2DDraw()
 	m3DRender = false;
 
 	float correction;
-	float deviceRatio = (float)mSwapchain.extent.width / (float)mSwapchain.extent.height;
+	float deviceRatio = (float)mSwapchain.offscreenExtent.width / (float)mSwapchain.offscreenExtent.height;
 	float virtualRatio = targetResolution.x / targetResolution.y;
-	float xCorrection = mSwapchain.extent.width / targetResolution.x;
-	float yCorrection = mSwapchain.extent.height / targetResolution.y;
+	float xCorrection = mSwapchain.offscreenExtent.width / targetResolution.x;
+	float yCorrection = mSwapchain.offscreenExtent.height / targetResolution.y;
 
 	if (virtualRatio < deviceRatio) {
 		correction = yCorrection;
@@ -311,7 +370,7 @@ void Render::begin2DDraw()
 	else {
 		correction = xCorrection;
 	}
-	mVP2D.data[0].proj = glm::ortho(0.0f, (float)mSwapchain.extent.width / correction, 0.0f, (float)mSwapchain.extent.height / correction, -10.0f, 10.0f);
+	mVP2D.data[0].proj = glm::ortho(0.0f, (float)mSwapchain.offscreenExtent.width / correction, 0.0f, (float)mSwapchain.offscreenExtent.height / correction, -10.0f, 10.0f);
 	mVP2D.data[0].view = glm::mat4(1.0f);
 
 	mVP2D.storeData(mImg);
@@ -486,6 +545,47 @@ void Render::endDraw(std::atomic<bool>& submit)
  
 	//end render pass
 	vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);
+
+
+	//final render pass
+
+		//fill render pass begin struct
+	VkRenderPassBeginInfo renderPassInfo{};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassInfo.renderPass = mFinalRenderPass;
+	renderPassInfo.framebuffer = mSwapchain.frameData[mImg].framebuffer; //framebuffer for each swapchain image
+												   //should match size of attachments
+	renderPassInfo.renderArea.offset = { 0, 0 };
+	renderPassInfo.renderArea.extent = mSwapchain.swapchainExtent;
+
+	std::array<VkClearValue, 1> clearColours {};
+	clearColours[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+	renderPassInfo.clearValueCount = clearColours.size();
+	renderPassInfo.pClearValues = clearColours.data();
+
+	vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport
+	{
+		0.0f, 0.0f, // x  y
+		(float)mSwapchain.swapchainExtent.width, (float)mSwapchain.swapchainExtent.height, //width  height
+		0.0f, 1.0f // min/max depth
+	};
+	VkRect2D scissor{ VkOffset2D{0, 0}, mSwapchain.swapchainExtent };
+	vkCmdSetViewport(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &viewport);
+	vkCmdSetScissor(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &scissor);
+
+	mPipelineFinal.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
+
+
+	vkCmdDraw(mSwapchain.frameData[mImg].commandBuffer, 3, 1, 0, 0);
+
+	vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);
+
+	//final render pass end
+
+
+
 	if (vkEndCommandBuffer(mSwapchain.frameData[mImg].commandBuffer) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to record command buffer!");
@@ -534,22 +634,8 @@ void Render::endDraw(std::atomic<bool>& submit)
 
 void Render::_updateViewProjectionMatrix()
 {
-	float correction = 0.0f;
-	float deviceRatio = mSwapchain.extent.width / mSwapchain.extent.height;
-	float virtualRatio = targetResolution.x / targetResolution.y;
-	float xCorrection = mSwapchain.extent.width / targetResolution.x;
-	float yCorrection = mSwapchain.extent.height / targetResolution.y;
-
-	if (virtualRatio < deviceRatio) {
-		correction = yCorrection;
-	}
-	else {
-		correction = xCorrection;
-	}
-
-	
 	mVP3D.data[0].proj = glm::perspective(glm::radians(mProjectionFov),
-			((float)mSwapchain.extent.width / correction) / ((float)mSwapchain.extent.height / correction), 0.1f, 500.0f);
+			((float)mSwapchain.offscreenExtent.width) / ((float)mSwapchain.offscreenExtent.height), 0.1f, 500.0f);
 	mVP3D.data[0].proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 
 }

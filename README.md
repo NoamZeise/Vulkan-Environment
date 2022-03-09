@@ -16,14 +16,16 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 
 ## Todo list:
 bugs:
-*
+* make first-person camera feel better
 
 features:
 * skeletal animation (and distinguish between animated and non-animated draws)
 * post processing (draw to seperate texture before drawing to backbuffer)
+* make multiple render passes optional
 
 optimisations:
 * convert model data to proprietary format with another program to remove assimp dependancy from this project
+* use the same pipeline layout for multiple pipelines
 
 ## External libraries and their uses:
 

@@ -47,13 +47,15 @@ struct SwapChain
 {
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkSurfaceFormatKHR format;
-	VkExtent2D extent;
+	VkExtent2D swapchainExtent;
+	VkExtent2D offscreenExtent;
 
 	AttachmentImage depthBuffer;
 	AttachmentImage multisampling;
+	AttachmentImage offscreen;
 	VkSampleCountFlagBits maxMsaaSamples;
 
-
+	VkFramebuffer offscreenFramebuffer;
 	std::vector<FrameData> frameData;
 	std::vector<VkSemaphore> imageAquireSem;
 };

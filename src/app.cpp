@@ -3,8 +3,8 @@
 App::App()
 {
 	//set member variables
-	mWindowWidth = 800;
-	mWindowHeight = 450;
+	mWindowWidth = 1000;
+	mWindowHeight = 1000;
 	//init glfw window
 	glfwSetErrorCallback(error_callback);
 	if (!glfwInit())
@@ -23,16 +23,22 @@ App::App()
 	glfwSetKeyCallback(mWindow, key_callback);
 	glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
 	glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	if (glfwRawMouseMotionSupported())
-    	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-	if(FIXED_RATIO)
-		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
-
-	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
+    glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, glfwRawMouseMotionSupported());
+	
+	int width = mWindowWidth;
+	int height = mWindowHeight;
+	if(settings::USE_TARGET_RESOLUTION)
+	{
+		width = settings::TARGET_WIDTH;
+		height = settings::TARGET_HEIGHT;
+	}
+	if(settings::FIXED_RATIO)
+		glfwSetWindowAspectRatio(mWindow, width, height);
+	mRender = new Render(mWindow, glm::vec2(width, height));
 
 	loadAssets();
 	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
-	audioManager.Play("audio/test.wav", true, 0.5f);
+	//audioManager.Play("audio/test.flac", true, 0.5f);
 	finishedDrawSubmit = true;
 }
 
@@ -40,7 +46,7 @@ App::~App()
 {
 	if(submitDraw.joinable())
 		submitDraw.join();
-//	delete testFont;
+	delete testFont;
 	delete mRender;
 	mRender = nullptr;
 	glfwDestroyWindow(mWindow);
@@ -49,10 +55,9 @@ App::~App()
 
 void App::loadAssets()
 {
-//	testModel = mRender->LoadModel("models/testScene.fbx");
+	testModel = mRender->LoadModel("models/testScene.fbx");
 	testTex = mRender->LoadTexture("textures/error.png");
-//	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-//	threeChannelTest = mRender->LoadTexture("textures/error.jpg");
+	testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
 	mRender->endResourceLoad();
 }
 
@@ -93,7 +98,7 @@ void App::update()
 		else
 		{
 			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-			glfwSetWindowMonitor(mWindow, NULL, 100, 100, mWindowWidth, mWindowHeight, mode->refreshRate);
+			glfwSetWindowMonitor(mWindow, NULL, 0, 0, mWindowWidth, mWindowHeight, mode->refreshRate);
 		}
 	}
 	if(input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE])
@@ -138,22 +143,13 @@ void App::draw()
 
 	mRender->begin2DDraw();
 
-	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
+	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0), glm::vec4(1, 1, 1, 1), glm::vec4(0, 0, 1, 1));
 
-//	mRender->begin3DDraw();
+	mRender->begin3DDraw();
 
-//	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+	mRender->DrawModel(testModel, glm::mat4(1.0f), glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-	//mRender->begin2DDraw();
 
-	//mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
-	//mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(250, 250, 500, 500), 0), glm::vec4(1, 0, 0, 1), glm::vec4(-0.5f,-0.5f, 1, 1));
-
-	//mRender->DrawQuad(threeChannelTest, glmhelper::getModelMatrix(glm::vec4(1050, 750, 400, 400), 0), glm::vec4(1, 1, 1, 0.8));
-
-	//mRender->DrawString(testFont, "text on the screen", glm::vec2(100, 100), 70, 0, glm::vec4(1, 1, 1, 1));
-
-	//end Draw
 	submitDraw = std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));
 
 #ifdef TIME_APP_DRAW_UPDATE
@@ -167,7 +163,9 @@ void App::draw()
 
 glm::vec2 App::correctedPos(glm::vec2 pos)
 {
-	return glm::vec2(pos.x * ((float)TARGET_WIDTH / (float)mWindowWidth), pos.y * ((float)TARGET_HEIGHT / (float)mWindowHeight));
+	if(settings::USE_TARGET_RESOLUTION)
+		return glm::vec2(pos.x * ((float)settings::TARGET_WIDTH / (float)mWindowWidth), pos.y * ((float)settings::TARGET_HEIGHT / (float)mWindowHeight));
+	return glm::vec2(pos.x, pos.y);
 }
 
 glm::vec2 App::correctedMouse()

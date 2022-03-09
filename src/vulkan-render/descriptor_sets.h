@@ -130,7 +130,7 @@ struct BindingAndData
 		if(binding.type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE && pImgViews == nullptr)
 			throw std::runtime_error("Descriptor Set Binding: type is sampled image but pImgViews was a nullptr!");
 		if(binding.type == VK_DESCRIPTOR_TYPE_SAMPLER && pSamplers == nullptr)
-			throw std::runtime_error("Descriptor Set Binding: type is sampled image but pImgViews was a nullptr!");
+			throw std::runtime_error("Descriptor Set Binding: type is sampler image but pSamplers was a nullptr!");
 	}
 
 	void setBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet* set, uint32_t dataCount)
