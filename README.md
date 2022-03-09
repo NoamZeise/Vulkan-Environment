@@ -20,7 +20,6 @@ bugs:
 
 features:
 * skeletal animation (and distinguish between animated and non-animated draws)
-* post processing (draw to seperate texture before drawing to backbuffer)
 * make multiple render passes optional
 
 optimisations:
