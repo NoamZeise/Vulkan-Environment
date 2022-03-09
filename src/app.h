@@ -29,10 +29,6 @@
 //#define TIME_APP_DRAW_UPDATE
 //#define MULTI_UPDATE_ON_SLOW_DRAW
 
-const bool FIXED_RATIO = false;
-const int TARGET_WIDTH = 1920;
-const int TARGET_HEIGHT = 1080;
-
 class App
 {
 public:

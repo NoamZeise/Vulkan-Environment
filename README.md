@@ -1,13 +1,6 @@
 # Work in progress Vulkan Rendering Framework
 A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering and update code into app.cpp
 
-
-## post processing branch TODO:
-
-* fix cursor speed with different target resolution
-* make target resolution optional
-* make multiple render passes optional
-
 ## Features:
 
 * Simultaneous 2D and 3D rendering
@@ -24,10 +17,12 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 
 ## Todo list:
 bugs:
+* make first-person camera feel better
 
 features:
 * skeletal animation (and distinguish between animated and non-animated draws)
 * post processing (draw to seperate texture before drawing to backbuffer)
+* make multiple render passes optional
 
 optimisations:
 * convert model data to proprietary format with another program to remove assimp dependancy from this project

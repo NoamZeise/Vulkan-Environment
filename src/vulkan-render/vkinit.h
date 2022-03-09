@@ -47,19 +47,12 @@ public:
 	static void Device(VkInstance instance, VkPhysicalDevice& device, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families);
 	static void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex);
 	static void DestroySwapchain(SwapChain* swapchain, const VkDevice& device);
-	static void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain);
-	static void FinalRenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain);
-	static void Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
-	static void FinalFramebuffer(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass);
+	static void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, bool presentOnly);
+	static void Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass, bool presentOnly);
 	static void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
 									std::vector<DS::DescriptorSet*> descriptorSets,
 									std::vector<VkPushConstantRange> pushConstantsRanges,
-									std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest);
-
-	static void FinalGraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
-									std::vector<DS::DescriptorSet*> descriptorSets,
-									std::vector<VkPushConstantRange> pushConstantsRanges,
-									std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest);
+									std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest, bool presentOnly);
 
 	static void DescriptorSetAndLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags, size_t setCount);
 	static void PrepareShaderBufferSets(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);

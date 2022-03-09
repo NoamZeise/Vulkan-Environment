@@ -63,10 +63,11 @@ Render::~Render()
 void Render::_initFrameResources()
 {
 	initVulkan::Swapchain(mBase.device, mBase.physicalDevice, mSurface, &mSwapchain, mWindow, mBase.queue.graphicsPresentFamilyIndex);
-	initVulkan::RenderPass(mBase.device, &mRenderPass, mSwapchain);
-	initVulkan::FinalRenderPass(mBase.device, &mFinalRenderPass, mSwapchain);
-	initVulkan::Framebuffers(mBase.device, &mSwapchain, mRenderPass);
-	initVulkan::FinalFramebuffer(mBase.device, &mSwapchain, mFinalRenderPass);
+
+	initVulkan::RenderPass(mBase.device, &mRenderPass, mSwapchain, false);
+	initVulkan::RenderPass(mBase.device, &mFinalRenderPass, mSwapchain, true);
+	initVulkan::Framebuffers(mBase.device, &mSwapchain, mRenderPass, false);
+	initVulkan::Framebuffers(mBase.device, &mSwapchain, mFinalRenderPass, true);
 
 	size_t frameCount = mSwapchain.frameData.size();
 	
@@ -148,16 +149,16 @@ void Render::_initFrameResources()
 			{ &mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true);
+			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false);
 
 	initVulkan::GraphicsPipeline(mBase.device, &mPipeline2D, mSwapchain, mRenderPass, 
 			{ &mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-			"shaders/vflat.spv", "shaders/fflat.spv", true);
+			"shaders/vflat.spv", "shaders/fflat.spv", true, false);
 
-	initVulkan::FinalGraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain, mFinalRenderPass,
-				{&mOffscreends}, {}, "shaders/vfinal.spv", "shaders/ffinal.spv", false);
+	initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain, mFinalRenderPass,
+				{&mOffscreends}, {}, "shaders/vfinal.spv", "shaders/ffinal.spv", false, true);
 	
 	_updateViewProjectionMatrix();
 	for(size_t i = 0; i < MAX_3D_INSTANCE; i++)
@@ -358,10 +359,10 @@ void Render::begin2DDraw()
 	m3DRender = false;
 
 	float correction;
-	float deviceRatio = (float)mSwapchain.swapchainExtent.width / (float)mSwapchain.swapchainExtent.height;
+	float deviceRatio = (float)mSwapchain.offscreenExtent.width / (float)mSwapchain.offscreenExtent.height;
 	float virtualRatio = targetResolution.x / targetResolution.y;
-	float xCorrection = mSwapchain.swapchainExtent.width / targetResolution.x;
-	float yCorrection = mSwapchain.swapchainExtent.height / targetResolution.y;
+	float xCorrection = mSwapchain.offscreenExtent.width / targetResolution.x;
+	float yCorrection = mSwapchain.offscreenExtent.height / targetResolution.y;
 
 	if (virtualRatio < deviceRatio) {
 		correction = yCorrection;
@@ -369,7 +370,7 @@ void Render::begin2DDraw()
 	else {
 		correction = xCorrection;
 	}
-	mVP2D.data[0].proj = glm::ortho(0.0f, (float)mSwapchain.swapchainExtent.width / correction, 0.0f, (float)mSwapchain.swapchainExtent.height / correction, -10.0f, 10.0f);
+	mVP2D.data[0].proj = glm::ortho(0.0f, (float)mSwapchain.offscreenExtent.width / correction, 0.0f, (float)mSwapchain.offscreenExtent.height / correction, -10.0f, 10.0f);
 	mVP2D.data[0].view = glm::mat4(1.0f);
 
 	mVP2D.storeData(mImg);
@@ -633,22 +634,8 @@ void Render::endDraw(std::atomic<bool>& submit)
 
 void Render::_updateViewProjectionMatrix()
 {
-	float correction = 0.0f;
-	float deviceRatio = mSwapchain.swapchainExtent.width / mSwapchain.swapchainExtent.height;
-	float virtualRatio = targetResolution.x / targetResolution.y;
-	float xCorrection = mSwapchain.swapchainExtent.width / targetResolution.x;
-	float yCorrection = mSwapchain.swapchainExtent.height / targetResolution.y;
-
-	if (virtualRatio < deviceRatio) {
-		correction = yCorrection;
-	}
-	else {
-		correction = xCorrection;
-	}
-
-	
 	mVP3D.data[0].proj = glm::perspective(glm::radians(mProjectionFov),
-			((float)mSwapchain.swapchainExtent.width / correction) / ((float)mSwapchain.swapchainExtent.height / correction), 0.1f, 500.0f);
+			((float)mSwapchain.offscreenExtent.width) / ((float)mSwapchain.offscreenExtent.height), 0.1f, 500.0f);
 	mVP3D.data[0].proj[1][1] *= -1; //opengl has inversed y axis, so need to correct
 
 }

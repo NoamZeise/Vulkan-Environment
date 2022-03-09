@@ -23,12 +23,18 @@ App::App()
 	glfwSetKeyCallback(mWindow, key_callback);
 	glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
 	glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-	if (glfwRawMouseMotionSupported())
-    	glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-	if(FIXED_RATIO)
-		glfwSetWindowAspectRatio(mWindow, TARGET_WIDTH, TARGET_HEIGHT);
-
-	mRender = new Render(mWindow, glm::vec2(TARGET_WIDTH, TARGET_HEIGHT));
+    glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, glfwRawMouseMotionSupported());
+	
+	int width = mWindowWidth;
+	int height = mWindowHeight;
+	if(settings::USE_TARGET_RESOLUTION)
+	{
+		width = settings::TARGET_WIDTH;
+		height = settings::TARGET_HEIGHT;
+	}
+	if(settings::FIXED_RATIO)
+		glfwSetWindowAspectRatio(mWindow, width, height);
+	mRender = new Render(mWindow, glm::vec2(width, height));
 
 	loadAssets();
 	fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
@@ -137,7 +143,7 @@ void App::draw()
 
 	mRender->begin2DDraw();
 
-	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 500, 500), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
+	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 50,-1), glm::vec4(0, 1, 1, 1), glm::vec4(0, 0, 1, 1));
 
 	mRender->begin3DDraw();
 
@@ -157,7 +163,9 @@ void App::draw()
 
 glm::vec2 App::correctedPos(glm::vec2 pos)
 {
-	return glm::vec2(pos.x * ((float)TARGET_WIDTH / (float)mWindowWidth), pos.y * ((float)TARGET_HEIGHT / (float)mWindowHeight));
+	if(settings::USE_TARGET_RESOLUTION)
+		return glm::vec2(pos.x * ((float)settings::TARGET_WIDTH / (float)mWindowWidth), pos.y * ((float)settings::TARGET_HEIGHT / (float)mWindowHeight));
+	return glm::vec2(pos.x, pos.y);
 }
 
 glm::vec2 App::correctedMouse()
