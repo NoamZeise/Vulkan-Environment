@@ -222,7 +222,7 @@ void App::mouse_button_callback(GLFWwindow* window, int button, int action, int 
 		}
 		else if (action == GLFW_RELEASE)
 		{
-			app->input.Buttons[button] = true;
+			app->input.Buttons[button] = false;
 		}
 	}
 }
