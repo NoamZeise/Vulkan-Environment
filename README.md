@@ -10,6 +10,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 * Play .wav and .ogg audio files
 
 ## Projects using this framework:
+* [The Last Dodo](https://github.com/NoamZeise/DodoDash) -> Platforming Game
 * [Get Back Jaxx](https://github.com/NoamZeise/GGJ22) -> Adventure Game
 * [Hard Drive Homicide](https://github.com/NoamZeise/Hard-Drive-Homicide) -> Twin-Stick Bullet Hell Game
 * [Battle Island](https://github.com/NoamZeise/Battle-Island) -> Turn-Based Strategy Game
@@ -25,6 +26,7 @@ features:
 optimisations:
 * convert model data to proprietary format with another program to remove assimp dependancy from this project
 * use the same pipeline layout for multiple pipelines
+* unload old and load new textures while using renderer
 
 ## External libraries and their uses:
 

@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
 
+
 #customize
 set(ProjectName "Vulkan-Environment")
 
 #windows only
 set(Lib "D:/noam4/Libraries/VS/lib/x64/")
 set(Include "D:/noam4/Libraries/VS/include")
+
+if (MSVC)
+    set(CMAKE_CXX_FLAGS_DEBUG_INIT "/DDEBUG /MDd /Zi /Ob0 /Od /RTC1 /std:c++14")
+    set(CMAKE_CXX_FLAGS_RELEASE_INIT "/MD /Zi /O2 /Ob1 /DNDEBUG /std:c++14")
+endif()
 
 project(${ProjectName} VERSION 1.0)
 
@@ -22,11 +28,6 @@ if (UNIX)
     find_package(Freetype REQUIRED)
     set(CMAKE_CXX_FLAGS "-O2 -std=c++14")
     set(CMAKE_EXE_LINKER_FLAGS "-v")
-
-elseif (MSVC)
-    # https://docs.microsoft.com/en-us/cpp/build/reference/compiler-options-listed-by-category?view=msvc-170
-    set(CMAKE_CXX_FLAGS_DEBUG_INIT "/DDEBUG /MTd /Zi /Ob0 /Od /RTC1 /std:c++14")
-    set(CMAKE_CXX_FLAGS_RELEASE_INIT "/MT /Zi /O2 /Ob1 /DNDEBUG /std:c++14")
 endif()
 
 #add executables
@@ -53,7 +54,7 @@ if(UNIX)
 elseif(MSVC)
     target_include_directories(${ProjectName} PUBLIC ${Include})
     target_link_libraries(${ProjectName} ${Lib}glfw3.lib
-                                         ${Lib}freetyped.lib
+                                         ${Lib}freetype.lib
                                          ${Lib}vulkan-1.lib
                                          ${Lib}assimp-vc140-mt.lib
                                          ${Lib}portaudio_x64.lib

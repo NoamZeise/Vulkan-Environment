@@ -98,6 +98,11 @@ void ModelLoader::loadQuad()
 Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 {
 #ifndef NO_ASSIMP
+
+#ifndef NDEBUG
+	std::cout << "loading model: " << path << std::endl;
+#endif
+
 	Model model(currentIndex++);
 	Assimp::Importer importer;
 	const aiScene *scene = importer.ReadFile(path,

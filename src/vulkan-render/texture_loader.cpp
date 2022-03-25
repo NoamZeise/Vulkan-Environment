@@ -31,6 +31,9 @@ void TextureLoader::UnloadTextures()
 
 Texture TextureLoader::loadTexture(std::string path)
 {
+#ifndef NDEBUG
+	std::cout << "loading texture: " << path << std::endl;
+#endif
 	texToLoad.push_back({ path });
 	TempTexture* tex = &texToLoad.back();
 	tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);

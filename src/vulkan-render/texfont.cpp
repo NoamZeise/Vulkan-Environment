@@ -5,6 +5,9 @@ namespace Resource
 
 Font::Font(std::string file, TextureLoader* texLoader)
 {
+#ifndef NDEBUG
+	std::cout << "loading font: " << file << std::endl;
+#endif
 	FT_Library ftlib;
 	if (FT_Init_FreeType(&ftlib))
 	{

@@ -1,6 +1,9 @@
 #include "app.h"
 #include <stdexcept>
+#ifndef NDEBUG
 #include <iostream>
+#endif
+#include <fstream>
 
 
 int main()
@@ -15,7 +18,17 @@ int main()
 	}
 	catch (const std::exception& e)
 	{
+		#ifndef NDEBUG
 		std::cerr << e.what() << std::endl;
+		#else
+		std::ofstream crashFile("CrashInfo.txt");
+		if (crashFile.is_open())
+		{
+			crashFile.seekp(0);
+			crashFile << e.what();
+			crashFile.close();
+		}
+		#endif
 		return EXIT_FAILURE;
 	}
 

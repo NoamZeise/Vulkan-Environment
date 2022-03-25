@@ -2,7 +2,6 @@
 #define APP_H
 
 #include <input.h>
-#include <audio.h>
 #include <timer.h>
 
 #ifndef GLFW_INCLUDE_VULKAN
@@ -61,7 +60,6 @@ private:
 	Input previousInput;
 	Timer timer;
 	camera::firstPerson fpcam;
-	Audio::Manager audioManager;
 
 	std::thread submitDraw;
 	std::atomic<bool> finishedDrawSubmit;
