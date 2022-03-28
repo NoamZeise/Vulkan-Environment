@@ -39,16 +39,16 @@ void Render::_initRender(GLFWwindow* window)
 	if (vkAllocateCommandBuffers(mBase.device, &commandBufferInfo, &mTransferCommandBuffer))
 		throw std::runtime_error("failed to allocate command buffer");
 
-	mModelLoader = Resource::ModelLoader(mBase, mGeneralCommandPool);
-	mTextureLoader = Resource::TextureLoader(mBase, mGeneralCommandPool);
-	mTextureLoader.loadTexture("textures/error.png");
+	mModelLoader = new Resource::ModelLoader(mBase, mGeneralCommandPool);
+	mTextureLoader = new Resource::TextureLoader(mBase, mGeneralCommandPool);
+	mTextureLoader->loadTexture("textures/error.png");
 }
 
 Render::~Render()
 {
 	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
-	mTextureLoader.~TextureLoader();
-	mModelLoader.~ModelLoader();
+	delete mTextureLoader;
+	delete mModelLoader;
 	_destroyFrameResources();
 	vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
 	initVulkan::DestroySwapchain(&mSwapchain, mBase.device);
@@ -70,7 +70,7 @@ void Render::_initFrameResources()
 	initVulkan::Framebuffers(mBase.device, &mSwapchain, mFinalRenderPass, true);
 
 	size_t frameCount = mSwapchain.frameData.size();
-	
+
 	//vertex descriptor sets
 	mVP3D.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
 	initVulkan::DescriptorSetAndLayout(mBase.device, mVP3Dds,{&mVP3D.binding},VK_SHADER_STAGE_VERTEX_BIT, frameCount);
@@ -88,8 +88,8 @@ void Render::_initFrameResources()
 	mLighting.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds, 1);
 	initVulkan::DescriptorSetAndLayout(mBase.device, mLightingds,{&mLighting.binding},VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
-	mTextureSampler.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_SAMPLER,&mTexturesds, 1, nullptr, mTextureLoader.getSamplerP());
-	mTextureViews.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &mTexturesds, Resource::MAX_TEXTURES_SUPPORTED, mTextureLoader.getImageViewsP(), nullptr);
+	mTextureSampler.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_SAMPLER,&mTexturesds, 1, nullptr, mTextureLoader->getSamplerP());
+	mTextureViews.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &mTexturesds, Resource::MAX_TEXTURES_SUPPORTED, mTextureLoader->getImageViewsP(), nullptr);
 	initVulkan::DescriptorSetAndLayout(mBase.device, mTexturesds, {&mTextureSampler.binding, &mTextureViews.binding},   VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
 	mPer2Dfrag.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mPer2Dfragds, MAX_2D_INSTANCE);
@@ -129,14 +129,14 @@ void Render::_initFrameResources()
 	mOffscreenView.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &mOffscreends, 1, &mSwapchain.offscreen.view, nullptr);
 	initVulkan::DescriptorSetAndLayout(mBase.device, mOffscreends, {&mOffscreenSampler.binding, &mOffscreenView.binding}, VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
-	initVulkan::PrepareShaderBufferSets(mBase, 
+	initVulkan::PrepareShaderBufferSets(mBase,
 		{
-			&mVP3D.binding, 
-			&mVP2D.binding,  
-			&mPerInstance.binding, 
-			&mPer2Dvert.binding,  
-			&mLighting.binding, 
-			&mTextureSampler.binding, 
+			&mVP3D.binding,
+			&mVP2D.binding,
+			&mPerInstance.binding,
+			&mPer2Dvert.binding,
+			&mLighting.binding,
+			&mTextureSampler.binding,
 			&mTextureViews.binding,
 			&mPer2Dfrag.binding,
 			&mOffscreenSampler.binding,
@@ -145,13 +145,13 @@ void Render::_initFrameResources()
 			&mShaderBuffer, &mShaderMemory);
 
 
-	initVulkan::GraphicsPipeline(mBase.device, &mPipeline3D, mSwapchain, mRenderPass, 
+	initVulkan::GraphicsPipeline(mBase.device, &mPipeline3D, mSwapchain, mRenderPass,
 			{ &mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
 			"shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false);
 
-	initVulkan::GraphicsPipeline(mBase.device, &mPipeline2D, mSwapchain, mRenderPass, 
+	initVulkan::GraphicsPipeline(mBase.device, &mPipeline2D, mSwapchain, mRenderPass,
 			{ &mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
 			{{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
 			{VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
@@ -159,7 +159,7 @@ void Render::_initFrameResources()
 
 	initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain, mFinalRenderPass,
 				{&mOffscreends}, {}, "shaders/vfinal.spv", "shaders/ffinal.spv", false, true);
-	
+
 	_updateViewProjectionMatrix();
 	for(size_t i = 0; i < MAX_3D_INSTANCE; i++)
 	{
@@ -206,7 +206,7 @@ void Render::_destroyFrameResources()
 
 void Render::restartResourceLoad()
 {
-	mTextureLoader.UnloadTextures();
+	mTextureLoader->UnloadTextures();
 }
 
 
@@ -214,7 +214,7 @@ Resource::Texture Render::LoadTexture(std::string filepath)
 {
 	if (mFinishedLoadingResources)
 		throw std::runtime_error("resource loading has finished already");
-	return mTextureLoader.loadTexture(filepath);
+	return mTextureLoader->loadTexture(filepath);
 }
 
 Resource::Font* Render::LoadFont(std::string filepath)
@@ -223,7 +223,7 @@ Resource::Font* Render::LoadFont(std::string filepath)
 		throw std::runtime_error("resource loading has finished already");
 	try
 	{
-		return new Resource::Font(filepath, &mTextureLoader);
+		return new Resource::Font(filepath, mTextureLoader);
 	}
 	catch (const std::exception& e)
 	{
@@ -236,15 +236,15 @@ Resource::Model Render::LoadModel(std::string filepath)
 {
 	if(mFinishedLoadingResources)
 		throw std::runtime_error("resource loading has finished already");
-	return mModelLoader.loadModel(filepath, mTextureLoader);
+	return mModelLoader->loadModel(filepath, mTextureLoader);
 }
 
 
 void Render::endResourceLoad()
 {
 	mFinishedLoadingResources = true;
-	mTextureLoader.endLoading();
-	mModelLoader.endLoading(mTransferCommandBuffer);
+	mTextureLoader->endLoading();
+	mModelLoader->endLoading(mTransferCommandBuffer);
 	_initFrameResources();
 }
 
@@ -327,7 +327,7 @@ void Render::_startDraw()
 	vkCmdSetViewport(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &viewport);
 	vkCmdSetScissor(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &scissor);
 
-	mModelLoader.bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
+	mModelLoader->bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
 }
 
 void Render::begin3DDraw()
@@ -338,14 +338,14 @@ void Render::begin3DDraw()
 		_drawBatch();
 	if(instance2Druns > 0)
 		_drawBatch();
-	m3DRender = true; 
-		
+	m3DRender = true;
+
 	mVP3D.storeData(mImg);
 	DS::ShaderStructs::lighting tempLightingData = mLighting.data[0];
 	mLighting.data[0].direction = glm::transpose(glm::inverse(mVP3D.data[0].view)) * glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
 	mLighting.storeData(mImg);
 
-	mPipeline3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);	
+	mPipeline3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
 }
 
 void Render::begin2DDraw()
@@ -385,19 +385,19 @@ void Render::_drawBatch()
 	vectPushConstants vps{
 			glm::mat4(1.0f),
 			glm::mat4(0.0f)
-		};   
+		};
 	vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT,
 							0, sizeof(vectPushConstants), &vps);
 
 	if(m3DRender)
 	{
-		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, currentModel, modelRuns, current3DInstanceIndex);
+		mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, currentModel, modelRuns, current3DInstanceIndex);
 		current3DInstanceIndex += modelRuns;
 		modelRuns = 0;
 	}
 	else
 	{
-		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, 0, instance2Druns, current2DInstanceIndex, currentColour, currentTexOffset);
+		mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, 0, instance2Druns, current2DInstanceIndex, currentColour, currentTexOffset);
 		current2DInstanceIndex += instance2Druns;
 		instance2Druns = 0;
 	}
@@ -414,15 +414,15 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 		vectPushConstants vps{
 			modelMatrix,
 			normalMat
-		};   
+		};
 		vps.normalMat[3][3] = 1.0;
 		vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout,
 							 VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants), &vps);
 
-		mModelLoader.drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, model, 1, 0);
+		mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, model, 1, 0);
 		return;
 	}
-	
+
 	if(currentModel.ID != model.ID && modelRuns != 0)
 		_drawBatch();
 	//add model to buffer
@@ -445,13 +445,13 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, g
 		vectPushConstants vps{
 			modelMatrix,
 			glm::mat4(1.0f)
-		};   
-		
+		};
+
 		vps.normalMat[3][3] = 1.0;
 		vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT,
 							0, sizeof(vectPushConstants), &vps);
 
-		mModelLoader.drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, texture.ID,
+		mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer, mPipeline3D.layout, texture.ID,
 		 	1, 0, colour, texOffset);
 		return;
 	}
@@ -542,7 +542,7 @@ void Render::endDraw(std::atomic<bool>& submit)
 		mPer2Dfrag.storeData(mImg, i);
 	}
 	current2DInstanceIndex = 0;
- 
+
 	//end render pass
 	vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);
 
@@ -645,7 +645,7 @@ void Render::setViewMatrixAndFov(glm::mat4 view, float fov)
 	mVP3D.data[0].view = view;
 	mProjectionFov = fov;
 	_updateViewProjectionMatrix();
-} 
+}
 
 void Render::framebufferResize()
 {

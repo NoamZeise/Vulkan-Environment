@@ -78,11 +78,13 @@ void ModelLoader::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 void ModelLoader::loadQuad()
 {
 	currentIndex++;
-	LoadedModel ldModel;
-	ldModel.directory = "quad";
-	ldModel.meshes.push_back(new Mesh());
-	ldModel.meshes.back()->texture =  Texture(0, glm::vec2(0,0), "quad");
-	ldModel.meshes.back()->verticies =
+	loadedModels.push_back(LoadedModel());
+	LoadedModel* ldModel = &loadedModels[loadedModels.size() - 1];
+	ldModel->directory = "quad";
+	ldModel->meshes.push_back(new Mesh());
+	Mesh* mesh = ldModel->meshes[ldModel->meshes.size() - 1];
+	mesh->texture =  Texture(0, glm::vec2(0,0), "quad");
+	mesh->verticies =
 		{
 			//pos   			normal  			texcoord
 			{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
@@ -90,12 +92,11 @@ void ModelLoader::loadQuad()
 			{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
 			{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
 		};
-	ldModel.meshes.back()->indicies = { 0, 3, 2, 2, 1, 0};
+	mesh->indicies = { 0, 3, 2, 2, 1, 0};
 
-	loadedModels.push_back(ldModel);
 }
 
-Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
+Model ModelLoader::loadModel(std::string path, TextureLoader* texLoader)
 {
 #ifndef NO_ASSIMP
 
@@ -111,9 +112,9 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 	if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
 
-
-	LoadedModel ldModel;
-	ldModel.directory = path.substr(0, path.find_last_of('/'));
+	loadedModels.push_back(LoadedModel());
+	LoadedModel* ldModel = &loadedModels[loadedModels.size() - 1];
+	ldModel->directory = path.substr(0, path.find_last_of('/'));
 
 	//correct for blender's orientation
 	glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
@@ -123,9 +124,7 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 		transform[1][0], transform[1][1], transform[1][2], transform[1][3],
 		transform[2][0], transform[2][1], transform[2][2], transform[2][3],
 		transform[3][0], transform[3][1], transform[3][2], transform[3][3]);
-	processNode(&ldModel, scene->mRootNode, scene, texLoader, aiTransform);
-
-	loadedModels.push_back(ldModel);
+	processNode(ldModel, scene->mRootNode, scene, texLoader, aiTransform);
 
 	return model;
 #else
@@ -134,21 +133,21 @@ Model ModelLoader::loadModel(std::string path, TextureLoader &texLoader)
 }
 
 #ifndef NO_ASSIMP
-void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform)
+void ModelLoader::processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader* texLoader, aiMatrix4x4 parentTransform)
 {
 	aiMatrix4x4 transform = parentTransform * node->mTransformation;
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
 		model->meshes.push_back(new Mesh());
-		processMesh(model->meshes.back(), mesh, scene, texLoader, transform);
+		processMesh(model->meshes[model->meshes.size() - 1], mesh, scene, texLoader, transform);
 	}
 	for(unsigned int i = 0; i < node->mNumChildren; i++, texLoader)
 	{
 		processNode(model, node->mChildren[i], scene, texLoader, transform);
 	}
 }
-void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform)
+void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader* texLoader, aiMatrix4x4 transform)
 {
 	loadMaterials(mesh, scene->mMaterials[aimesh->mMaterialIndex], texLoader);
 
@@ -186,7 +185,7 @@ void ModelLoader::processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, 
 			mesh->indicies.push_back(face.mIndices[j]);
 	}
 }
-void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader)
+void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader* texLoader)
 {
 	for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
 	{
@@ -207,7 +206,7 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader 
 		}
 		if(!skip)
 		{
-			mesh->texture = texLoader.loadTexture(texLocation);
+			mesh->texture = texLoader->loadTexture(texLocation);
 			mesh->texture.type = TextureType::Diffuse; //attention
 			alreadyLoaded.push_back(mesh->texture);
 		}
@@ -224,24 +223,24 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 
 	for(size_t i = 0; i < loadedModels.size(); i++)
 	{
-		ModelInGPU model;
+		models.push_back(ModelInGPU());
+		ModelInGPU* model = &models[models.size() - 1];
 
-		model.vertexOffset = vertexDataSize / sizeof(loadedModels[i].meshes[0]->verticies[0]);
-		model.indexOffset = indexDataSize / sizeof(loadedModels[i].meshes[0]->indicies[0]);
-		model.meshes.resize(loadedModels[i].meshes.size());
+		model->vertexOffset = vertexDataSize / sizeof(loadedModels[i].meshes[0]->verticies[0]);
+		model->indexOffset = indexDataSize / sizeof(loadedModels[i].meshes[0]->indicies[0]);
+		model->meshes.resize(loadedModels[i].meshes.size());
 		for(size_t j = 0 ; j <  loadedModels[i].meshes.size(); j++)
 		{
-			model.meshes[j] = MeshInfo(
+			model->meshes[j] = MeshInfo(
 					loadedModels[i].meshes[j]->indicies.size(),
-					model.indexCount,
-					model.vertexCount,
+					model->indexCount,
+					model->vertexCount,
 					loadedModels[i].meshes[j]->texture);
-			model.vertexCount += loadedModels[i].meshes[j]->verticies.size();
-			model.indexCount  += loadedModels[i].meshes[j]->indicies.size();
+			model->vertexCount += loadedModels[i].meshes[j]->verticies.size();
+			model->indexCount  += loadedModels[i].meshes[j]->indicies.size();
 			vertexDataSize += sizeof(loadedModels[i].meshes[j]->verticies[0]) * loadedModels[i].meshes[j]->verticies.size();
 			indexDataSize +=  sizeof(loadedModels[i].meshes[j]->indicies[0]) * loadedModels[i].meshes[j]->indicies.size();
 		}
-		models.push_back(model);
 	}
 
 	VkBuffer stagingBuffer;
@@ -297,7 +296,7 @@ void ModelLoader::endLoading(VkCommandBuffer transferBuff)
 	vkQueueWaitIdle(base.queue.graphicsPresentQueue);
 
 	//free staging buffer
-    vkDestroyBuffer(base.device, stagingBuffer, nullptr);
+  vkDestroyBuffer(base.device, stagingBuffer, nullptr);
 	vkFreeMemory(base.device, stagingMemory, nullptr);
 }
 

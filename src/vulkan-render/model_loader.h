@@ -46,7 +46,7 @@ public:
 	ModelLoader(Base base, VkCommandPool pool);
 	ModelLoader() {}
 	~ModelLoader();
-	Model loadModel(std::string path, TextureLoader &texLoader);
+	Model loadModel(std::string path, TextureLoader* texLoader);
 	void endLoading(VkCommandBuffer transferBuff);
 
 	void bindBuffers(VkCommandBuffer cmdBuff);
@@ -97,9 +97,9 @@ private:
 
 	const char* MODEL_TEXTURE_LOCATION = "textures/";
 #ifndef NO_ASSIMP
-    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 parentTransform);
-	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader &texLoader, aiMatrix4x4 transform);
-	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader &texLoader);
+    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader* texLoader, aiMatrix4x4 parentTransform);
+	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader* texLoader, aiMatrix4x4 transform);
+	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader* texLoader);
 #endif
 	void loadQuad();
 

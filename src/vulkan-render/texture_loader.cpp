@@ -16,9 +16,16 @@ TextureLoader::~TextureLoader()
 
 void TextureLoader::UnloadTextures()
 {
+	for(auto& tex: texToLoad)
+	{
+		if (tex.path != "NULL")
+			stbi_image_free(tex.pixelData);
+		else
+			delete[] tex.pixelData;
+	}
 	if (textures.size() <= 0)
 		return;
-	for (const auto& tex : textures)
+	for (auto& tex : textures)
 	{
 		vkDestroyImageView(base.device, tex.view, nullptr);
 		vkDestroyImage(base.device, tex.image, nullptr);
@@ -34,14 +41,14 @@ Texture TextureLoader::loadTexture(std::string path)
 #ifndef NDEBUG
 	std::cout << "loading texture: " << path << std::endl;
 #endif
-	texToLoad.push_back({ path });
+	texToLoad.push_back({ std::string(path.c_str()) });
 	TempTexture* tex = &texToLoad.back();
 	tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);
 	if (!tex->pixelData)
 		throw std::runtime_error("failed to load texture at " + path);
 
 	tex->nrChannels = 4;
-	
+
 	tex->fileSize = tex->width * tex->height * tex->nrChannels;
 
 	if(settings::SRGB)
@@ -111,7 +118,7 @@ void TextureLoader::endLoading()
 		if (texToLoad[i].path != "NULL")
 			stbi_image_free(texToLoad[i].pixelData);
 		else
-			delete texToLoad[i].pixelData;
+			delete[] texToLoad[i].pixelData;
 		texToLoad[i].pixelData = nullptr;
 
 		bufferOffset += texToLoad[i].fileSize;

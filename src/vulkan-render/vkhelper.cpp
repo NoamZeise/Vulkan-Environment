@@ -1,6 +1,6 @@
 #include "vkhelper.h"
 
-namespace vkhelper 
+namespace vkhelper
 {
 
 uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBits, VkMemoryPropertyFlags properties)
@@ -20,12 +20,13 @@ uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBit
 
 void createBufferAndMemory(Base base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
-	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL};
 	bufferInfo.size = size;
 	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	bufferInfo.queueFamilyIndexCount = 1;
 	bufferInfo.pQueueFamilyIndices = &base.queue.graphicsPresentFamilyIndex;
+	bufferInfo.flags = 0;
 
 	if (vkCreateBuffer(base.device, &bufferInfo, nullptr, buffer) != VK_SUCCESS)
 		throw std::runtime_error("failed to create buffer of size " + size);

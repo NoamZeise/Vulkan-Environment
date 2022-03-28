@@ -24,7 +24,7 @@ App::App()
 	glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
 	glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, glfwRawMouseMotionSupported());
-	
+
 	int width = mWindowWidth;
 	int height = mWindowHeight;
 	if(settings::USE_TARGET_RESOLUTION)

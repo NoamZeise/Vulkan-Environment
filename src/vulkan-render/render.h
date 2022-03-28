@@ -30,7 +30,7 @@
 #include "model_loader.h"
 
 const size_t MAX_3D_INSTANCE = 100;
-const size_t MAX_2D_INSTANCE = 300; 
+const size_t MAX_2D_INSTANCE = 300;
 
 class Render
 {
@@ -101,8 +101,8 @@ private:
 	DS::BindingAndData<bool> mOffscreenView;
 	VkSampler offscreenSampler;
 
-	Resource::TextureLoader mTextureLoader;
-	Resource::ModelLoader mModelLoader;
+	Resource::TextureLoader* mTextureLoader;
+	Resource::ModelLoader* mModelLoader;
 
 	bool mBegunDraw = false;
 	bool mFinishedLoadingResources = false;

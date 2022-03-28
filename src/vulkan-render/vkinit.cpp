@@ -526,7 +526,7 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 		    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
 			VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-	
+
 	dependencies[1].srcSubpass = 0;
 	dependencies[1].srcStageMask =
 				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
@@ -662,7 +662,7 @@ void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 
 	if(presentOnly)
 	{
-		viewport = 
+		viewport =
 		{
 			0.0f, 0.0f, // x  y
 			(float)swapchain.swapchainExtent.width, (float)swapchain.swapchainExtent.height, //width  height
@@ -1142,8 +1142,8 @@ bool initVulkan::_validationLayersSupported()
 	//check if validation layer and selected optional layers are supported
 	uint32_t layerCount;
 	vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-	VkLayerProperties* availableLayers = new VkLayerProperties[layerCount];
-	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
+	std::vector<VkLayerProperties> availableLayers(layerCount);
+	vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 	for (auto layer : OPTIONAL_LAYERS)
 	{
 		bool layerSupported = false;
@@ -1157,7 +1157,9 @@ bool initVulkan::_validationLayersSupported()
 			//std::cout << availableLayers[i].layerName << std::endl;
 		}
 		if (!layerSupported)
+		{
 			return false;
+		}
 	}
 	return true;
 }
