@@ -41,7 +41,8 @@ void Render::_initRender(GLFWwindow* window)
 
 	mModelLoader = new Resource::ModelLoader(mBase, mGeneralCommandPool);
 	mTextureLoader = new Resource::TextureLoader(mBase, mGeneralCommandPool);
-	mTextureLoader->loadTexture("textures/error.png");
+	mFontLoader = new Resource::FontLoader();
+	mTextureLoader->LoadTexture("textures/error.png");
 }
 
 Render::~Render()
@@ -49,6 +50,7 @@ Render::~Render()
 	vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
 	delete mTextureLoader;
 	delete mModelLoader;
+	delete mFontLoader;
 	_destroyFrameResources();
 	vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
 	initVulkan::DestroySwapchain(&mSwapchain, mBase.device);
@@ -169,7 +171,6 @@ void Render::_initFrameResources()
 	for(size_t i = 0; i < MAX_2D_INSTANCE; i++)
 	{
 		mPer2Dvert.data[i].model = glm::mat4(1.0f);
-
 		mPer2Dfrag.data[i].colour = glm::vec4(1.0f);
 		mPer2Dfrag.data[i].texOffset = glm::vec4(0, 0, 1, 1);
 		mPer2Dfrag.data[i].texID = 0;
@@ -214,21 +215,21 @@ Resource::Texture Render::LoadTexture(std::string filepath)
 {
 	if (mFinishedLoadingResources)
 		throw std::runtime_error("resource loading has finished already");
-	return mTextureLoader->loadTexture(filepath);
+	return mTextureLoader->LoadTexture(filepath);
 }
 
-Resource::Font* Render::LoadFont(std::string filepath)
+Resource::Font Render::LoadFont(std::string filepath)
 {
 	if (mFinishedLoadingResources)
 		throw std::runtime_error("resource loading has finished already");
 	try
 	{
-		return new Resource::Font(filepath, mTextureLoader);
+		return mFontLoader->LoadFont(filepath, mTextureLoader);
 	}
 	catch (const std::exception& e)
 	{
 		std::cout << e.what() << std::endl;
-		return nullptr;
+		return Resource::Font();
 	}
 }
 
@@ -456,9 +457,7 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, g
 		return;
 	}
 
-
 	mPer2Dvert.data[current2DInstanceIndex + instance2Druns].model = modelMatrix;
-
 	mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].colour = colour;
 	mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texOffset = texOffset;
 	mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texID = texture.ID;
@@ -478,41 +477,17 @@ void Render::DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix)
 	DrawQuad(texture, modelMatrix, glm::vec4(1), glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour, float depth)
+void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
 {
-	if (font == nullptr)
+	auto draws = mFontLoader->DrawString(font, text, position, size, rotate, colour, depth);
+	for(const auto& draw: draws)
 	{
-		std::cout << "font is NULL" << std::endl;
-		return;
-	}
-	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
-	{
-		Resource::Character* cTex = font->getChar(*c);
-		if (cTex == nullptr)
-			continue;
-		else if (cTex->texture.ID != 0) //if character is added but no texture loaded for it (eg space)
-		{
-			glm::vec4 thisPos = glm::vec4(position.x, position.y, 0, 0);
-			thisPos.x += cTex->bearing.x * size;
-			thisPos.y += (cTex->size.y - cTex->bearing.y) * size;
-			thisPos.y -= cTex->size.y * size;
-
-			thisPos.z = cTex->size.x * size;
-			thisPos.w = cTex->size.y * size;
-			thisPos.z /= 1;
-			thisPos.w /= 1;
-
-			glm::mat4 model = glmhelper::calcMatFromRect(thisPos, rotate, depth);
-
-			DrawQuad(cTex->texture, model, colour);
-		}
-		position.x += cTex->advance * size;
+		DrawQuad(draw.tex, draw.model, draw.colour);
 	}
 }
-
-void Render::DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour)
+void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour)
 {
-	DrawString(font, text, position, size, rotate, colour, 0.0);
+	DrawString(font, text, position, size, depth, colour, 0.0);
 }
 
 void Render::endDraw(std::atomic<bool>& submit)

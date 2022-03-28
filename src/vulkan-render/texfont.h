@@ -12,14 +12,27 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include <stdexcept>
-#include <cstring>
+#include <vector>
+
+#include <glmhelper.h>
 
 #include "texture_loader.h"
+#include "resources.h"
 
 namespace Resource
 {
 
+class FontLoader
+{
+public:
+	FontLoader() {}
+
+	~FontLoader();
+	Font LoadFont(std::string file, TextureLoader* texLoader);
+	std::vector<QuadDraw> DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
+	float MeasureString(Font font, std::string text, float size);
+
+private:
 struct Character
 {
 	Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, double advance)
@@ -29,27 +42,26 @@ struct Character
 		this->bearing = bearing;
 		this->advance = advance;
 	}
-	~Character()
-	{
-
-	}
 	Resource::Texture texture;
 	glm::vec2 size;
 	glm::vec2 bearing;
 	double advance;
 };
 
-class Font
+class LoadedFont
 {
 public:
-	Font(std::string file, TextureLoader* texLoader);
-	~Font();
+	LoadedFont(std::string file, TextureLoader* texLoader);
+	~LoadedFont();
 	Character* getChar(char c);
-	static float MeasureString(Resource::Font* font, std::string text, float size);
+	float MeasureString(std::string text, float size);
 private:
 	std::map<char, Character*> _chars;
 	bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);
 	const int SIZE = 100;
+};
+
+	std::vector<LoadedFont*> fonts;
 };
 
 }

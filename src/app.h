@@ -21,6 +21,7 @@
 #include <glmhelper.h>
 
 #include "vulkan-render/render.h"
+#include "vulkan-render/resources.h"
 #include "camera.h"
 
 #include <array>
@@ -68,7 +69,7 @@ private:
 
 	Resource::Model testModel;
 	Resource::Texture testTex;
-	Resource::Font* testFont;
+	Resource::Font testFont;
 };
 
 #endif

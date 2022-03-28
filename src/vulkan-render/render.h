@@ -41,7 +41,7 @@ public:
 	~Render();
 	void restartResourceLoad();
 	Resource::Texture LoadTexture(std::string filepath);
-	Resource::Font* LoadFont(std::string filepath);
+	Resource::Font LoadFont(std::string filepath);
 	Resource::Model LoadModel(std::string filepath);
 	void endResourceLoad();
 
@@ -51,8 +51,8 @@ public:
 	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
 	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix, glm::vec4 colour);
 	void DrawQuad(const Resource::Texture& texture, glm::mat4 modelMatrix);
-	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour);
-	void DrawString(Resource::Font* font, std::string text, glm::vec2 position, float size, float rotate, glm::vec4 colour, float depth);
+	void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour);
+	void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
 	void endDraw(std::atomic<bool>& submit);
 	void framebufferResize();
 
@@ -103,6 +103,7 @@ private:
 
 	Resource::TextureLoader* mTextureLoader;
 	Resource::ModelLoader* mModelLoader;
+	Resource::FontLoader* mFontLoader;
 
 	bool mBegunDraw = false;
 	bool mFinishedLoadingResources = false;

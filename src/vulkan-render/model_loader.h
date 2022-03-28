@@ -26,25 +26,15 @@
 #include "render_structs.h"
 #include "pipeline.h"
 #include "vkhelper.h"
+#include "resources.h"
 
 namespace Resource
 {
-
-struct Model
-{
-	Model() { this->ID = 1000000; }
-	Model(unsigned int ID)
-	{
-		this->ID = ID;
-	}
-	unsigned int ID;
-};
 
 class ModelLoader
 {
 public:
 	ModelLoader(Base base, VkCommandPool pool);
-	ModelLoader() {}
 	~ModelLoader();
 	Model loadModel(std::string path, TextureLoader* texLoader);
 	void endLoading(VkCommandBuffer transferBuff);

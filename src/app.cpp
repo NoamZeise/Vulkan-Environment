@@ -46,7 +46,6 @@ App::~App()
 {
 	if(submitDraw.joinable())
 		submitDraw.join();
-	delete testFont;
 	delete mRender;
 	mRender = nullptr;
 	glfwDestroyWindow(mWindow);
@@ -144,6 +143,8 @@ void App::draw()
 	mRender->begin2DDraw();
 
 	mRender->DrawQuad(testTex, glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0), glm::vec4(1, 1, 1, 1), glm::vec4(0, 0, 1, 1));
+
+	mRender->DrawString(testFont, "test", glm::vec2(100, 100), 100, 0, glm::vec4(1), 2.0f);
 
 	mRender->begin3DDraw();
 

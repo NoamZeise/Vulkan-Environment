@@ -8,11 +8,6 @@ set(ProjectName "Vulkan-Environment")
 set(Lib "D:/noam4/Libraries/VS/lib/x64/")
 set(Include "D:/noam4/Libraries/VS/include")
 
-if (MSVC)
-    set(CMAKE_CXX_FLAGS_DEBUG_INIT "/DDEBUG /MDd /Zi /Ob0 /Od /RTC1 /std:c++14")
-    set(CMAKE_CXX_FLAGS_RELEASE_INIT "/MD /Zi /O2 /Ob1 /DNDEBUG /std:c++14")
-endif()
-
 project(${ProjectName} VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -26,8 +21,6 @@ if (UNIX)
     add_definitions(-DVK_USE_PLATFORM_XLIB_KHR)
     find_package(glfw3 3.3 REQUIRED)
     find_package(Freetype REQUIRED)
-    set(CMAKE_CXX_FLAGS "-O2 -std=c++14")
-    set(CMAKE_EXE_LINKER_FLAGS "-v")
 endif()
 
 #add executables

@@ -206,7 +206,11 @@ void ModelLoader::loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader*
 		}
 		if(!skip)
 		{
-			mesh->texture = texLoader->loadTexture(texLocation);
+			
+			mesh->texture = texLoader->LoadTexture(texLocation);
+#ifndef NDEBUG
+			std::cout << "^ for model" << std::endl;
+#endif
 			mesh->texture.type = TextureType::Diffuse; //attention
 			alreadyLoaded.push_back(mesh->texture);
 		}

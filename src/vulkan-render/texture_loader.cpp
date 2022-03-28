@@ -36,7 +36,7 @@ void TextureLoader::UnloadTextures()
 	textures.clear();
 }
 
-Texture TextureLoader::loadTexture(std::string path)
+Texture TextureLoader::LoadTexture(std::string path)
 {
 #ifndef NDEBUG
 	std::cout << "loading texture: " << path << std::endl;
@@ -59,7 +59,7 @@ Texture TextureLoader::loadTexture(std::string path)
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 
-Texture TextureLoader::loadTexture(unsigned char* data, int width, int height, int nrChannels)
+Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels)
 {
 	texToLoad.push_back({ "NULL" });
 	TempTexture* tex = &texToLoad.back();
