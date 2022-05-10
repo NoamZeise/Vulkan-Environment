@@ -68,6 +68,8 @@ set(Lib "Path/to/lib")
 set(Include "Path/to/include")
 ```
 
+* If you are using the msvc compiler, you can use the included windows build scripts under "resources/buildscripts/windows/" to build the debug or release versions of the project and automatically launch it.
+
 ### linux with apt
 vulkan tools
 ```

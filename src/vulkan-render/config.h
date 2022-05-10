@@ -16,8 +16,8 @@ const bool SAMPLE_SHADING = true;
 
 const bool FIXED_RATIO = false;
 const bool USE_TARGET_RESOLUTION = false;
-const int TARGET_WIDTH = 800;
-const int TARGET_HEIGHT = 600;
+const int TARGET_WIDTH = 1600;
+const int TARGET_HEIGHT = 900;
 
 #ifndef NDEBUG
 const bool ERROR_ONLY = true;

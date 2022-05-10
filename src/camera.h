@@ -21,7 +21,7 @@ namespace camera
 {
 	class firstPerson
 	{
-		
+
 	public:
 		firstPerson() { _position = glm::vec3(0.0f, 0.0f, 0.0f); };
 		firstPerson(glm::vec3 position);

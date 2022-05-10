@@ -3,3 +3,5 @@ build/*
 include/freetype/*
 include/ft2build.h
 *.gch
+.cache/*
+compile_commands.json

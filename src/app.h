@@ -14,62 +14,64 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <atomic>
 #include <iostream>
 #include <thread>
-#include <atomic>
 
 #include <glmhelper.h>
 
+#include "camera.h"
 #include "vulkan-render/render.h"
 #include "vulkan-render/resources.h"
-#include "camera.h"
 
 #include <array>
 
 //#define TIME_APP_DRAW_UPDATE
 //#define MULTI_UPDATE_ON_SLOW_DRAW
 
-class App
-{
+class App {
 public:
-	App();
-	~App();
-	void run();
-	void resize(int windowWidth, int windowHeight);
+  App();
+  ~App();
+  void run();
+  void resize(int windowWidth, int windowHeight);
 
 #pragma region GLFW_CALLBACKS
-	static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-	static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-	static void error_callback(int error, const char* description);
+  static void framebuffer_size_callback(GLFWwindow *window, int width,
+                                        int height);
+  static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+  static void scroll_callback(GLFWwindow *window, double xoffset,
+                              double yoffset);
+  static void key_callback(GLFWwindow *window, int key, int scancode,
+                           int action, int mode);
+  static void mouse_button_callback(GLFWwindow *window, int button, int action,
+                                    int mods);
+  static void error_callback(int error, const char *description);
 #pragma endregion
-	Input input;
+  Input input;
+
 private:
-	void loadAssets();
-	void update();
-	void postUpdate();
-	void draw();
+  void loadAssets();
+  void update();
+  void postUpdate();
+  void draw();
 
-	glm::vec2 correctedPos(glm::vec2 pos);
-	glm::vec2 correctedMouse();
+  glm::vec2 correctedPos(glm::vec2 pos);
+  glm::vec2 correctedMouse();
 
-	GLFWwindow* mWindow;
-	Render* mRender;
-	int mWindowWidth, mWindowHeight;
-	Input previousInput;
-	Timer timer;
-	camera::firstPerson fpcam;
+  GLFWwindow *mWindow;
+  Render *mRender;
+  int mWindowWidth, mWindowHeight;
+  Input previousInput;
+  Timer timer;
+  camera::firstPerson fpcam;
 
-	std::thread submitDraw;
-	std::atomic<bool> finishedDrawSubmit;
+  std::thread submitDraw;
+  std::atomic<bool> finishedDrawSubmit;
 
-	float time = 0.0f;
-
-	Resource::Model testModel;
-	Resource::Texture testTex;
-	Resource::Font testFont;
+  Resource::Model testModel;
+  Resource::Texture testTex;
+  Resource::Font testFont;
 };
 
 #endif

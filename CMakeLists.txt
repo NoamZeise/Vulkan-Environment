@@ -44,7 +44,7 @@ if(UNIX)
                                          sndfile
                                          portaudio)
     #add assimp
-elseif(MSVC)
+else()
     target_include_directories(${ProjectName} PUBLIC ${Include})
     target_link_libraries(${ProjectName} ${Lib}glfw3.lib
                                          ${Lib}freetype.lib

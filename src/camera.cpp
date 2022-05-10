@@ -46,12 +46,12 @@ namespace camera
 		//mouse
 		_pitch   += (float)(prevInput.Y - input.Y) * _sensitivity;
 		_yaw 	 += (float)(prevInput.X - input.X) * _sensitivity;
-	
+
 		if(_pitch > 89.0f)
 			_pitch = 89.0f;
 		if(_pitch < -89.0f)
 		 _pitch = -89.0f;
-		
+
 		//scroll
 		_zoom -= (float)input.offset * timer.FrameElapsed();
 		if(_zoom < 1.0f)
@@ -62,7 +62,7 @@ namespace camera
 		calculateVectors();
 		//std::cout << "X:" << _position.x << " Y:" << _position.y << " Z:" << _position.z << std::endl;
 	}
-	
+
 	void firstPerson::calculateVectors()
 	{
 		_front.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
