@@ -51,5 +51,6 @@ else()
                                          ${Lib}vulkan-1.lib
                                          ${Lib}assimp-vc140-mt.lib
                                          ${Lib}portaudio_x64.lib
-                                         ${Lib}sndfile.lib)
+                                         ${Lib}sndfile.lib
+                                        bufferoverflowU.lib)
 endif()

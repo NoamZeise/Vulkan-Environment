@@ -3,6 +3,7 @@
 
 #include <input.h>
 #include <timer.h>
+#include <audio.h>
 
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
@@ -56,6 +57,9 @@ private:
   void postUpdate();
   void draw();
 
+  const int INITIAL_WINDOW_WIDTH = 1000;
+  const int INITIAL_WINDOW_HEIGHT = 700;
+
   glm::vec2 correctedPos(glm::vec2 pos);
   glm::vec2 correctedMouse();
 
@@ -65,6 +69,7 @@ private:
   Input previousInput;
   Timer timer;
   camera::firstPerson fpcam;
+  Audio::Manager audioManager;
 
   std::thread submitDraw;
   std::atomic<bool> finishedDrawSubmit;

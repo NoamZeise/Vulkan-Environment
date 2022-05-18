@@ -2,8 +2,8 @@
 
 App::App() {
 
-  mWindowWidth = 1000;
-  mWindowHeight = 1000;
+  mWindowWidth = INITIAL_WINDOW_WIDTH;
+  mWindowHeight = INITIAL_WINDOW_HEIGHT;
 
   glfwSetErrorCallback(error_callback);
 
@@ -42,7 +42,7 @@ App::App() {
 
   loadAssets();
   fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
-  // audioManager.Play("audio/test.flac", true, 0.5f);
+  audioManager.Play("audio/test.wav", true, 0.5f);
   finishedDrawSubmit = true;
 }
 
@@ -131,24 +131,24 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
-  mRender->Begin2DDraw();
-
-  mRender->DrawQuad(testTex,
-                    glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
-                    glm::vec4(1, 1, 1, 1), glm::vec4(0, 0, 1, 1));
-
-  mRender->DrawString(testFont, "test", glm::vec2(100, 100), 100, 0,
-                      glm::vec4(1), 2.0f);
-
-  mRender->DrawQuad(testTex,
-                   glmhelper::getModelMatrix(glm::vec4(300, 400, 100, 100), 0, 0),
-                   glm::vec4(1), glm::vec4(0, 0, 1, 1));
-
   mRender->Begin3DDraw();
 
   mRender->DrawModel(
       testModel, glm::mat4(1.0f),
       glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+
+  mRender->Begin2DDraw();
+
+  mRender->DrawQuad(testTex,
+                   glmhelper::getModelMatrix(glm::vec4(350, 200, 100, 100), 0, -1),
+                   glm::vec4(1), glm::vec4(0, 0, 1, 1));
+
+  mRender->DrawQuad(testTex,
+                    glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
+                    glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
+
+  mRender->DrawString(testFont, "test", glm::vec2(100, 100), 100, 0,
+                      glm::vec4(1), 2.0f);
 
   submitDraw =
       std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));
@@ -169,6 +169,7 @@ glm::vec2 App::correctedPos(glm::vec2 pos) {
     return glm::vec2(
         pos.x * ((float)settings::TARGET_WIDTH / (float)mWindowWidth),
         pos.y * ((float)settings::TARGET_HEIGHT / (float)mWindowHeight));
+
   return glm::vec2(pos.x, pos.y);
 }
 
