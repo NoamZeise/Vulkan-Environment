@@ -38,7 +38,7 @@ const std::array<const char*, 1> REQUESTED_DEVICE_EXTENSIONS = {
 const std::array<const char*, 1> REQUESTED_DEVICE_EXTENSIONS = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-#endif 
+#endif
 
 struct initVulkan
 {
@@ -70,7 +70,7 @@ private:
 	static VkShaderModule _loadShaderModule(VkDevice device, std::string file);
 	static void _createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
 	static void _createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
-	static void _createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, AttachmentImage* attachIm, 
+	static void _createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, AttachmentImage* attachIm,
 				SwapChain& swapchain, VkImageUsageFlags usage, VkImageAspectFlags imgAspect, VkSampleCountFlagBits samples);
 	static VkFormat _findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
 	static void _destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment);

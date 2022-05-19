@@ -36,11 +36,11 @@ class Render {
 public:
   Render(GLFWwindow *window);
   Render(GLFWwindow *window, glm::vec2 target);
+  ~Render();
   static void SetGLFWWindowHints() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   }
   void set3DViewMatrixAndFov(glm::mat4 view, float fov);
-  ~Render();
   void restartResourceLoad();
   Resource::Texture LoadTexture(std::string filepath);
   Resource::Font LoadFont(std::string filepath);
@@ -49,19 +49,15 @@ public:
 
   void Begin3DDraw();
   void Begin2DDraw();
-  void DrawModel(Resource::Model model, glm::mat4 modelMatrix,
-                 glm::mat4 normalMatrix);
-  void DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix,
-                glm::vec4 colour, glm::vec4 texOffset);
-  void DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix,
-                glm::vec4 colour);
-  void DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix);
-  void DrawString(Resource::Font font, std::string text, glm::vec2 position,
-                  float size, float depth, glm::vec4 colour);
-  void DrawString(Resource::Font font, std::string text, glm::vec2 position,
-                  float size, float depth, glm::vec4 colour, float rotate);
-  void endDraw(std::atomic<bool> &submit);
-  void framebufferResize();
+  void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+  void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
+  void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour);
+  void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix);
+  void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
+  void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour);
+  void EndDraw(std::atomic<bool> &submit);
+
+  void FramebufferResize();
 
 private:
   bool mFramebufferResized = false;

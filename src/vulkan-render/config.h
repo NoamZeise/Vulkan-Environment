@@ -3,7 +3,7 @@
 
 
 //#define NDEBUG
-//#define NO_ASSIMP 
+//#define NO_ASSIMP
 
 namespace settings
 {

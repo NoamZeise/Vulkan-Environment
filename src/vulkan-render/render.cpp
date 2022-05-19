@@ -381,7 +381,7 @@ void Render::Begin2DDraw() {
 
   float correction;
   float deviceRatio = (float)mSwapchain.offscreenExtent.width /
-                      (float)mSwapchain.offscreenExtent.height;
+                  (float)mSwapchain.offscreenExtent.height;
   float virtualRatio = targetResolution.x / targetResolution.y;
   float xCorrection = mSwapchain.offscreenExtent.width / targetResolution.x;
   float yCorrection = mSwapchain.offscreenExtent.height / targetResolution.y;
@@ -453,7 +453,7 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix,
     _drawBatch();
 }
 
-void Render::DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix,
+void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix,
                       glm::vec4 colour, glm::vec4 texOffset) {
   if (current2DInstanceIndex >= MAX_2D_INSTANCE) {
 #ifndef NDEBUG
@@ -483,31 +483,30 @@ void Render::DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix,
     _drawBatch();
 }
 
-void Render::DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix,
+void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix,
                       glm::vec4 colour) {
   DrawQuad(texture, modelMatrix, colour, glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawQuad(const Resource::Texture &texture, glm::mat4 modelMatrix) {
+void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix) {
   DrawQuad(texture, modelMatrix, glm::vec4(1), glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawString(Resource::Font font, std::string text,
-                        glm::vec2 position, float size, float depth,
-                        glm::vec4 colour, float rotate) {
-  auto draws = mFontLoader->DrawString(font, text, position, size, rotate,
-                                       colour, depth);
-  for (const auto &draw : draws) {
+void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
+{
+  auto draws = mFontLoader->DrawString(font, text, position, size, depth,
+                                       colour, rotate);
+  for (const auto &draw : draws)
+  {
     DrawQuad(draw.tex, draw.model, draw.colour);
   }
 }
-void Render::DrawString(Resource::Font font, std::string text,
-                        glm::vec2 position, float size, float depth,
-                        glm::vec4 colour) {
+void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour)
+{
   DrawString(font, text, position, size, depth, colour, 0.0);
 }
 
-void Render::endDraw(std::atomic<bool> &submit) {
+void Render::EndDraw(std::atomic<bool> &submit) {
   if (!mBegunDraw)
     throw std::runtime_error("start draw before ending it");
   mBegunDraw = false;
@@ -639,4 +638,4 @@ void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov) {
   _updateViewProjectionMatrix();
 }
 
-void Render::framebufferResize() { mFramebufferResized = true; }
+void Render::FramebufferResize() { mFramebufferResized = true; }

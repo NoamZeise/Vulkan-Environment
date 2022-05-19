@@ -6,15 +6,14 @@ App::App() {
   mWindowHeight = INITIAL_WINDOW_HEIGHT;
 
   glfwSetErrorCallback(error_callback);
-
   if (!glfwInit())
     throw std::runtime_error("failed to initialise glfw!");
 
   Render::SetGLFWWindowHints();
 
-  mWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "Vulkan App", nullptr,
-                             nullptr);
-  if (!mWindow) {
+  mWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "Vulkan App", nullptr, nullptr);
+  if (!mWindow)
+  {
     glfwTerminate();
     throw std::runtime_error("failed to create glfw window!");
   }
@@ -26,22 +25,24 @@ App::App() {
   glfwSetKeyCallback(mWindow, key_callback);
   glfwSetMouseButtonCallback(mWindow, mouse_button_callback);
   glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION,
-                   glfwRawMouseMotionSupported());
-
+  glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, glfwRawMouseMotionSupported());
 
   int width = mWindowWidth;
   int height = mWindowHeight;
-  if (settings::USE_TARGET_RESOLUTION) {
+  if (settings::USE_TARGET_RESOLUTION)
+  {
     width = settings::TARGET_WIDTH;
     height = settings::TARGET_HEIGHT;
   }
-  if (settings::FIXED_RATIO)
-    glfwSetWindowAspectRatio(mWindow, width, height);
+
   mRender = new Render(mWindow, glm::vec2(width, height));
 
+  if (settings::FIXED_RATIO)
+    glfwSetWindowAspectRatio(mWindow, width, height);
+
   loadAssets();
-  fpcam = camera::firstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
+
+  fpcam = Camera::FirstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
   audioManager.Play("audio/test.wav", true, 0.5f);
   finishedDrawSubmit = true;
 }
@@ -71,10 +72,10 @@ void App::run() {
 void App::resize(int windowWidth, int windowHeight) {
   if (submitDraw.joinable())
     submitDraw.join();
-  mWindowWidth = windowWidth;
-  mWindowHeight = windowHeight;
+  this->mWindowWidth = windowWidth;
+  this->mWindowHeight = windowHeight;
   if (mRender != nullptr && mWindowWidth != 0 && mWindowHeight != 0)
-    mRender->framebufferResize();
+    mRender->FramebufferResize();
 }
 
 void App::update() {
@@ -139,6 +140,9 @@ void App::draw() {
 
   mRender->Begin2DDraw();
 
+  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+                      glm::vec4(1), 90.0f);
+
   mRender->DrawQuad(testTex,
                    glmhelper::getModelMatrix(glm::vec4(350, 200, 100, 100), 0, -1),
                    glm::vec4(1), glm::vec4(0, 0, 1, 1));
@@ -147,11 +151,8 @@ void App::draw() {
                     glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
                     glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
 
-  mRender->DrawString(testFont, "test", glm::vec2(100, 100), 100, 0,
-                      glm::vec4(1), 2.0f);
-
   submitDraw =
-      std::thread(&Render::endDraw, mRender, std::ref(finishedDrawSubmit));
+      std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
 
 
 #ifdef TIME_APP_DRAW_UPDATE
@@ -164,7 +165,8 @@ void App::draw() {
 #endif
 }
 
-glm::vec2 App::correctedPos(glm::vec2 pos) {
+glm::vec2 App::correctedPos(glm::vec2 pos)
+{
   if (settings::USE_TARGET_RESOLUTION)
     return glm::vec2(
         pos.x * ((float)settings::TARGET_WIDTH / (float)mWindowWidth),
@@ -173,7 +175,8 @@ glm::vec2 App::correctedPos(glm::vec2 pos) {
   return glm::vec2(pos.x, pos.y);
 }
 
-glm::vec2 App::correctedMouse() {
+glm::vec2 App::correctedMouse()
+{
   return correctedPos(glm::vec2(input.X, input.Y));
 }
 

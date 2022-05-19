@@ -1,6 +1,6 @@
 cd build
 call vcvars64
-cmake .. -G"Ninja Multi-Config"
+cmake .. -G"Ninja Multi-Config" -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 cmake --build . --config Release
 cd ..
 Xcopy resources\audio build\Release\audio /i /c /e /r /y
