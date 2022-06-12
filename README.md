@@ -10,10 +10,11 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 * Play .wav and .ogg audio files
 
 ## Projects using this framework:
-* [The Last Dodo](https://github.com/NoamZeise/DodoDash) -> Platforming Game
-* [Get Back Jaxx](https://github.com/NoamZeise/GGJ22) -> Adventure Game
-* [Hard Drive Homicide](https://github.com/NoamZeise/Hard-Drive-Homicide) -> Twin-Stick Bullet Hell Game
-* [Battle Island](https://github.com/NoamZeise/Battle-Island) -> Turn-Based Strategy Game
+* [Trials of The Pharaoh](https://github.com/NoamZeise/TrailsOfThePharaoh) -> 2D Light Ray Puzzle Game
+* [The Last Dodo](https://github.com/NoamZeise/DodoDash) -> 2D Platforming Game
+* [Get Back Jaxx](https://github.com/NoamZeise/GGJ22) -> 2D Adventure Game
+* [Hard Drive Homicide](https://github.com/NoamZeise/Hard-Drive-Homicide) -> 2D Twin-Stick Bullet Hell Game
+* [Battle Island](https://github.com/NoamZeise/Battle-Island) -> 2D Turn-Based Strategy Game
 
 ## Todo list:
 bugs:
