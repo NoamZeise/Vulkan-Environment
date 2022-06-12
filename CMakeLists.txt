@@ -40,9 +40,7 @@ if(UNIX)
     target_link_libraries(${ProjectName} glfw
                                          Vulkan::Vulkan
                                          ${FREETYPE_LIBRARIES}
-                                         assimp
-                                         sndfile
-                                         portaudio)
+                                         assimp)
     #add assimp
 else()
     target_include_directories(${ProjectName} PUBLIC ${Include})
@@ -50,7 +48,5 @@ else()
                                          ${Lib}freetype.lib
                                          ${Lib}vulkan-1.lib
                                          ${Lib}assimp-vc140-mt.lib
-                                         ${Lib}portaudio_x64.lib
-                                         ${Lib}sndfile.lib
                                         bufferoverflowU.lib)
 endif()

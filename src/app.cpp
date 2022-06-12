@@ -43,7 +43,6 @@ App::App() {
   loadAssets();
 
   fpcam = Camera::FirstPerson(glm::vec3(3.0f, 0.0f, 2.0f));
-  audioManager.Play("audio/test.wav", true, 0.5f);
   finishedDrawSubmit = true;
 }
 

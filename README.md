@@ -5,9 +5,8 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 
 * Simultaneous 2D and 3D rendering
 * Import and Draw .fbx models -> only supports base colour image textures
-* Import and Draw image textures 
+* Import and Draw image textures
 * Import and Draw fonts
-* Play .wav and .ogg audio files
 
 ## Projects using this framework:
 * [Trials of The Pharaoh](https://github.com/NoamZeise/TrailsOfThePharaoh) -> 2D Light Ray Puzzle Game
@@ -42,8 +41,6 @@ optimisations:
 
 # setup
 
-
-
 ### windows
 
 
@@ -57,11 +54,6 @@ optimisations:
 
 * download [assimp](https://github.com/assimp/assimp/blob/master/Build.md) compile and put in your lib and include directories, and distribute the dll with your binaries
 
-* download [libsndfile](http://www.mega-nerd.com/libsndfile/#Download) compile and put in your lib and include directories, and distrubute dll with your binaries
-
-* download [portaudio](http://files.portaudio.com/docs/v19-doxydocs/compile_windows.html) compile and put in your lib and include directories, and distrubute dll with your binaries
-
-
 * set your lib and include paths at the start of the cmake file
 ```
 #windows only
@@ -71,7 +63,7 @@ set(Include "Path/to/include")
 
 * If you are using the msvc compiler, you can use the included windows build scripts under "resources/buildscripts/windows/" to build the debug or release versions of the project and automatically launch it. You must include the assimp .dll with the project.
 
-### linux with apt
+### linux with aptitude
 vulkan tools
 ```
 $ sudo apt-get install vulkan-tools
@@ -86,5 +78,5 @@ $ vkcube
 ```
 additional libraries
 ```
-$ sudo apt-get install libglfw3-dev libglm-dev libfreetype-dev libassimp-dev libsndfile1-dev libasound-dev portaudio19-dev
+$ sudo apt-get install libglfw3-dev libglm-dev libfreetype-dev libassimp-dev
 ```

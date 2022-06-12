@@ -15,7 +15,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <audio.h>
 #include <input.h>
 #include <timer.h>
 #include <glmhelper.h>
@@ -64,7 +63,6 @@ private:
   Input previousInput;
   Timer timer;
   Camera::FirstPerson fpcam;
-  Audio::Manager audioManager;
 
   std::thread submitDraw;
   std::atomic<bool> finishedDrawSubmit;
