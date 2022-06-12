@@ -5,3 +5,4 @@ include/ft2build.h
 *.gch
 .cache/*
 compile_commands.json
+process-palette.json

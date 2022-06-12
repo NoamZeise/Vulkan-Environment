@@ -193,6 +193,7 @@ void Render::_initFrameResources() {
                                false, true);
 
   _updateViewProjectionMatrix();
+  mVP2D.data[0].view = glm::mat4(1.0f);
   for (size_t i = 0; i < MAX_3D_INSTANCE; i++) {
     mPerInstance.data[i].model = glm::mat4(1.0f);
     mPerInstance.data[i].normalMat = glm::mat4(1.0f);
@@ -392,8 +393,8 @@ void Render::Begin2DDraw() {
     correction = xCorrection;
   }
   mVP2D.data[0].proj = glm::ortho(
-      0.0f, (float)mSwapchain.offscreenExtent.width / correction, 0.0f,
-      (float)mSwapchain.offscreenExtent.height / correction, -10.0f, 10.0f);
+      0.0f, (float)mSwapchain.offscreenExtent.width*scale2D / correction, 0.0f,
+      (float)mSwapchain.offscreenExtent.height*scale2D / correction, -10.0f, 10.0f);
   mVP2D.data[0].view = glm::mat4(1.0f);
 
   mVP2D.storeData(mImg);
@@ -504,6 +505,11 @@ void Render::DrawString(Resource::Font font, std::string text, glm::vec2 positio
 void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour)
 {
   DrawString(font, text, position, size, depth, colour, 0.0);
+}
+
+float Render::MeasureString(Resource::Font font, std::string text, float size)
+{
+  mFontLoader->MeasureString(font, text, size);
 }
 
 void Render::EndDraw(std::atomic<bool> &submit) {
@@ -636,6 +642,12 @@ void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov) {
   mVP3D.data[0].view = view;
   mProjectionFov = fov;
   _updateViewProjectionMatrix();
+}
+
+void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale)
+{
+  mVP2D.data[0].view = view;
+  scale2D = scale;
 }
 
 void Render::FramebufferResize() { mFramebufferResized = true; }

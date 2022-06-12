@@ -44,7 +44,8 @@ struct Per2DFrag {
 };
 
 struct lighting {
-  lighting() {
+  lighting()
+  {
     ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.6f);
     diffuse = glm::vec4(1.0f, 1.0f, 1.0f, 0.7f);
     specular = glm::vec4(0.1f, 0.1f, 0.1f, 5.0f);

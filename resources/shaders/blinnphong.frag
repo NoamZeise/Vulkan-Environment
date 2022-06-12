@@ -14,7 +14,7 @@ layout(set = 2, binding = 1) uniform texture2D textures[200];
 layout(set = 3, binding = 0) uniform LightingUBO
 {
     vec4 ambient;
-    vec4 diffuse;  
+    vec4 diffuse;
     vec4 specular;
     vec4 direction;
 } lighting;
@@ -51,7 +51,7 @@ void main()
     if(lambertian > 0.0)
     {
         vec3 viewDir = normalize(-inFragPos);
-        
+
         vec3 halfDir = normalize(lightDir + viewDir);
         specularIntensity = pow(max(dot(normal, halfDir), 0.0), lighting.specular.w);
     }

@@ -9,7 +9,7 @@ layout (location = 0) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragColor;
 
-void main() 
+void main()
 {
   outFragColor = texture(sampler2D(offscreenTex, offscreenSampler), inUV);
 }

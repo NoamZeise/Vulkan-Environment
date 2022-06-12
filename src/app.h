@@ -26,7 +26,7 @@
 
 #include "camera.h"
 
-//#define TIME_APP_DRAW_UPDATE
+#define TIME_APP_DRAW_UPDATE
 //#define MULTI_UPDATE_ON_SLOW_DRAW
 
 class App {

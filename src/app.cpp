@@ -132,24 +132,24 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
-  mRender->Begin3DDraw();
+    mRender->Begin3DDraw();
 
-  mRender->DrawModel(
-      testModel, glm::mat4(1.0f),
-      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+    mRender->DrawModel(
+			testModel, glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)),
+			glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-  mRender->Begin2DDraw();
+    mRender->Begin2DDraw();
 
-  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
-                      glm::vec4(1), 90.0f);
+    mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+    										glm::vec4(1), 90.0f);
 
-  mRender->DrawQuad(testTex,
-                   glmhelper::getModelMatrix(glm::vec4(350, 200, 100, 100), 0, -1),
-                   glm::vec4(1), glm::vec4(0, 0, 1, 1));
+    mRender->DrawQuad(testTex,
+    								 glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
+    								 glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
-  mRender->DrawQuad(testTex,
-                    glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
-                    glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
+    mRender->DrawQuad(testTex,
+    									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
+    									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
 
   submitDraw =
       std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));

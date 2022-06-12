@@ -41,6 +41,7 @@ public:
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   }
   void set3DViewMatrixAndFov(glm::mat4 view, float fov);
+  void set2DViewMatrixAndScale(glm::mat4 view, float scale);
   void restartResourceLoad();
   Resource::Texture LoadTexture(std::string filepath);
   Resource::Font LoadFont(std::string filepath);
@@ -55,6 +56,7 @@ public:
   void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix);
   void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
   void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour);
+  float MeasureString(Resource::Font font, std::string text, float size);
   void EndDraw(std::atomic<bool> &submit);
 
   void FramebufferResize();
@@ -114,6 +116,7 @@ private:
   uint32_t mImg;
   VkSemaphore mImgAquireSem;
   float mProjectionFov = 45.0f;
+  float scale2D = 1.0f;
 
   unsigned int modelRuns = 0;
   unsigned int current3DInstanceIndex = 0;
