@@ -509,7 +509,7 @@ void Render::DrawString(Resource::Font font, std::string text, glm::vec2 positio
 
 float Render::MeasureString(Resource::Font font, std::string text, float size)
 {
-  mFontLoader->MeasureString(font, text, size);
+  return mFontLoader->MeasureString(font, text, size);
 }
 
 void Render::EndDraw(std::atomic<bool> &submit) {
