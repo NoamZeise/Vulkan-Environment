@@ -26,9 +26,12 @@ endif()
 #add executables
 file(GLOB SOURCES src/*)
 file(GLOB VULKAN-RENDER src/vulkan-render/*)
+file(GLOB VULKAN-RENDER-RESOURCES src/vulkan-render/resources/*)
 add_executable(${ProjectName} ${SOURCES}
                               ${VULKAN-RENDER}
-                              ${PROJ_INCLUDE})
+                              ${PROJ_INCLUDE}
+                              ${VULKAN-RENDER-RESOURCES}
+                            )
 
 #link
 target_include_directories(${ProjectName} PUBLIC include/)

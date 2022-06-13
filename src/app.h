@@ -20,12 +20,12 @@
 #include <glmhelper.h>
 
 #include "vulkan-render/render.h"
-#include "vulkan-render/resources.h"
+#include "vulkan-render/resources/resources.h"
 #include "vulkan-render/config.h"
 
 #include "camera.h"
 
-#define TIME_APP_DRAW_UPDATE
+//#define TIME_APP_DRAW_UPDATE
 //#define MULTI_UPDATE_ON_SLOW_DRAW
 
 class App {

@@ -21,11 +21,11 @@
 #include <glmhelper.h>
 
 #include "descriptor_sets.h"
-#include "model_loader.h"
+#include "resources/model_loader.h"
 #include "pipeline.h"
 #include "render_structs.h"
-#include "texfont.h"
-#include "texture_loader.h"
+#include "resources/font_loader.h"
+#include "resources/texture_loader.h"
 #include "vkhelper.h"
 #include "vkinit.h"
 

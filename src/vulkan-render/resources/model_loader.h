@@ -23,9 +23,9 @@
 #include <iostream>
 
 #include "texture_loader.h"
-#include "render_structs.h"
-#include "pipeline.h"
-#include "vkhelper.h"
+#include "../render_structs.h"
+#include "../pipeline.h"
+#include "../vkhelper.h"
 #include "resources.h"
 
 namespace Resource
