@@ -1,5 +1,7 @@
 #include "model_loader.h"
+#include "assimp/anim.h"
 #include "assimp/material.h"
+#include "assimp/matrix4x4.h"
 #include "assimp/scene.h"
 #include "glm/fwd.hpp"
 
@@ -24,19 +26,51 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
 
 
-    glm::mat4 transform = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-	transform = glm::scale(transform, glm::vec3(0.02f));
-	aiMatrix4x4 aiTransform = glmToAi(transform);
-	processNode(&model, scene->mRootNode, scene, aiTransform);
+    std::string fileType = path.substr(path.find_last_of('.'));
+    glm::mat4 correction = glm::mat4(1.0f);
+
+    //correct for orientation of specific formats
+    if(fileType == ".fbx")
+    {
+        correction = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
+        correction = glm::scale(correction, glm::vec3(0.02f));
+    }
+
+    //No corrections:
+    //.dae
+
+
+    model.correction = correction;
+	processNode(&model, scene->mRootNode, scene, aiMatrix4x4(), -1);
+
+    std::cout << "model bone count: " << model.bones.size();
 
     //TODO load animations
+    if(scene->HasAnimations())
+    {
+        model.animatedModel = true;
+        for(int i = 0; i < scene->mNumAnimations; i++)
+        {
+            buildAnimation(&model, scene->mAnimations[i]);
+        }
+    }
 
     return model;            
 }
 
-void ModelLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform)
+void ModelLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform, int parentNode)
 {
+    //std::cout << "processing node: " << node->mName.C_Str() << std::endl;
 	aiMatrix4x4 transform = parentTransform * node->mTransformation;
+
+    model->nodes.push_back(ModelInfo::Node{});
+    model->nodes.back().parentNode = parentNode;
+    model->nodes.back().transform = aiToGLM(node->mTransformation);
+    int thisID = model->nodes.size() - 1;
+    model->nodeMap[node->mName.C_Str()] = thisID;
+    if(parentNode >= 0)
+        model->nodes[parentNode].children.push_back(thisID);
+
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
@@ -45,12 +79,14 @@ void ModelLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiSce
 	}
 	for(unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		processNode(model, node->mChildren[i], scene, transform);
+		processNode(model, node->mChildren[i], scene, transform, thisID);
 	}
 }
 void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene, aiMatrix4x4 transform)
 {
+
     ModelInfo::Mesh* mesh = &model->meshes[model->meshes.size() - 1];
+    mesh->bindTransform = aiToGLM(transform);
 
     auto material = scene->mMaterials[aimesh->mMaterialIndex];
     for( int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
@@ -63,11 +99,10 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
 	//vertcies
 	for(unsigned int i = 0; i < aimesh->mNumVertices;i++)
 	{
-		aiVector3D transformedVertex = transform * aimesh->mVertices[i];
 		ModelInfo::Vertex vertex;
-		vertex.Position.x = transformedVertex.x;
-		vertex.Position.y = transformedVertex.y;
-		vertex.Position.z = transformedVertex.z;
+		vertex.Position.x = aimesh->mVertices[i].x;
+		vertex.Position.y = aimesh->mVertices[i].y;
+		vertex.Position.z = aimesh->mVertices[i].z;
 		if(aimesh->HasNormals())
 		{
 			vertex.Normal.x = aimesh->mNormals[i].x;
@@ -120,6 +155,56 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
 	}
 
 
+}
+
+void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
+{
+    model->animations.push_back(ModelInfo::Animation());
+    model->animationMap[aiAnim->mName.C_Str()] = model->animations.size();
+    auto anim = &model->animations[model->animations.size() - 1];
+    //copy nodes from model
+    anim->nodes.resize(model->nodes.size());
+    for(int i = 0; i < model->nodes.size(); i++)
+        anim->nodes[i].modelNode = model->nodes[i];
+
+    //set animation props for anim nodes
+    for(int i = 0 ; i < aiAnim->mNumChannels; i++)
+    {
+        auto channel = aiAnim->mChannels[i];
+        std::string nodeName = channel->mNodeName.C_Str();
+        auto node = &anim->nodes[model->nodeMap[nodeName]];
+        //std::cout <<  "node animation process: " << nodeName << std::endl;
+        //std::cout << "keys: " << channel->mNumPositionKeys << std::endl;
+        if(model->boneMap.find(nodeName) != model->boneMap.end())
+        {
+            node->boneID = model->boneMap[nodeName];
+        }
+        //else bone directly affects no nodes;
+
+        for(int pos = 0; pos < channel->mNumPositionKeys; pos++)
+        {
+            auto posKey = channel->mPositionKeys[pos];
+            node->positions.push_back(ModelInfo::AnimationKey::Position{});
+            node->positions.back().Pos = glm::vec3(posKey.mValue.x, posKey.mValue.y, posKey.mValue.z);
+            node->positions.back().time = posKey.mTime;
+        }
+
+        for(int rot = 0; rot < channel->mNumRotationKeys; rot++)
+        {
+            auto rotKey = channel->mRotationKeys[rot];
+            node->rotationsQ.push_back(ModelInfo::AnimationKey::RotationQ{});
+            node->rotationsQ.back().Rot = glm::vec4(rotKey.mValue.x, rotKey.mValue.y, rotKey.mValue.z, rotKey.mValue.w);
+            node->rotationsQ.back().time = rotKey.mTime;
+        }
+
+        for(int scl = 0; scl < channel->mNumScalingKeys; scl++)
+        {
+            auto scaleKey = channel->mScalingKeys[scl];
+            node->scalings.push_back(ModelInfo::AnimationKey::Scaling{});
+            node->scalings.back().scale = glm::vec3(scaleKey.mValue.x, scaleKey.mValue.y, scaleKey.mValue.z);
+            node->scalings.back().time = scaleKey.mTime;
+        }
+    }
 }
 
 }

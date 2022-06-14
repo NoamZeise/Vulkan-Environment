@@ -54,7 +54,8 @@ App::~App() {
 }
 
 void App::loadAssets() {
-  testModel = mRender->LoadModel("models/wolf.fbx");
+  testModel = mRender->LoadModel("models/testScene.fbx");
+  testWolf =  mRender->LoadModel("models/wolf.fbx");
   testTex = mRender->LoadTexture("textures/error.png");
   testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
   mRender->EndResourceLoad();
@@ -137,19 +138,23 @@ void App::draw() {
 			testModel, glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)),
 			glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
+    mRender->DrawModel(
+			testWolf, glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(5.0f)), glm::vec3(2.5f, 0, 0)),
+			glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+
     mRender->Begin2DDraw();
 
     mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
     										glm::vec4(1), 90.0f);
 
-    mRender->DrawQuad(testTex,
+    /*mRender->DrawQuad(testTex,
     								 glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
     								 glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
     mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
     									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
-
+*/
   submitDraw =
       std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
 

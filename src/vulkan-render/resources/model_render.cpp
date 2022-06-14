@@ -122,10 +122,12 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 		if(loadM.meshes[mesh].diffuseTextures.size() > 0)
 			ldMesh->texture = loadTexture(loadM.meshes[mesh].diffuseTextures[0], texLoader);
 
+		//TODO transform animated meshes by animation per frame instead of bind pose
+		glm::mat4 meshTransform = loadM.correction * loadM.meshes[mesh].bindTransform;
 		for(int vert = 0; vert < loadM.meshes[mesh].verticies.size(); vert++)
 		{
 			Vertex vertex;
-			vertex.Position = loadM.meshes[mesh].verticies[vert].Position;
+			vertex.Position = meshTransform * glm::vec4(loadM.meshes[mesh].verticies[vert].Position, 1.0f);
 			vertex.Normal = loadM.meshes[mesh].verticies[vert].Normal;
 			vertex.TexCoord = loadM.meshes[mesh].verticies[vert].TexCoord;
 			ldMesh->verticies.push_back(vertex);
@@ -146,13 +148,9 @@ Resource::Texture ModelRender::loadTexture(std::string path, TextureLoader* texL
 {
 	std::string texLocation = MODEL_TEXTURE_LOCATION + path;
 
-	for(unsigned int j = 0; j < alreadyLoaded.size(); j++)
-	{
-		if(std::strcmp(alreadyLoaded[j].path.data(), texLocation.c_str()) == 0)
-		{
-			return alreadyLoaded[j];
-		}
-	}
+	for(unsigned int i = 0; i < alreadyLoaded.size(); i++)
+		if(std::strcmp(alreadyLoaded[i].path.data(), texLocation.c_str()) == 0)
+			return alreadyLoaded[i];
 
 	alreadyLoaded.push_back(texLoader->LoadTexture(texLocation));
 #ifndef NDEBUG

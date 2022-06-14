@@ -1,9 +1,9 @@
 #ifndef MODEL_LOADER_H
 #define MODEL_LOADER_H
 
+#include "assimp/anim.h"
 #include "assimp/matrix4x4.h"
 #include "assimp/mesh.h"
-#include "glm/fwd.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -17,38 +17,11 @@
 #include <iostream>
 #include <stdexcept>
 
+
+#include "model_info.h"
+
 namespace Resource
 {
-
-namespace ModelInfo
-{
-
-struct Vertex
-{
-    glm::vec3 Position;
-    glm::vec3 Normal;
-    glm::vec2 TexCoord;
-    std::vector<unsigned int> BoneIDs;
-    std::vector<float> BoneWeights;
-};
-
-struct Mesh
-{
-    std::vector<Vertex> verticies;
-    std::vector<unsigned int> indicies;
-    std::vector<std::string> diffuseTextures;
-};
-
-
-struct Model
-{
-  std::vector<Mesh> meshes;
-  std::vector<glm::mat4> bones;
-  std::map<std::string, unsigned int> boneMap;
-
-};
-
-}
 
 
 class ModelLoader
@@ -62,9 +35,9 @@ private:
 
     Assimp::Importer importer;
 
-    void processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform);
+    void processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform, int parentNode);
     void processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene, aiMatrix4x4 transform);
-
+    void buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim);
 };
 
 namespace

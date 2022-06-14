@@ -68,6 +68,7 @@ private:
   std::atomic<bool> finishedDrawSubmit;
 
   Resource::Model testModel;
+  Resource::Model testWolf;
   Resource::Texture testTex;
   Resource::Font testFont;
 };
