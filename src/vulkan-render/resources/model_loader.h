@@ -1,112 +1,119 @@
 #ifndef MODEL_LOADER_H
 #define MODEL_LOADER_H
 
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
-
+#include "assimp/matrix4x4.h"
+#include "assimp/mesh.h"
+#include "glm/fwd.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#ifndef NO_ASSIMP
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#endif
-#include <vector>
-#include <array>
-#include <string>
-#include <stdexcept>
-#include <cmath>
-#include <cstring>
-#include <iostream>
 
-#include "texture_loader.h"
-#include "../render_structs.h"
-#include "../pipeline.h"
-#include "../vkhelper.h"
-#include "resources.h"
+#include <vector>
+#include <map>
+#include <string>
+#include <iostream>
+#include <stdexcept>
 
 namespace Resource
 {
 
-class ModelLoader
+namespace ModelInfo
 {
-public:
-	ModelLoader(Base base, VkCommandPool pool);
-	~ModelLoader();
-	Model loadModel(std::string path, TextureLoader* texLoader);
-	void endLoading(VkCommandBuffer transferBuff);
 
-	void bindBuffers(VkCommandBuffer cmdBuff);
-	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
-	void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
+struct Vertex
+{
+    glm::vec3 Position;
+    glm::vec3 Normal;
+    glm::vec2 TexCoord;
+    std::vector<unsigned int> BoneIDs;
+    std::vector<float> BoneWeights;
+};
 
-private:
+struct Mesh
+{
+    std::vector<Vertex> verticies;
+    std::vector<unsigned int> indicies;
+    std::vector<std::string> diffuseTextures;
+};
 
-	struct Mesh
-	{
-		Mesh() {}
-		std::vector<Vertex> 	    verticies;
-		std::vector<unsigned int> indicies;
-		Texture texture;
-	};
 
-	struct LoadedModel
-	{
-		LoadedModel(){}
-		std::vector<Mesh*> meshes;
-		std::string        directory;
-	};
+struct Model
+{
+  std::vector<Mesh> meshes;
+  std::vector<glm::mat4> bones;
+  std::map<std::string, unsigned int> boneMap;
 
-	struct MeshInfo
-	{
-		MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
-		MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset, Texture texture)
-		{
-			this->indexCount = indexCount;
-			this->indexOffset = indexOffset;
-			this->vertexOffset = vertexOffset;
-			this->texture = texture;
-		}
-		size_t indexCount;
-		size_t indexOffset;
-		size_t vertexOffset;
-		Texture texture;
-	};
-
-	struct ModelInGPU
-	{
-		unsigned int vertexCount = 0;
-		unsigned int indexCount  = 0;
-		unsigned int vertexOffset = 0;
-		unsigned int indexOffset = 0;
-		std::vector<MeshInfo> meshes;
-	};
-
-	const char* MODEL_TEXTURE_LOCATION = "textures/";
-#ifndef NO_ASSIMP
-    void processNode(LoadedModel* model, aiNode* node, const aiScene* scene, TextureLoader* texLoader, aiMatrix4x4 parentTransform);
-	void processMesh(Mesh* mesh, aiMesh* aimesh, const aiScene* scene, TextureLoader* texLoader, aiMatrix4x4 transform);
-	void loadMaterials(Mesh* mesh, aiMaterial* material, TextureLoader* texLoader);
-#endif
-	void loadQuad();
-
-	Base base;
-	VkCommandPool pool;
-	std::vector<LoadedModel> loadedModels;
-	std::vector<Texture> alreadyLoaded;
-	std::vector<ModelInGPU> models;
-	VkBuffer buffer;
-	VkDeviceMemory memory;
-	unsigned int vertexDataSize = 0;
-	unsigned int indexDataSize = 0;
-
-	unsigned int currentIndex = 0;
 };
 
 }
 
+
+class ModelLoader
+{
+public:
+    ModelLoader();
+
+    ModelInfo::Model LoadModel(std::string path);
+
+private:
+
+    Assimp::Importer importer;
+
+    void processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform);
+    void processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene, aiMatrix4x4 transform);
+
+};
+
+namespace
+{
+    const auto IMPORT_PROPS =
+        aiProcess_CalcTangentSpace |
+        aiProcess_Triangulate |
+        aiProcess_FlipUVs |
+        aiProcess_JoinIdenticalVertices |
+        aiProcess_GenNormals;
+
+
+    inline glm::mat4 aiToGLM(aiMatrix4x4 mat)
+    {
+        glm::mat4 glmmat;
+        glmmat[0][0] = mat.a1;
+        glmmat[0][1] = mat.b1;
+        glmmat[0][2] = mat.c1;
+        glmmat[0][3] = mat.d1;
+
+        glmmat[1][0] = mat.a2;
+        glmmat[1][1] = mat.b2;
+        glmmat[1][2] = mat.c2;
+        glmmat[1][3] = mat.d2;
+
+        glmmat[2][0] = mat.a3;
+        glmmat[2][1] = mat.b3;
+        glmmat[2][2] = mat.c3;
+        glmmat[2][3] = mat.d3;
+
+        glmmat[3][0] = mat.a4;
+        glmmat[3][1] = mat.b4;
+        glmmat[3][2] = mat.c4;
+        glmmat[3][3] = mat.d4;
+
+        return glmmat;
+    }
+
+    inline aiMatrix4x4 glmToAi(glm::mat4 mat)
+    {
+        aiMatrix4x4 aiMat = aiMatrix4x4(
+		mat[0][0], mat[0][1], mat[0][2], mat[0][3],
+		mat[1][0], mat[1][1], mat[1][2], mat[1][3],
+		mat[2][0], mat[2][1], mat[2][2], mat[2][3],
+		mat[3][0], mat[3][1], mat[3][2], mat[3][3]);
+        return aiMat;
+    }
+}
+
+}
 
 #endif

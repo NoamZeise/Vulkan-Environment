@@ -42,7 +42,7 @@ void Render::_initRender(GLFWwindow *window) {
                                &mTransferCommandBuffer))
     throw std::runtime_error("failed to allocate command buffer");
 
-  mModelLoader = new Resource::ModelLoader(mBase, mGeneralCommandPool);
+  mModelLoader = new Resource::ModelRender(mBase, mGeneralCommandPool);
   mTextureLoader = new Resource::TextureLoader(mBase, mGeneralCommandPool);
   mFontLoader = new Resource::FontLoader();
   mTextureLoader->LoadTexture("textures/error.png");

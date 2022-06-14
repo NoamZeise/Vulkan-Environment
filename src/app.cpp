@@ -54,7 +54,7 @@ App::~App() {
 }
 
 void App::loadAssets() {
-  testModel = mRender->LoadModel("models/testScene.fbx");
+  testModel = mRender->LoadModel("models/wolf.fbx");
   testTex = mRender->LoadTexture("textures/error.png");
   testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
   mRender->EndResourceLoad();

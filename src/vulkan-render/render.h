@@ -21,7 +21,7 @@
 #include <glmhelper.h>
 
 #include "descriptor_sets.h"
-#include "resources/model_loader.h"
+#include "resources/model_render.h"
 #include "pipeline.h"
 #include "render_structs.h"
 #include "resources/font_loader.h"
@@ -107,7 +107,7 @@ private:
   VkSampler offscreenSampler;
 
   Resource::TextureLoader *mTextureLoader;
-  Resource::ModelLoader *mModelLoader;
+  Resource::ModelRender *mModelLoader;
   Resource::FontLoader *mFontLoader;
 
   bool mBegunDraw = false;
