@@ -1,4 +1,4 @@
-#include "texfont.h"
+#include "font_loader.h"
 
 namespace Resource
 {
