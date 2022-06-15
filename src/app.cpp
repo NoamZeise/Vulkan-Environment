@@ -1,4 +1,5 @@
 #include "app.h"
+#include "GLFW/glfw3.h"
 
 App::App() {
 
@@ -99,6 +100,15 @@ void App::update() {
     glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
   }
 
+  if(input.Keys[GLFW_KEY_EQUAL] && !previousInput.Keys[GLFW_KEY_EQUAL])
+  {
+    currentBone++;
+  }
+    if(input.Keys[GLFW_KEY_MINUS] && !previousInput.Keys[GLFW_KEY_MINUS])
+  {
+    currentBone--;
+  }
+
   fpcam.update(input, previousInput, timer);
 
   postUpdate();
@@ -132,24 +142,27 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
-    mRender->Begin3DDraw();
+  mRender->Begin3DDraw();
 
-    mRender->DrawModel(
-			testModel, glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)),
-			glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+   mRender->DrawModel(
+     testModel, glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)),
+     glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-    mRender->DrawModel(
-			testWolf, glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(5.0f)), glm::vec3(2.5f, 0, 0)),
-			glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+  mRender->debugSelectBone(currentBone);
+  mRender->BeginAnim3DDraw();
 
-    mRender->Begin2DDraw();
+  mRender->DrawModel(
+		testWolf, glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(5.0f)), glm::vec3(2.5f, 0, 0)),
+		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-    mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+  mRender->Begin2DDraw();
+
+  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
     										glm::vec4(1), 0.0f);
 
-    mRender->DrawQuad(testTex,
-    								 glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
-    								 glm::vec4(1), glm::vec4(0, 0, 1, 1));
+  mRender->DrawQuad(testTex,
+    								glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
+    								glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
    /* mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),

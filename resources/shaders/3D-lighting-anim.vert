@@ -18,7 +18,7 @@ layout(set = 1, binding = 0) readonly buffer PerInstanceData
     mat4 normalMat;
 } pid[100];
 
-layout(set = 4, binding = 0) uniform boneView
+layout(set = 2, binding = 0) uniform boneView
 {
  int viewBoneID;
 } bvu;
@@ -55,7 +55,7 @@ void main()
     vec3 boneColour = vec3(0.0, 1.0, 1.0);
     for(int i = 0; i < 4; i++)
     {
-        if(inBoneIDs[i] == bvu.viewBoneID)
+        if(inBoneIDs[i] == bvu.viewBoneID && inBoneIDs[i] != -1)
         {
             if(inWeights[i] >= 0.7)
                 boneColour = vec3(1.0, 0.0, 0.0) * inWeights[i];

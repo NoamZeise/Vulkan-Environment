@@ -1,5 +1,7 @@
+#include "glm/fwd.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <vector>
 #include <map>
@@ -35,22 +37,25 @@ struct Node
 
 namespace AnimationKey
 {
-struct Position
+
+struct Frame
+{
+  float time;
+};
+
+struct Position : public Frame
 {
     glm::vec3 Pos;
-    float time;
 };
 
-struct RotationQ
+struct RotationQ : public Frame
 {
-  glm::vec4 Rot;
-  float time;
+  glm::quat Rot;
 };
 
-struct Scaling
+struct Scaling : public Frame
 {
   glm::vec3 scale;
-  float time;
 };
 }
 
@@ -58,6 +63,7 @@ struct AnimNodes
 {
     Node modelNode;
     int boneID = -1;
+    glm::mat4 boneOffset;
 
     std::vector<AnimationKey::Position> positions;
     std::vector<AnimationKey::RotationQ> rotationsQ;

@@ -49,6 +49,7 @@ public:
   void EndResourceLoad();
 
   void Begin3DDraw();
+  void BeginAnim3DDraw();
   void Begin2DDraw();
   void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
   void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
@@ -60,6 +61,11 @@ public:
   void EndDraw(std::atomic<bool> &submit);
 
   void FramebufferResize();
+
+  void debugSelectBone(int boneID)
+    {
+     mBoneView.data[0].viewBoneID = boneID;
+    }
 
 private:
   bool mFramebufferResized = false;
@@ -78,6 +84,7 @@ private:
   VkCommandBuffer mTransferCommandBuffer;
 
   Pipeline mPipeline3D;
+  Pipeline mPipelineAnim3D;
   Pipeline mPipeline2D;
   Pipeline mPipelineFinal;
 
@@ -88,6 +95,7 @@ private:
   DS::DescriptorSet mVP3Dds;
   DS::DescriptorSet mVP2Dds;
   DS::DescriptorSet mPerInstance3Dds;
+  DS::DescriptorSet mBoneViewds;
   DS::DescriptorSet mPer2DVertds;
   DS::DescriptorSet mLightingds;
   DS::DescriptorSet mTexturesds;
@@ -97,6 +105,7 @@ private:
   DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
   DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
   DS::BindingAndData<DS::ShaderStructs::Per3DInstance> mPerInstance;
+  DS::BindingAndData<DS::ShaderStructs::BoneView> mBoneView;
   DS::BindingAndData<DS::ShaderStructs::Per2DVert> mPer2Dvert;
   DS::BindingAndData<bool> mTextureViews;
   DS::BindingAndData<bool> mTextureSampler;
@@ -110,9 +119,16 @@ private:
   Resource::ModelRender *mModelLoader;
   Resource::FontLoader *mFontLoader;
 
+  enum class RenderState
+  {
+    Draw2D,
+    Draw3D,
+    DrawAnim3D,
+  };
+
   bool mBegunDraw = false;
   bool mFinishedLoadingResources = false;
-  bool m3DRender = true;
+  RenderState renderState;
   uint32_t mImg;
   VkSemaphore mImgAquireSem;
   float mProjectionFov = 45.0f;

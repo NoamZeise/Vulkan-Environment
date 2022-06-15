@@ -58,6 +58,11 @@ struct lighting {
   alignas(16) glm::vec4 direction;
 };
 
+struct BoneView
+{
+  alignas(4) int viewBoneID;
+};
+
 } // namespace ShaderStructs
 
 struct DescriptorSet {

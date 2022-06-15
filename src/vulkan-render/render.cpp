@@ -1,4 +1,5 @@
 #include "render.h"
+#include "vulkan/vulkan_core.h"
 
 Render::Render(GLFWwindow *window) {
   _initRender(window);
@@ -94,6 +95,12 @@ void Render::_initFrameResources() {
                                      {&mPerInstance.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
+  mBoneView.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mBoneViewds,
+                           1);
+  initVulkan::DescriptorSetAndLayout(mBase.device, mBoneViewds,
+                                     {&mBoneView.binding},
+                                     VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+
   mPer2Dvert.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                             &mPer2DVertds, MAX_2D_INSTANCE);
   initVulkan::DescriptorSetAndLayout(mBase.device, mPer2DVertds,
@@ -165,7 +172,7 @@ void Render::_initFrameResources() {
 
   initVulkan::PrepareShaderBufferSets(
       mBase,
-      {&mVP3D.binding, &mVP2D.binding, &mPerInstance.binding,
+      {&mVP3D.binding, &mVP2D.binding, &mPerInstance.binding, &mBoneView.binding,
        &mPer2Dvert.binding, &mLighting.binding, &mTextureSampler.binding,
        &mTextureViews.binding, &mPer2Dfrag.binding, &mOffscreenSampler.binding,
        &mOffscreenView.binding},
@@ -180,6 +187,15 @@ void Render::_initFrameResources() {
       "shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false,
       Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
 );
+
+  initVulkan::GraphicsPipeline(
+    mBase.device, &mPipelineAnim3D, mSwapchain, mRenderPass,
+    {&mVP3Dds, &mPerInstance3Dds, &mBoneViewds, &mTexturesds, &mLightingds},
+    { {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
+      {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
+    "shaders/v3D-lighting-anim.spv", "shaders/fblinnphong-anim.spv", true, false,
+    VertexAnim3D::attributeDescriptions(), VertexAnim3D::bindingDescriptions()
+  );
 
   initVulkan::GraphicsPipeline(
       mBase.device, &mPipeline2D, mSwapchain, mRenderPass,
@@ -220,6 +236,7 @@ void Render::_destroyFrameResources() {
   mVP2Dds.destroySet(mBase.device);
   mPerInstance3Dds.destroySet(mBase.device);
   mPer2DVertds.destroySet(mBase.device);
+  mBoneViewds.destroySet(mBase.device);
   mLightingds.destroySet(mBase.device);
   mTexturesds.destroySet(mBase.device);
   mPer2Dfragds.destroySet(mBase.device);
@@ -231,6 +248,7 @@ void Render::_destroyFrameResources() {
                          nullptr);
   }
   mPipeline3D.destroy(mBase.device);
+  mPipelineAnim3D.destroy(mBase.device);
   mPipeline2D.destroy(mBase.device);
   mPipelineFinal.destroy(mBase.device);
   vkDestroyRenderPass(mBase.device, mRenderPass, nullptr);
@@ -356,14 +374,15 @@ void Render::_startDraw() {
   mModelLoader->bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
 }
 
-void Render::Begin3DDraw() {
+void Render::Begin3DDraw()
+{
   if (!mBegunDraw)
     _startDraw();
   if (modelRuns > 0)
     _drawBatch();
   if (instance2Druns > 0)
     _drawBatch();
-  m3DRender = true;
+  renderState = RenderState::Draw3D;
 
   mVP3D.storeData(mImg);
   mLighting.data[0].direction =
@@ -374,14 +393,35 @@ void Render::Begin3DDraw() {
   mPipeline3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
 }
 
-void Render::Begin2DDraw() {
+void Render::BeginAnim3DDraw()
+{
   if (!mBegunDraw)
     _startDraw();
   if (modelRuns > 0)
     _drawBatch();
   if (instance2Druns > 0)
     _drawBatch();
-  m3DRender = false;
+  renderState = RenderState::DrawAnim3D;
+
+  mVP3D.storeData(mImg);
+  mLighting.data[0].direction =
+      glm::transpose(glm::inverse(mVP3D.data[0].view)) *
+      glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
+  mLighting.storeData(mImg);
+
+  mBoneView.storeData(mImg);
+  mPipelineAnim3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
+}
+
+void Render::Begin2DDraw()
+{
+  if (!mBegunDraw)
+    _startDraw();
+  if (modelRuns > 0)
+    _drawBatch();
+  if (instance2Druns > 0)
+    _drawBatch();
+  renderState = RenderState::Draw2D;
 
   float correction;
   float deviceRatio = (float)mSwapchain.offscreenExtent.width /
@@ -412,24 +452,29 @@ void Render::_drawBatch() {
                      mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                      sizeof(vectPushConstants), &vps);
 
-  if (m3DRender) {
-    mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
+  switch(renderState)
+  {
+    case RenderState::Draw3D:
+    case RenderState::DrawAnim3D:
+      mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
                             mPipeline3D.layout, currentModel, modelRuns,
                             current3DInstanceIndex);
-    current3DInstanceIndex += modelRuns;
-    modelRuns = 0;
-  } else {
-    mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer,
+      current3DInstanceIndex += modelRuns;
+      modelRuns = 0;
+      break;
+    case RenderState::Draw2D:
+      mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer,
                            mPipeline3D.layout, 0, instance2Druns,
                            current2DInstanceIndex, currentColour,
                            currentTexOffset);
-    current2DInstanceIndex += instance2Druns;
-    instance2Druns = 0;
+      current2DInstanceIndex += instance2Druns;
+      instance2Druns = 0;
+      break;
   }
 }
 
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix,
-                       glm::mat4 normalMat) {
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix,glm::mat4 normalMat)
+{
   if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
 #ifndef NDEBUG
     std::cout << "single" << std::endl;
@@ -520,12 +565,17 @@ void Render::EndDraw(std::atomic<bool> &submit) {
     throw std::runtime_error("start draw before ending it");
   mBegunDraw = false;
 
-  if (m3DRender) {
-    if (modelRuns != 0 && current3DInstanceIndex < MAX_3D_INSTANCE)
-      _drawBatch();
-  } else {
-    if (instance2Druns != 0 && current2DInstanceIndex < MAX_2D_INSTANCE)
-      _drawBatch();
+  switch(renderState)
+  {
+    case RenderState::Draw3D:
+    case RenderState::DrawAnim3D:
+      if (modelRuns != 0 && current3DInstanceIndex < MAX_3D_INSTANCE)
+        _drawBatch();
+      break;
+    case RenderState::Draw2D:
+      if (instance2Druns != 0 && current2DInstanceIndex < MAX_2D_INSTANCE)
+        _drawBatch();
+      break;
   }
 
   for (size_t i = 0; i < current3DInstanceIndex; i++)

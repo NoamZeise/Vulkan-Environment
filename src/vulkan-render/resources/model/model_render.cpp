@@ -1,4 +1,5 @@
 #include "model_render.h"
+#include "assimp/mesh.h"
 #include <stdexcept>
 
 namespace Resource
@@ -136,36 +137,83 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
     std::cout << "\nloading model: " << path << std::endl;
 #endif
 
-	Model model(currentIndex++);
-
 	ModelInfo::Model loadM = modelLoader.LoadModel(path);
 
-	loaded3D.models.push_back(LoadedModel<Vertex3D>());
-	auto ldModel = &loaded3D.models[loaded3D.models.size() - 1];
-	ldModel->directory = path.substr(0, path.find_last_of('/'));
+	Model model(currentIndex++, loadM.animations.size() > 0);
 
-	for(int mesh = 0; mesh < loadM.meshes.size(); mesh++)
+	//TODO reuse more for animated vs static
+	if(loadM.animations.size() == 0)
 	{
-		ldModel->meshes.push_back(new Mesh<Vertex3D>{});
-		auto ldMesh = ldModel->meshes.back();
+		loaded3D.models.push_back(LoadedModel<Vertex3D>());
+		auto ldModel = &loaded3D.models[loaded3D.models.size() - 1];
+		ldModel->directory = path.substr(0, path.find_last_of('/'));
+		for(int mesh = 0; mesh < loadM.meshes.size(); mesh++)
+		{
+			ldModel->meshes.push_back(new Mesh<Vertex3D>{});
+			auto ldMesh = ldModel->meshes.back();
 
 		// just take one diffuse texture for now
 		// TODO support multiple textures
-		if(loadM.meshes[mesh].diffuseTextures.size() > 0)
-			ldMesh->texture = loadTexture(loadM.meshes[mesh].diffuseTextures[0], texLoader);
+			if(loadM.meshes[mesh].diffuseTextures.size() > 0)
+				ldMesh->texture = loadTexture(loadM.meshes[mesh].diffuseTextures[0], texLoader);
 
-		//TODO transform animated meshes by animation per frame instead of bind pose
-		glm::mat4 meshTransform = loadM.correction * loadM.meshes[mesh].bindTransform;
-		for(int vert = 0; vert < loadM.meshes[mesh].verticies.size(); vert++)
-		{
-			Vertex3D vertex;
-			vertex.Position = meshTransform * glm::vec4(loadM.meshes[mesh].verticies[vert].Position, 1.0f);
-			vertex.Normal = loadM.meshes[mesh].verticies[vert].Normal;
-			vertex.TexCoord = loadM.meshes[mesh].verticies[vert].TexCoord;
-			ldMesh->verticies.push_back(vertex);
+
+			glm::mat4 meshTransform = loadM.correction * loadM.meshes[mesh].bindTransform;
+			for(int vert = 0; vert < loadM.meshes[mesh].verticies.size(); vert++)
+			{
+				Vertex3D vertex;
+				vertex.Position = meshTransform * glm::vec4(loadM.meshes[mesh].verticies[vert].Position, 1.0f);
+				vertex.Normal = loadM.meshes[mesh].verticies[vert].Normal;
+				vertex.TexCoord = loadM.meshes[mesh].verticies[vert].TexCoord;
+				ldMesh->verticies.push_back(vertex);
+
+			}
+
+			ldMesh->indicies = loadM.meshes[mesh].indicies;
 		}
+	}
+	else
+	{
+		loadedAnim3D.models.push_back(LoadedModel<VertexAnim3D>());
+		auto ldModel = &loadedAnim3D.models[loadedAnim3D.models.size() - 1];
+		ldModel->directory = path.substr(0, path.find_last_of('/'));
+		for(auto& mesh : loadM.meshes)
+		{
+			ldModel->meshes.push_back(new Mesh<VertexAnim3D>{});
+			auto ldMesh = ldModel->meshes.back();
 
-		ldMesh->indicies = loadM.meshes[mesh].indicies;
+		// just take one diffuse texture for now
+		// TODO support multiple textures
+			if(mesh.diffuseTextures.size() > 0)
+				ldMesh->texture = loadTexture(mesh.diffuseTextures[0], texLoader);
+
+		//TODO animations
+			glm::mat4 meshTransform = loadM.correction * mesh.bindTransform;
+			for(int vert = 0; vert < mesh.verticies.size(); vert++)
+			{
+				VertexAnim3D vertex;
+				vertex.Position = meshTransform * glm::vec4(mesh.verticies[vert].Position, 1.0f);
+				vertex.Normal = mesh.verticies[vert].Normal;
+				vertex.TexCoord = mesh.verticies[vert].TexCoord;
+				for(int vecElem = 0; vecElem < 4; vecElem++)
+				{
+					if(mesh.verticies[vert].BoneIDs.size() <= vecElem)
+					{
+						vertex.BoneIDs[vecElem] = -1;
+						vertex.Weights[vecElem] = 0;
+					}
+					else
+					{
+						vertex.BoneIDs[vecElem] = mesh.verticies[vert].BoneIDs[vecElem];
+						vertex.Weights[vecElem] = mesh.verticies[vert].BoneWeights[vecElem];
+					}
+				}
+				if(mesh.verticies[vert].BoneIDs.size() > 4)
+					std::cout << "vertex influenced by more than 4 bones, but only 4 bones will be used!\n";
+				ldMesh->verticies.push_back(vertex);
+			}
+			ldMesh->indicies = mesh.indicies;
+		}
 	}
 #ifndef NDEBUG
 	std::cout << "finished loading model\n\n";

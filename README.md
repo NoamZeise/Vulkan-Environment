@@ -27,6 +27,7 @@ optimisations:
 * convert model data to proprietary format with another program to remove assimp dependancy from this project
 * use the same pipeline layout for multiple pipelines
 * unload old and load new textures while using renderer
+* only buffer static object data to huge ssbo, use smaller one for things that change every frame
 
 ## External libraries and their uses:
 

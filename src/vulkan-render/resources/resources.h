@@ -38,12 +38,14 @@ struct Texture
 
 struct Model
 {
-	Model() { this->ID = 1000000; }
-	Model(unsigned int ID)
+	Model() { this->ID = 1000000; isAnimated = false;}
+	Model(unsigned int ID, bool isAnimated)
 	{
 		this->ID = ID;
+		this->isAnimated = isAnimated;
 	}
 	unsigned int ID;
+	bool isAnimated;
 };
 
 struct Font

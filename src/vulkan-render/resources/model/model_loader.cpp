@@ -180,6 +180,7 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
         if(model->boneMap.find(nodeName) != model->boneMap.end())
         {
             node->boneID = model->boneMap[nodeName];
+            node->boneOffset = model->bones[node->boneID];
         }
         //else bone directly affects no nodes;
 
@@ -195,7 +196,7 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
         {
             auto rotKey = channel->mRotationKeys[rot];
             node->rotationsQ.push_back(ModelInfo::AnimationKey::RotationQ{});
-            node->rotationsQ.back().Rot = glm::vec4(rotKey.mValue.x, rotKey.mValue.y, rotKey.mValue.z, rotKey.mValue.w);
+            node->rotationsQ.back().Rot = glm::quat(rotKey.mValue.w, rotKey.mValue.x, rotKey.mValue.y, rotKey.mValue.z);
             node->rotationsQ.back().time = rotKey.mTime;
         }
 
