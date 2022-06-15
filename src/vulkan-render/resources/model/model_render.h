@@ -20,6 +20,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "model_animation.h"
 #include "../texture_loader.h"
 #include "../../render_structs.h"
 #include "../../pipeline.h"
@@ -40,6 +41,8 @@ public:
 	void bindBuffers(VkCommandBuffer cmdBuff);
 	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
 	void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
+
+	ModelAnimation* getpAnimation(Model model, std::string animation);
 
 private:
 
@@ -65,6 +68,7 @@ private:
 		LoadedModel(){}
 		std::vector<Mesh<T_Vert>*> meshes;
 		std::string        directory;
+		std::vector<ModelAnimation> animations;
 	};
 
 	template <class T_Vert>
@@ -102,7 +106,7 @@ private:
 		unsigned int vertexOffset = 0;
 		unsigned int indexOffset = 0;
 		std::vector<MeshInfo> meshes;
-
+		std::map<std::string, ModelAnimation> animations;
 		ModelType type;
 	};
 

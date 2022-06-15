@@ -9,9 +9,11 @@
 class ModelAnimation
 {
 public:
+    ModelAnimation() {}
     ModelAnimation(std::vector<glm::mat4> bones, ModelInfo::Animation animation);
     void Update(Timer &timer);
     std::vector<glm::mat4> getCurrentBones() { return bones; }
+    std::string getName() { return animation.name; }
 
 private:
 

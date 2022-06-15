@@ -64,6 +64,13 @@ void ModelRender::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type)
 	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
 }
 
+ModelAnimation* ModelRender::getpAnimation(Model model, std::string animation)
+{
+	if(models[model.ID].animations.find(animation) == models[model.ID].animations.end())
+		throw std::runtime_error("the animation " + animation + " could not be found on model");
+	return &models[model.ID].animations[animation];
+}
+
 void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
 {
 	if(model.ID >= models.size())
@@ -139,7 +146,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 
 	ModelInfo::Model loadM = modelLoader.LoadModel(path);
 
-	Model model(currentIndex++, loadM.animations.size() > 0);
+	Model model(currentIndex++);
 
 	//TODO reuse more for animated vs static
 	if(loadM.animations.size() == 0)
@@ -187,7 +194,6 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 			if(mesh.diffuseTextures.size() > 0)
 				ldMesh->texture = loadTexture(mesh.diffuseTextures[0], texLoader);
 
-		//TODO animations
 			glm::mat4 meshTransform = loadM.correction * mesh.bindTransform;
 			for(int vert = 0; vert < mesh.verticies.size(); vert++)
 			{
@@ -212,7 +218,12 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 					std::cout << "vertex influenced by more than 4 bones, but only 4 bones will be used!\n";
 				ldMesh->verticies.push_back(vertex);
 			}
+
 			ldMesh->indicies = mesh.indicies;
+		}
+		for(const auto &anim : loadM.animations)
+		{
+			ldModel->animations.push_back(ModelAnimation(loadM.bones, anim));
 		}
 	}
 #ifndef NDEBUG
@@ -268,6 +279,12 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 			indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0]) * pGroup->models[i].meshes[j]->indicies.size();
 		}
 		modelVertexOffset += model->vertexCount;
+
+		for(int anim = 0; anim < pGroup->models[i].animations.size(); anim++)
+		{
+			model->animations[pGroup->models[i].animations[anim].getName()] = pGroup->models[i].animations[anim];
+		}
+
 	}
 	pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
 }

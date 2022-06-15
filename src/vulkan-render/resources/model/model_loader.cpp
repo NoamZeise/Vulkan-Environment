@@ -164,10 +164,21 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
     model->animations.push_back(ModelInfo::Animation());
     model->animationMap[aiAnim->mName.C_Str()] = model->animations.size();
     auto anim = &model->animations[model->animations.size() - 1];
+    anim->name = aiAnim->mName.C_Str();
     //copy nodes from model
     anim->nodes.resize(model->nodes.size());
     for(int i = 0; i < model->nodes.size(); i++)
         anim->nodes[i].modelNode = model->nodes[i];
+
+    anim->duration = aiAnim->mDuration;
+    anim->ticks = aiAnim->mTicksPerSecond;
+    if(anim->ticks)
+    {
+    #ifndef NDEBUG
+        std::cout << "WARNING: format does not specify ticks, using 100/s\n";
+    #endif
+        anim->ticks = 100;
+    }
 
     //set animation props for anim nodes
     for(int i = 0 ; i < aiAnim->mNumChannels; i++)

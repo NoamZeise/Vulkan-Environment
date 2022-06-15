@@ -1,7 +1,10 @@
+#ifndef MODEL_INFO_H
+#define MODEL_INFO_H
+
 #include "glm/fwd.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <vector>
 #include <map>
@@ -72,6 +75,7 @@ struct AnimNodes
 
 struct Animation
 {
+    std::string name;
     double duration;
     double ticks;
     std::vector<AnimNodes> nodes;
@@ -95,3 +99,5 @@ struct Model
 };
 
 }
+
+#endif

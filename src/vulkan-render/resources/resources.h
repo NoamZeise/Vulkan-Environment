@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include <string>
+#include <vector>
 
 namespace Resource {
 
@@ -38,14 +39,13 @@ struct Texture
 
 struct Model
 {
-	Model() { this->ID = 1000000; isAnimated = false;}
-	Model(unsigned int ID, bool isAnimated)
+	Model() { this->ID = 1000000;}
+	Model(unsigned int ID)
 	{
 		this->ID = ID;
-		this->isAnimated = isAnimated;
 	}
 	unsigned int ID;
-	bool isAnimated;
+	std::vector<std::string> animations;
 };
 
 struct Font
