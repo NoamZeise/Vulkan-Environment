@@ -27,10 +27,12 @@ endif()
 file(GLOB SOURCES src/*)
 file(GLOB VULKAN-RENDER src/vulkan-render/*)
 file(GLOB VULKAN-RENDER-RESOURCES src/vulkan-render/resources/*)
+file(GLOB VULKAN-RENDER-RESOURCES-MODEL src/vulkan-render/resources/model/*)
 add_executable(${ProjectName} ${SOURCES}
                               ${VULKAN-RENDER}
                               ${PROJ_INCLUDE}
                               ${VULKAN-RENDER-RESOURCES}
+                              ${VULKAN-RENDER-RESOURCES-MODEL}
                             )
 
 #link

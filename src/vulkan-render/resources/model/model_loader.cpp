@@ -15,9 +15,6 @@ ModelLoader::ModelLoader()
 
 ModelInfo::Model ModelLoader::LoadModel(std::string path)
 {
-#ifndef NDEBUG
-    std::cout << "loading model: " << path << std::endl;
-#endif
     auto model = ModelInfo::Model{};
 
     const aiScene *scene = importer.ReadFile(path, IMPORT_PROPS);
@@ -43,14 +40,19 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
     model.correction = correction;
 	processNode(&model, scene->mRootNode, scene, aiMatrix4x4(), -1);
 
+#ifndef  NDEBUG
     std::cout << "model bone count: " << model.bones.size() << std::endl;
+    std::cout << "model animation count: " << scene->mNumAnimations << std::endl;
+#endif
 
-    //TODO load animations
     if(scene->HasAnimations())
     {
         model.animatedModel = true;
         for(int i = 0; i < scene->mNumAnimations; i++)
         {
+        #ifndef NDEBUG
+            std::cout << "loading animation: " << scene->mAnimations[i]->mName.C_Str() << std::endl;
+        #endif
             buildAnimation(&model, scene->mAnimations[i]);
         }
     }

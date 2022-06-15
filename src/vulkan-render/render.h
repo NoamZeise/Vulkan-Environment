@@ -21,7 +21,7 @@
 #include <glmhelper.h>
 
 #include "descriptor_sets.h"
-#include "resources/model_render.h"
+#include "resources/model/model_render.h"
 #include "pipeline.h"
 #include "render_structs.h"
 #include "resources/font_loader.h"

@@ -1,9 +1,9 @@
 #ifndef MODEL_LOADER_H
 #define MODEL_LOADER_H
 
-#include "assimp/anim.h"
-#include "assimp/matrix4x4.h"
-#include "assimp/mesh.h"
+#include <assimp/anim.h>
+#include <assimp/matrix4x4.h>
+#include <assimp/mesh.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 

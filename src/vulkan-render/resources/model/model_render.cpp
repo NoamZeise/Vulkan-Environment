@@ -133,7 +133,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 #ifndef NO_ASSIMP
 
 #ifndef NDEBUG
-	std::cout << "loading model: " << path << std::endl;
+    std::cout << "\nloading model: " << path << std::endl;
 #endif
 
 	Model model(currentIndex++);
@@ -167,6 +167,9 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 
 		ldMesh->indicies = loadM.meshes[mesh].indicies;
 	}
+#ifndef NDEBUG
+	std::cout << "finished loading model\n\n";
+#endif
 
 	return model;
 #else
@@ -185,9 +188,6 @@ Resource::Texture ModelRender::loadTexture(std::string path, TextureLoader* texL
 			return alreadyLoaded[i];
 
 	alreadyLoaded.push_back(texLoader->LoadTexture(texLocation));
-#ifndef NDEBUG
-	std::cout << "^ for model" << std::endl;
-#endif
 	alreadyLoaded[alreadyLoaded.size() - 1].type = TextureType::Diffuse; //attention
 	return alreadyLoaded[alreadyLoaded.size() - 1];
 }
@@ -249,6 +249,9 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 		std::cout << "no model data to load to gpu" << std::endl;
 		return;
 	}
+#ifndef NDEBUG
+	std::cout << "sending model data to gpu" << std::endl;
+#endif
 
 	//get size of vertex data + offsets
 	processLoadGroup(&loaded2D);
