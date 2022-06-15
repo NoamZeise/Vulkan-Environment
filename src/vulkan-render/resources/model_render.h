@@ -43,20 +43,41 @@ public:
 
 private:
 
+	enum class ModelType
+	{
+	    model2D,
+		model3D,
+		modelAnim3D,
+    };
+
+	template <class T_Vert>
 	struct Mesh
 	{
 		Mesh() {}
-		std::vector<Vertex> 	    verticies;
+		std::vector<T_Vert> verticies;
 		std::vector<unsigned int> indicies;
 		Texture texture;
 	};
 
+	template <class T_Vert>
 	struct LoadedModel
 	{
 		LoadedModel(){}
-		std::vector<Mesh*> meshes;
+		std::vector<Mesh<T_Vert>*> meshes;
 		std::string        directory;
 	};
+
+	template <class T_Vert>
+	struct ModelGroup
+	{
+		std::vector<LoadedModel<T_Vert>> models;
+		size_t vertexDataOffset;
+		size_t vertexDataSize;
+	};
+
+	ModelType getModelType(Vertex2D vert) { return ModelType::model2D; }
+	ModelType getModelType(Vertex3D vert) { return ModelType::model3D; }
+	ModelType getModelType(VertexAnim3D vert) { return ModelType::modelAnim3D; }
 
 	struct MeshInfo
 	{
@@ -81,6 +102,8 @@ private:
 		unsigned int vertexOffset = 0;
 		unsigned int indexOffset = 0;
 		std::vector<MeshInfo> meshes;
+
+		ModelType type;
 	};
 
 	const char* MODEL_TEXTURE_LOCATION = "textures/";
@@ -88,19 +111,35 @@ private:
 
 	Resource::Texture loadTexture(std::string path, TextureLoader* texLoader);
 
+	template <class T_Vert>
+	void processLoadGroup(ModelGroup<T_Vert>* pGroup);
+
+	template <class T_Vert>
+	void stageLoadGroup(void* pMem, ModelGroup<T_Vert>* pGroup,
+					   size_t &vertexDataOffset, size_t &indexDataOffset);
+
+	void bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type);
+
 	ModelLoader modelLoader;
 
 	Base base;
 	VkCommandPool pool;
-	std::vector<LoadedModel> loadedModels;
+	ModelGroup<Vertex2D> loaded2D;
+	ModelGroup<Vertex3D> loaded3D;
+	ModelGroup<VertexAnim3D> loadedAnim3D;
 	std::vector<Texture> alreadyLoaded;
 	std::vector<ModelInGPU> models;
 	VkBuffer buffer;
 	VkDeviceMemory memory;
+
 	unsigned int vertexDataSize = 0;
+
 	unsigned int indexDataSize = 0;
 
 	unsigned int currentIndex = 0;
+
+	bool boundThisFrame = false;
+	ModelType prevBoundType;
 };
 
 }

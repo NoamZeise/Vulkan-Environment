@@ -1,4 +1,5 @@
 #include "vkinit.h"
+#include "vulkan/vulkan_core.h"
 
 
 void initVulkan::Instance(VkInstance* instance)
@@ -466,7 +467,7 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -607,7 +608,10 @@ void initVulkan::Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPas
 void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
 	std::vector<DS::DescriptorSet*> descriptorSets,
 	std::vector<VkPushConstantRange> pushConstantsRanges,
-	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest, bool presentOnly)
+	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest, bool presentOnly,
+	std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
+	std::vector<VkVertexInputBindingDescription> vertexBindingDesc
+)
 {
 	pipeline->descriptorSets = descriptorSets;
 
@@ -635,14 +639,11 @@ void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
 
 	//config vertex input
-	auto attribDescriptions = Vertex::attributeDescriptions();
-	auto bindingDescriptions = Vertex::bindingDescriptions();
-
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-	vertexInputInfo.vertexAttributeDescriptionCount = attribDescriptions.size();
-	vertexInputInfo.pVertexAttributeDescriptions = attribDescriptions.data();
-	vertexInputInfo.vertexBindingDescriptionCount = bindingDescriptions.size();
-	vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();
+	vertexInputInfo.vertexAttributeDescriptionCount = vertexAttribDesc.size();
+	vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
+	vertexInputInfo.vertexBindingDescriptionCount = vertexBindingDesc.size();
+	vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc.data();
 	if(presentOnly)
 	{
 		vertexInputInfo.vertexAttributeDescriptionCount = 0;

@@ -145,13 +145,13 @@ void App::draw() {
     mRender->Begin2DDraw();
 
     mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
-    										glm::vec4(1), 90.0f);
+    										glm::vec4(1), 0.0f);
 
-    /*mRender->DrawQuad(testTex,
+    mRender->DrawQuad(testTex,
     								 glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
     								 glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
-    mRender->DrawQuad(testTex,
+   /* mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
     									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
 */

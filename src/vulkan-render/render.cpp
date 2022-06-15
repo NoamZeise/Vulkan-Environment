@@ -177,7 +177,9 @@ void Render::_initFrameResources() {
       {{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
        {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
         sizeof(fragPushConstants)}},
-      "shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false);
+      "shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false,
+      Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
+);
 
   initVulkan::GraphicsPipeline(
       mBase.device, &mPipeline2D, mSwapchain, mRenderPass,
@@ -185,12 +187,14 @@ void Render::_initFrameResources() {
       {{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
        {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
         sizeof(fragPushConstants)}},
-      "shaders/vflat.spv", "shaders/fflat.spv", true, false);
+      "shaders/vflat.spv", "shaders/fflat.spv", true, false,
+      Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions());
 
   initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain,
                                mFinalRenderPass, {&mOffscreends}, {},
                                "shaders/vfinal.spv", "shaders/ffinal.spv",
-                               false, true);
+                               false, true,
+                               Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions());
 
   _updateViewProjectionMatrix();
   mVP2D.data[0].view = glm::mat4(1.0f);
@@ -362,7 +366,6 @@ void Render::Begin3DDraw() {
   m3DRender = true;
 
   mVP3D.storeData(mImg);
-  DS::ShaderStructs::lighting tempLightingData = mLighting.data[0];
   mLighting.data[0].direction =
       glm::transpose(glm::inverse(mVP3D.data[0].view)) *
       glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);

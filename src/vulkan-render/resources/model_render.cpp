@@ -1,4 +1,5 @@
 #include "model_render.h"
+#include <stdexcept>
 
 namespace Resource
 {
@@ -15,7 +16,13 @@ ModelRender::~ModelRender()
 {
 	if(models.size() <= 0)
 		return;
-	for (auto& model : loadedModels)
+	for (auto& model : loaded2D.models)
+			for (size_t i = 0; i < model.meshes.size(); i++)
+				delete model.meshes[i];
+	for (auto& model : loaded3D.models)
+			for (size_t i = 0; i < model.meshes.size(); i++)
+				delete model.meshes[i];
+	for (auto& model : loadedAnim3D.models)
 			for (size_t i = 0; i < model.meshes.size(); i++)
 				delete model.meshes[i];
 
@@ -27,11 +34,33 @@ void ModelRender::bindBuffers(VkCommandBuffer cmdBuff)
 {
 	if(currentIndex == 0)
 		return;
-	VkBuffer vertexBuffers[] = { buffer };
-	VkDeviceSize offsets[] = { 0 };
-	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
+	boundThisFrame = false;
 	//bind index buffer - can only have one index buffer
 	vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
+}
+
+void ModelRender::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type)
+{
+	if(boundThisFrame && type == prevBoundType)
+		return;
+	boundThisFrame = true;
+	prevBoundType = type;
+	size_t vOffset = 0;
+	switch(type)
+	{
+		case ModelType::model2D:
+			vOffset = loaded2D.vertexDataOffset;
+			break;
+		case ModelType::model3D:
+			vOffset = loaded3D.vertexDataOffset;
+			break;
+		case ModelType::modelAnim3D:
+			vOffset = loadedAnim3D.vertexDataOffset;
+			break;
+	}
+	VkBuffer vertexBuffers[] = { buffer };
+	VkDeviceSize offsets[] = { vOffset };
+	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
 }
 
 void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
@@ -41,7 +70,9 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 		std::cout << "the model ID is out of range, ID: " << model.ID << std::endl;
 		return;
 	}
+
 	ModelInGPU *modelInfo = &models[model.ID];
+	bindGroupVertexBuffer(cmdBuff, modelInfo->type);
 	for(size_t i = 0; i < modelInfo->meshes.size(); i++)
 	{
 		fragPushConstants fps{
@@ -61,6 +92,7 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 
 void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset)
 {
+		bindGroupVertexBuffer(cmdBuff, ModelType::model2D);
 		fragPushConstants fps{
 			colour,
 			texOffset,
@@ -78,19 +110,19 @@ void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 void ModelRender::loadQuad()
 {
 	currentIndex++;
-	loadedModels.push_back(LoadedModel());
-	LoadedModel* ldModel = &loadedModels[loadedModels.size() - 1];
+	loaded2D.models.push_back(LoadedModel<Vertex2D>());
+	auto ldModel = &loaded2D.models[loaded2D.models.size() - 1];
 	ldModel->directory = "quad";
-	ldModel->meshes.push_back(new Mesh());
-	Mesh* mesh = ldModel->meshes[ldModel->meshes.size() - 1];
+	ldModel->meshes.push_back(new Mesh<Vertex2D>());
+	auto mesh = ldModel->meshes[ldModel->meshes.size() - 1];
 	mesh->texture =  Texture(0, glm::vec2(0,0), "quad");
 	mesh->verticies =
 		{
-			//pos   			normal  			texcoord
-			{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-			{{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-			{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 1.0f}},
-			{{0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f}},
+			//pos   	  			texcoord
+			{{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+			{{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+			{{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+			{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
 		};
 	mesh->indicies = { 0, 3, 2, 2, 1, 0};
 
@@ -108,13 +140,13 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 
 	ModelInfo::Model loadM = modelLoader.LoadModel(path);
 
-	loadedModels.push_back(LoadedModel());
-	LoadedModel* ldModel = &loadedModels[loadedModels.size() - 1];
+	loaded3D.models.push_back(LoadedModel<Vertex3D>());
+	auto ldModel = &loaded3D.models[loaded3D.models.size() - 1];
 	ldModel->directory = path.substr(0, path.find_last_of('/'));
 
 	for(int mesh = 0; mesh < loadM.meshes.size(); mesh++)
 	{
-		ldModel->meshes.push_back(new Mesh{});
+		ldModel->meshes.push_back(new Mesh<Vertex3D>{});
 		auto ldMesh = ldModel->meshes.back();
 
 		// just take one diffuse texture for now
@@ -126,7 +158,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 		glm::mat4 meshTransform = loadM.correction * loadM.meshes[mesh].bindTransform;
 		for(int vert = 0; vert < loadM.meshes[mesh].verticies.size(); vert++)
 		{
-			Vertex vertex;
+			Vertex3D vertex;
 			vertex.Position = meshTransform * glm::vec4(loadM.meshes[mesh].verticies[vert].Position, 1.0f);
 			vertex.Normal = loadM.meshes[mesh].verticies[vert].Normal;
 			vertex.TexCoord = loadM.meshes[mesh].verticies[vert].TexCoord;
@@ -161,35 +193,74 @@ Resource::Texture ModelRender::loadTexture(std::string path, TextureLoader* texL
 }
 #endif
 
-void ModelRender::endLoading(VkCommandBuffer transferBuff)
+template <class T_Vert >
+void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 {
-	if(loadedModels.size() == 0)
-		return;
-
-	//load to staging buffer
-
-	for(size_t i = 0; i < loadedModels.size(); i++)
+	pGroup->vertexDataOffset = vertexDataSize;
+	int modelVertexOffset = 0;
+	for(size_t i = 0; i < pGroup->models.size(); i++)
 	{
 		models.push_back(ModelInGPU());
 		ModelInGPU* model = &models[models.size() - 1];
 
-		model->vertexOffset = vertexDataSize / sizeof(loadedModels[i].meshes[0]->verticies[0]);
-		model->indexOffset = indexDataSize / sizeof(loadedModels[i].meshes[0]->indicies[0]);
-		model->meshes.resize(loadedModels[i].meshes.size());
-		for(size_t j = 0 ; j <  loadedModels[i].meshes.size(); j++)
+		model->type = getModelType(pGroup->models[i].meshes[0]->verticies[0]);
+		model->vertexOffset = modelVertexOffset;
+		model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indicies[0]);
+		model->meshes.resize(pGroup->models[i].meshes.size());
+		for(size_t j = 0 ; j <  pGroup->models[i].meshes.size(); j++)
 		{
 			model->meshes[j] = MeshInfo(
-					loadedModels[i].meshes[j]->indicies.size(),
-					model->indexCount,
-					model->vertexCount,
-					loadedModels[i].meshes[j]->texture);
-			model->vertexCount += loadedModels[i].meshes[j]->verticies.size();
-			model->indexCount  += loadedModels[i].meshes[j]->indicies.size();
-			vertexDataSize += sizeof(loadedModels[i].meshes[j]->verticies[0]) * loadedModels[i].meshes[j]->verticies.size();
-			indexDataSize +=  sizeof(loadedModels[i].meshes[j]->indicies[0]) * loadedModels[i].meshes[j]->indicies.size();
+					pGroup->models[i].meshes[j]->indicies.size(),
+					model->indexCount,  //as offset
+					model->vertexCount, //as offset
+					pGroup->models[i].meshes[j]->texture);
+			model->vertexCount += pGroup->models[i].meshes[j]->verticies.size();
+			model->indexCount  += pGroup->models[i].meshes[j]->indicies.size();
+			vertexDataSize += sizeof(T_Vert) * pGroup->models[i].meshes[j]->verticies.size();
+			indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0]) * pGroup->models[i].meshes[j]->indicies.size();
+		}
+		modelVertexOffset += model->vertexCount;
+	}
+	pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
+}
+
+template <class T_Vert >
+void ModelRender::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup, size_t &pVertexDataOffset, size_t &pIndexDataOffset)
+{
+
+	for(auto& model: pGroup->models)
+	{
+		for(size_t i = 0; i < model.meshes.size(); i++)
+		{
+			std::memcpy(static_cast<char*>(pMem) + pVertexDataOffset, model.meshes[i]->verticies.data(), sizeof(T_Vert ) * model.meshes[i]->verticies.size());
+			pVertexDataOffset += sizeof(T_Vert ) * model.meshes[i]->verticies.size();
+			std::memcpy(static_cast<char*>(pMem) + pIndexDataOffset, model.meshes[i]->indicies.data(), sizeof(model.meshes[i]->indicies[0]) * model.meshes[i]->indicies.size());
+			pIndexDataOffset += sizeof(model.meshes[i]->indicies[0]) * model.meshes[i]->indicies.size();
+			delete model.meshes[i];
 		}
 	}
+	pGroup->models.clear();
+}
 
+void ModelRender::endLoading(VkCommandBuffer transferBuff)
+{
+	if(loaded2D.models.size() == 0  && loaded3D.models.size() == 0 && loadedAnim3D.models.size() == 0)
+	{
+		std::cout << "no model data to load to gpu" << std::endl;
+		return;
+	}
+
+	//get size of vertex data + offsets
+	processLoadGroup(&loaded2D);
+	processLoadGroup(&loaded3D);
+	processLoadGroup(&loadedAnim3D);
+
+#ifndef NDEBUG
+	std::cout << "finished processing model groups" << std::endl;
+#endif
+
+
+	//load to staging buffer
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
 
@@ -200,21 +271,17 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 	void* pMem;
 	vkMapMemory(base.device, stagingMemory, 0, vertexDataSize + indexDataSize, 0, &pMem);
 
-	//copy each model's data to staging memory
+std::cout << "staging memory allocated" << std::endl;
+		//copy each model's data to staging memory
 	size_t currentVertexOffset = 0;
 	size_t currentIndexOffset = vertexDataSize;
-	for(auto& model: loadedModels)
-	{
-		for(size_t i = 0; i < model.meshes.size(); i++)
-		{
-			std::memcpy(static_cast<char*>(pMem) + currentVertexOffset, model.meshes[i]->verticies.data(), sizeof(model.meshes[i]->verticies[0]) * model.meshes[i]->verticies.size());
-			currentVertexOffset += sizeof(model.meshes[i]->verticies[0]) * model.meshes[i]->verticies.size();
-			std::memcpy(static_cast<char*>(pMem) + currentIndexOffset, model.meshes[i]->indicies.data(), sizeof(model.meshes[i]->indicies[0]) * model.meshes[i]->indicies.size());
-			currentIndexOffset += sizeof(model.meshes[i]->indicies[0]) * model.meshes[i]->indicies.size();
-			delete model.meshes[i];
-		}
-	}
-	loadedModels.clear();
+	stageLoadGroup(pMem, &loaded2D, currentVertexOffset, currentIndexOffset);
+	stageLoadGroup(pMem, &loaded3D, currentVertexOffset, currentIndexOffset);
+	stageLoadGroup(pMem, &loadedAnim3D, currentVertexOffset, currentIndexOffset);
+
+#ifndef NDEBUG
+	std::cout << "finished staging model groups" << std::endl;
+#endif
 
 	//create final dest memory
 	vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &buffer, &memory,
@@ -245,6 +312,10 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 	//free staging buffer
   vkDestroyBuffer(base.device, stagingBuffer, nullptr);
 	vkFreeMemory(base.device, stagingMemory, nullptr);
+
+#ifndef NDEBUG
+	std::cout << "finished loading model data to gpu" << std::endl;
+#endif
 }
 
 

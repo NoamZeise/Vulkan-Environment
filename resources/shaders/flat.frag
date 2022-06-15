@@ -18,7 +18,6 @@ layout(set = 3, binding = 0) readonly buffer PerInstanceBuffer {
 } pib[300];
 
 layout(location = 0) in vec3 inTexCoord;
-layout(location = 1) in vec3 inVertPos;
 
 layout(location = 0) out vec4 outColour;
 

@@ -43,7 +43,7 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
     model.correction = correction;
 	processNode(&model, scene->mRootNode, scene, aiMatrix4x4(), -1);
 
-    std::cout << "model bone count: " << model.bones.size();
+    std::cout << "model bone count: " << model.bones.size() << std::endl;
 
     //TODO load animations
     if(scene->HasAnimations())
