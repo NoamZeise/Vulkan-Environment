@@ -18,10 +18,11 @@ layout(set = 1, binding = 0) readonly buffer PerInstanceData
     mat4 normalMat;
 } pid[100];
 
+const int MAX_BONES = 50;
 layout(set = 2, binding = 0) uniform boneView
 {
- int viewBoneID;
-} bvu;
+   mat4 mat[MAX_BONES];
+} bones;
 
 
 layout(location = 0) in vec3 inPos;
@@ -40,33 +41,26 @@ layout(location = 3) out vec3 outBoneColour;
 void main()
 {
     outTexCoord = inTexCoord;
+
+    mat4 skin = mat4(0.0f);
+    for(int i = 0; i < 4; i++)
+    {
+      if(inBoneIDs[i] == -1 || inBoneIDs[i] >= MAX_BONES)
+          break;
+      skin += inWeights[i] * bones.mat[inBoneIDs[i]];
+    }
+
     vec4 fragPos = vec4(0.0);
     if(pcs.normalMat[3][3] == 0.0) //draw instance (use per frame buffer)
     {
-        fragPos = ubo.view * pid[gl_InstanceIndex].model * vec4(inPos, 1.0);
-        outNormal = mat3(pid[gl_InstanceIndex].normalMat) * inNormal;
+        fragPos = ubo.view * pid[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
+        outNormal = (pid[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
     }
     else //draw once (use push constants)
     {
-        fragPos = ubo.view * pcs.model * vec4(inPos, 1.0);
-        outNormal = mat3(pcs.normalMat) * inNormal;
+        fragPos = ubo.view * pcs.model * skin * vec4(inPos, 1.0f);
+        outNormal = (pcs.normalMat * skin * vec4(inNormal, 1.0f)).xyz;
     }
-
-    vec3 boneColour = vec3(0.0, 1.0, 1.0);
-    for(int i = 0; i < 4; i++)
-    {
-        if(inBoneIDs[i] == bvu.viewBoneID && inBoneIDs[i] != -1)
-        {
-            if(inWeights[i] >= 0.7)
-                boneColour = vec3(1.0, 0.0, 0.0) * inWeights[i];
-            else if(inWeights[i] >= 0.4)
-                boneColour = vec3(0.0, 1.0, 0.0) *  inWeights[i];
-            else
-                boneColour = vec3(1.0, 1.0, 0.0) * inWeights[i];
-
-        }
-    }
-    outBoneColour = boneColour;
 
     gl_Position = ubo.proj * fragPos;
     outFragPos = vec3(fragPos) / fragPos.w;

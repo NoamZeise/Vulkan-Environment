@@ -62,10 +62,12 @@ public:
 
   void FramebufferResize();
 
-  void debugSelectBone(int boneID)
-    {
-     mBoneView.data[0].viewBoneID = boneID;
-    }
+
+  //TEST
+  ModelAnimation* lastAnim;
+  ModelAnimation* getModelAnimP(Resource::Model model, std::string animation) {
+    lastAnim = mModelLoader->getpAnimation(model, animation);
+    return lastAnim; }
 
 private:
   bool mFramebufferResized = false;
@@ -95,7 +97,7 @@ private:
   DS::DescriptorSet mVP3Dds;
   DS::DescriptorSet mVP2Dds;
   DS::DescriptorSet mPerInstance3Dds;
-  DS::DescriptorSet mBoneViewds;
+  DS::DescriptorSet mBonesds;
   DS::DescriptorSet mPer2DVertds;
   DS::DescriptorSet mLightingds;
   DS::DescriptorSet mTexturesds;
@@ -105,7 +107,7 @@ private:
   DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
   DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
   DS::BindingAndData<DS::ShaderStructs::Per3DInstance> mPerInstance;
-  DS::BindingAndData<DS::ShaderStructs::BoneView> mBoneView;
+  DS::BindingAndData<DS::ShaderStructs::Bones> mBones;
   DS::BindingAndData<DS::ShaderStructs::Per2DVert> mPer2Dvert;
   DS::BindingAndData<bool> mTextureViews;
   DS::BindingAndData<bool> mTextureSampler;

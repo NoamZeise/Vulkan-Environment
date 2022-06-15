@@ -22,22 +22,6 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		throw std::runtime_error("failed to load model at \"" + path + "\" assimp error: " + importer.GetErrorString());
 
-
-    std::string fileType = path.substr(path.find_last_of('.'));
-    glm::mat4 correction = glm::mat4(1.0f);
-
-    //correct for orientation of specific formats
-    if(fileType == ".fbx")
-    {
-        correction = glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f));
-        correction = glm::scale(correction, glm::vec3(0.02f));
-    }
-
-    //No corrections:
-    //.dae
-
-
-    model.correction = correction;
 	processNode(&model, scene->mRootNode, scene, aiMatrix4x4(), -1);
 
 #ifndef  NDEBUG
@@ -171,8 +155,8 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
         anim->nodes[i].modelNode = model->nodes[i];
 
     anim->duration = aiAnim->mDuration;
-    anim->ticks = aiAnim->mTicksPerSecond;
-    if(anim->ticks)
+    anim->ticks = aiAnim->mTicksPerSecond * 0.001; //for ms time
+    if(anim->ticks == 0)
     {
     #ifndef NDEBUG
         std::cout << "WARNING: format does not specify ticks, using 100/s\n";

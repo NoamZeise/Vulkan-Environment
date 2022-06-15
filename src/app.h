@@ -71,8 +71,6 @@ private:
   Resource::Model testWolf;
   Resource::Texture testTex;
   Resource::Font testFont;
-
-  int currentBone = 0;
 };
 
 #endif

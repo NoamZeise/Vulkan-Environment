@@ -29,7 +29,7 @@ layout(location = 0) out vec4 outColour;
 
 void main()
 {
- /*
+
     vec2 coord = inTexCoord.xy;
     coord.x *= pc.texOffset.z;
     coord.y *= pc.texOffset.w;
@@ -37,6 +37,9 @@ void main()
     coord.y += pc.texOffset.y;
 
     vec4 objectColour = texture(sampler2D(textures[pc.texID], texSamp), coord) * pc.colour;
+
+    if(pc.texID == 0)
+        objectColour = pc.colour;
 
     if(objectColour.w == 0.0)
         discard;
@@ -58,6 +61,6 @@ void main()
         specularIntensity = pow(max(dot(normal, halfDir), 0.0), lighting.specular.w);
     }
     vec3 specular = lighting.specular.xyz * specularIntensity;
-*/
-    outColour = vec4(inBoneColour, 1.0);
+
+    outColour = vec4(ambient + diffuse + specular, 1.0) * objectColour;
 }

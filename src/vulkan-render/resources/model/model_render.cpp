@@ -165,7 +165,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 				ldMesh->texture = loadTexture(loadM.meshes[mesh].diffuseTextures[0], texLoader);
 
 
-			glm::mat4 meshTransform = loadM.correction * loadM.meshes[mesh].bindTransform;
+			glm::mat4 meshTransform = loadM.meshes[mesh].bindTransform;
 			for(int vert = 0; vert < loadM.meshes[mesh].verticies.size(); vert++)
 			{
 				Vertex3D vertex;
@@ -194,11 +194,10 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 			if(mesh.diffuseTextures.size() > 0)
 				ldMesh->texture = loadTexture(mesh.diffuseTextures[0], texLoader);
 
-			glm::mat4 meshTransform = loadM.correction * mesh.bindTransform;
 			for(int vert = 0; vert < mesh.verticies.size(); vert++)
 			{
 				VertexAnim3D vertex;
-				vertex.Position = meshTransform * glm::vec4(mesh.verticies[vert].Position, 1.0f);
+				vertex.Position = glm::vec4(mesh.verticies[vert].Position, 1.0f);
 				vertex.Normal = mesh.verticies[vert].Normal;
 				vertex.TexCoord = mesh.verticies[vert].TexCoord;
 				for(int vecElem = 0; vecElem < 4; vecElem++)

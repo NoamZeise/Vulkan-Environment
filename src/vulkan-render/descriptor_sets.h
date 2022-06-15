@@ -58,9 +58,10 @@ struct lighting {
   alignas(16) glm::vec4 direction;
 };
 
-struct BoneView
+const int MAX_BONES = 50;
+struct Bones
 {
-  alignas(4) int viewBoneID;
+  alignas(16) glm::mat4 mat[MAX_BONES];
 };
 
 } // namespace ShaderStructs

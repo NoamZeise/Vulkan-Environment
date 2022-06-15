@@ -95,10 +95,9 @@ void Render::_initFrameResources() {
                                      {&mPerInstance.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
-  mBoneView.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mBoneViewds,
-                           1);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mBoneViewds,
-                                     {&mBoneView.binding},
+  mBones.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mBonesds, 1);
+  initVulkan::DescriptorSetAndLayout(mBase.device, mBonesds,
+                                     {&mBones.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
   mPer2Dvert.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -172,7 +171,7 @@ void Render::_initFrameResources() {
 
   initVulkan::PrepareShaderBufferSets(
       mBase,
-      {&mVP3D.binding, &mVP2D.binding, &mPerInstance.binding, &mBoneView.binding,
+      {&mVP3D.binding, &mVP2D.binding, &mPerInstance.binding, &mBones.binding,
        &mPer2Dvert.binding, &mLighting.binding, &mTextureSampler.binding,
        &mTextureViews.binding, &mPer2Dfrag.binding, &mOffscreenSampler.binding,
        &mOffscreenView.binding},
@@ -190,7 +189,7 @@ void Render::_initFrameResources() {
 
   initVulkan::GraphicsPipeline(
     mBase.device, &mPipelineAnim3D, mSwapchain, mRenderPass,
-    {&mVP3Dds, &mPerInstance3Dds, &mBoneViewds, &mTexturesds, &mLightingds},
+    {&mVP3Dds, &mPerInstance3Dds, &mBonesds, &mTexturesds, &mLightingds},
     { {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
       {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
     "shaders/v3D-lighting-anim.spv", "shaders/fblinnphong-anim.spv", true, false,
@@ -236,7 +235,7 @@ void Render::_destroyFrameResources() {
   mVP2Dds.destroySet(mBase.device);
   mPerInstance3Dds.destroySet(mBase.device);
   mPer2DVertds.destroySet(mBase.device);
-  mBoneViewds.destroySet(mBase.device);
+  mBonesds.destroySet(mBase.device);
   mLightingds.destroySet(mBase.device);
   mTexturesds.destroySet(mBase.device);
   mPer2Dfragds.destroySet(mBase.device);
@@ -409,8 +408,15 @@ void Render::BeginAnim3DDraw()
       glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
   mLighting.storeData(mImg);
 
-  mBoneView.storeData(mImg);
   mPipelineAnim3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
+  //Test
+  std::vector<glm::mat4> *bones = lastAnim->getCurrentBones();
+  for(int i = 0; i < bones->size(); i++)
+  {
+    mBones.data[0].mat[i] = bones->at(i);
+    //std::cout << "bone: x: " << bones->at(i)[0][0] << std::endl;
+  }
+  mBones.storeData(mImg);
 }
 
 void Render::Begin2DDraw()
@@ -454,9 +460,10 @@ void Render::_drawBatch() {
 
   switch(renderState)
   {
-    case RenderState::Draw3D:
-    case RenderState::DrawAnim3D:
-      mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
+
+       case RenderState::DrawAnim3D:
+       case RenderState::Draw3D:
+         mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
                             mPipeline3D.layout, currentModel, modelRuns,
                             current3DInstanceIndex);
       current3DInstanceIndex += modelRuns;

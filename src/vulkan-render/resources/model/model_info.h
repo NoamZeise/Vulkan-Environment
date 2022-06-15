@@ -83,7 +83,6 @@ struct Animation
 
 struct Model
 {
-  glm::mat4 correction;
   std::vector<Mesh> meshes;
 
   std::vector<glm::mat4> bones;

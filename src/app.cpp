@@ -100,14 +100,8 @@ void App::update() {
     glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
   }
 
-  if(input.Keys[GLFW_KEY_EQUAL] && !previousInput.Keys[GLFW_KEY_EQUAL])
-  {
-    currentBone++;
-  }
-    if(input.Keys[GLFW_KEY_MINUS] && !previousInput.Keys[GLFW_KEY_MINUS])
-  {
-    currentBone--;
-  }
+  auto anim = mRender->getModelAnimP(testWolf, "Armature_0|01_Run_Armature_0");
+  anim->Update(timer);
 
   fpcam.update(input, previousInput, timer);
 
@@ -145,24 +139,33 @@ void App::draw() {
   mRender->Begin3DDraw();
 
    mRender->DrawModel(
-     testModel, glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 0)),
+     testModel,
+     glm::translate(
+       glm::scale(
+         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+         glm::vec3(0.02f)),
+     glm::vec3(0, 0, 0)),
      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-  mRender->debugSelectBone(currentBone);
   mRender->BeginAnim3DDraw();
 
   mRender->DrawModel(
-		testWolf, glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(5.0f)), glm::vec3(2.5f, 0, 0)),
+		testWolf,
+    glm::translate(
+       glm::scale(
+         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(0.1f)),
+     glm::vec3(200.0f, 0, 0)),
 		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
-  mRender->Begin2DDraw();
+//  mRender->Begin2DDraw();
 
-  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
-    										glm::vec4(1), 0.0f);
+//  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+//    										glm::vec4(1), 0.0f);
 
-  mRender->DrawQuad(testTex,
-    								glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
-    								glm::vec4(1), glm::vec4(0, 0, 1, 1));
+ // mRender->DrawQuad(testTex,
+//    								glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
+//    								glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
    /* mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),

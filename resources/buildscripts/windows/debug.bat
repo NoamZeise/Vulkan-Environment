@@ -1,3 +1,4 @@
+SETLOCAL
 cd build
 call vcvars64
 cmake .. -G"Ninja Multi-Config" -DCMAKE_EXPORT_COMPILE_COMMANDS=1
@@ -9,4 +10,4 @@ Xcopy resources\textures build\Debug\textures /i /c /e /r /y
 Xcopy resources\windows-dlls build\Debug\ /i /c /e /r /y
 cd build\Debug
 Vulkan-Environment
-cd ../..
+ENDLOCAL
