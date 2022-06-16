@@ -64,11 +64,18 @@ void ModelRender::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type)
 	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
 }
 
-ModelAnimation* ModelRender::getpAnimation(Model model, std::string animation)
+int ModelRender::getAnimationIndex(Model model, std::string animation)
 {
-	if(models[model.ID].animations.find(animation) == models[model.ID].animations.end())
+	if(models[model.ID].animationMap.find(animation) == models[model.ID].animationMap.end())
 		throw std::runtime_error("the animation " + animation + " could not be found on model");
-	return &models[model.ID].animations[animation];
+	return models[model.ID].animationMap[animation];
+}
+
+ModelAnimation* ModelRender::getpAnimation(Model model, int animationIndex)
+{
+	if(animationIndex >= models[model.ID].animations.size())
+		throw std::runtime_error("the animation index was out of range");
+	return &models[model.ID].animations[animationIndex];
 }
 
 void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
@@ -136,7 +143,7 @@ void ModelRender::loadQuad()
 
 }
 
-Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
+Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations)
 {
 #ifndef NO_ASSIMP
 
@@ -146,14 +153,15 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 
 	ModelInfo::Model loadM = modelLoader.LoadModel(path);
 
-	Model model(currentIndex++);
+	Model model(currentIndex);
 
 	//TODO reuse more for animated vs static
-	if(loadM.animations.size() == 0)
+	if(loadM.animations.size() == 0 || pGetAnimations == nullptr)
 	{
 		loaded3D.models.push_back(LoadedModel<Vertex3D>());
 		auto ldModel = &loaded3D.models[loaded3D.models.size() - 1];
 		ldModel->directory = path.substr(0, path.find_last_of('/'));
+		ldModel->ID = currentIndex;
 		for(int mesh = 0; mesh < loadM.meshes.size(); mesh++)
 		{
 			ldModel->meshes.push_back(new Mesh<Vertex3D>{});
@@ -184,6 +192,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 		loadedAnim3D.models.push_back(LoadedModel<VertexAnim3D>());
 		auto ldModel = &loadedAnim3D.models[loadedAnim3D.models.size() - 1];
 		ldModel->directory = path.substr(0, path.find_last_of('/'));
+		ldModel->ID = currentIndex;
 		for(auto& mesh : loadM.meshes)
 		{
 			ldModel->meshes.push_back(new Mesh<VertexAnim3D>{});
@@ -223,8 +232,10 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 		for(const auto &anim : loadM.animations)
 		{
 			ldModel->animations.push_back(ModelAnimation(loadM.bones, anim));
+			pGetAnimations->push_back(ldModel->animations[ldModel->animations.size() - 1]);
 		}
 	}
+	currentIndex++;
 #ifndef NDEBUG
 	std::cout << "finished loading model\n\n";
 #endif
@@ -234,6 +245,12 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
 	throw std::runtime_error("tried to load model but NO_ASSIMP is defined!");
 #endif
 }
+
+Model ModelRender::loadModel(std::string path, TextureLoader* texLoader)
+{
+	return loadModel(path, texLoader, nullptr);
+}
+
 
 #ifndef NO_ASSIMP
 
@@ -258,8 +275,8 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 	int modelVertexOffset = 0;
 	for(size_t i = 0; i < pGroup->models.size(); i++)
 	{
-		models.push_back(ModelInGPU());
-		ModelInGPU* model = &models[models.size() - 1];
+		models[pGroup->models[i].ID] = ModelInGPU();
+		ModelInGPU* model = &models[pGroup->models[i].ID];
 
 		model->type = getModelType(pGroup->models[i].meshes[0]->verticies[0]);
 		model->vertexOffset = modelVertexOffset;
@@ -281,7 +298,8 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 
 		for(int anim = 0; anim < pGroup->models[i].animations.size(); anim++)
 		{
-			model->animations[pGroup->models[i].animations[anim].getName()] = pGroup->models[i].animations[anim];
+			model->animations.push_back(pGroup->models[i].animations[anim]);
+			model->animationMap[pGroup->models[i].animations[anim].getName()] = pGroup->models[i].animations.size() - 1;
 		}
 
 	}

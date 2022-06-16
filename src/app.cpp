@@ -56,7 +56,9 @@ App::~App() {
 
 void App::loadAssets() {
   testModel = mRender->LoadModel("models/testScene.fbx");
-  testWolf =  mRender->LoadModel("models/wolf.fbx");
+  testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
+  currentWolfAnim = wolfAnims[0];
+  secondWolfAnim = wolfAnims[1];
   testTex = mRender->LoadTexture("textures/error.png");
   testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
   mRender->EndResourceLoad();
@@ -100,8 +102,8 @@ void App::update() {
     glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
   }
 
-  auto anim = mRender->getModelAnimP(testWolf, "Armature_0|01_Run_Armature_0");
-  anim->Update(timer);
+  currentWolfAnim.Update(timer);
+  secondWolfAnim.Update(timer);
 
   fpcam.update(input, previousInput, timer);
 
@@ -136,7 +138,7 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
-  mRender->Begin3DDraw();
+  /*mRender->Begin3DDraw();
 
    mRender->DrawModel(
      testModel,
@@ -146,17 +148,31 @@ void App::draw() {
          glm::vec3(0.02f)),
      glm::vec3(0, 0, 0)),
      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
-
+*/
   mRender->BeginAnim3DDraw();
 
-  mRender->DrawModel(
+  mRender->DrawAnimModel(
 		testWolf,
     glm::translate(
        glm::scale(
          glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
           glm::vec3(0.1f)),
-     glm::vec3(200.0f, 0, 0)),
-		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+     glm::vec3(-100.0f, 0, 0)),
+		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
+    &currentWolfAnim
+  );
+
+  mRender->DrawAnimModel(
+		testWolf,
+    glm::translate(
+       glm::scale(
+         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(0.1f)),
+     glm::vec3(100.0f, 0, 0)),
+		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
+    &secondWolfAnim
+  );
+
 
 //  mRender->Begin2DDraw();
 

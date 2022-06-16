@@ -5,7 +5,9 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <timer.h>
-#include <iostream>
+
+namespace Resource
+{
 
 class ModelAnimation
 {
@@ -34,6 +36,8 @@ private:
     ModelInfo::Animation animation;
     double currentTime;
 };
+
+}
 
 
 

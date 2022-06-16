@@ -3,6 +3,9 @@
 #include "glm/fwd.hpp"
 #include "glm/geometric.hpp"
 
+namespace Resource
+{
+
 ModelAnimation::ModelAnimation(std::vector<glm::mat4> bones, ModelInfo::Animation animation)
 {
     this->bones = bones;
@@ -113,4 +116,6 @@ glm::mat4 ModelAnimation::boneScl(const std::vector<ModelInfo::AnimationKey::Sca
     float factor = getFactor(sclFrames[first].time, sclFrames[second].time);
     glm::vec3 scale = glm::mix(sclFrames[first].scale, sclFrames[second].scale, factor);
     return glm::scale(glm::mat4(1.0f), scale);
+}
+
 }

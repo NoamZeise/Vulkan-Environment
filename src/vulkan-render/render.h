@@ -43,15 +43,19 @@ public:
   void set3DViewMatrixAndFov(glm::mat4 view, float fov);
   void set2DViewMatrixAndScale(glm::mat4 view, float scale);
   void restartResourceLoad();
+
   Resource::Texture LoadTexture(std::string filepath);
   Resource::Font LoadFont(std::string filepath);
   Resource::Model LoadModel(std::string filepath);
+  Resource::Model LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations);
+
   void EndResourceLoad();
 
   void Begin3DDraw();
   void BeginAnim3DDraw();
   void Begin2DDraw();
-  void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+  void DrawModel(    Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+  void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix, Resource::ModelAnimation *animation);
   void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
   void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour);
   void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix);
@@ -61,13 +65,6 @@ public:
   void EndDraw(std::atomic<bool> &submit);
 
   void FramebufferResize();
-
-
-  //TEST
-  ModelAnimation* lastAnim;
-  ModelAnimation* getModelAnimP(Resource::Model model, std::string animation) {
-    lastAnim = mModelLoader->getpAnimation(model, animation);
-    return lastAnim; }
 
 private:
   bool mFramebufferResized = false;

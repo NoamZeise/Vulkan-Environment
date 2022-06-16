@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "model/model_animation.h"
+
 namespace Resource {
 
 enum class TextureType
@@ -45,7 +47,6 @@ struct Model
 		this->ID = ID;
 	}
 	unsigned int ID;
-	std::vector<std::string> animations;
 };
 
 struct Font

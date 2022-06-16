@@ -273,20 +273,30 @@ Resource::Font Render::LoadFont(std::string filepath) {
   }
 }
 
-Resource::Model Render::LoadModel(std::string filepath) {
+Resource::Model Render::LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations)
+{
+   if (mFinishedLoadingResources)
+    throw std::runtime_error("resource loading has finished already");
+  return mModelLoader->loadModel(filepath, mTextureLoader, pGetAnimations);
+}
+
+Resource::Model Render::LoadModel(std::string filepath)
+{
   if (mFinishedLoadingResources)
     throw std::runtime_error("resource loading has finished already");
   return mModelLoader->loadModel(filepath, mTextureLoader);
 }
 
-void Render::EndResourceLoad() {
+void Render::EndResourceLoad()
+{
   mFinishedLoadingResources = true;
   mTextureLoader->endLoading();
   mModelLoader->endLoading(mTransferCommandBuffer);
   _initFrameResources();
 }
 
-void Render::_resize() {
+void Render::_resize()
+{
   vkDeviceWaitIdle(mBase.device);
 
   _destroyFrameResources();
@@ -296,7 +306,8 @@ void Render::_resize() {
   _updateViewProjectionMatrix();
 }
 
-void Render::_startDraw() {
+void Render::_startDraw()
+{
   if (!mFinishedLoadingResources)
     throw std::runtime_error(
         "resource loading must be finished before drawing to screen!");
@@ -392,6 +403,35 @@ void Render::Begin3DDraw()
   mPipeline3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
 }
 
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
+{
+  if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
+#ifndef NDEBUG
+    std::cout << "single" << std::endl;
+#endif
+    vectPushConstants vps{modelMatrix, normalMat};
+    vps.normalMat[3][3] = 1.0;
+    vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
+                       mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                       sizeof(vectPushConstants), &vps);
+
+    mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
+                            mPipeline3D.layout, model, 1, 0);
+    return;
+  }
+
+  if (currentModel.ID != model.ID && modelRuns != 0)
+    _drawBatch();
+
+  currentModel = model;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
+  modelRuns++;
+
+  if (current3DInstanceIndex + modelRuns == MAX_3D_INSTANCE)
+    _drawBatch();
+}
+
 void Render::BeginAnim3DDraw()
 {
   if (!mBegunDraw)
@@ -409,14 +449,41 @@ void Render::BeginAnim3DDraw()
   mLighting.storeData(mImg);
 
   mPipelineAnim3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
-  //Test
-  std::vector<glm::mat4> *bones = lastAnim->getCurrentBones();
-  for(int i = 0; i < bones->size(); i++)
+}
+
+void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
+{
+   if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
+#ifndef NDEBUG
+    std::cout << "single" << std::endl;
+#endif
+    vectPushConstants vps{modelMatrix, normalMat};
+    vps.normalMat[3][3] = 1.0;
+    vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
+                       mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                       sizeof(vectPushConstants), &vps);
+
+    mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
+                            mPipeline3D.layout, model, 1, 0);
+    return;
+  }
+
+  if (currentModel.ID != model.ID && modelRuns != 0)
+    _drawBatch();
+
+  currentModel = model;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
+  modelRuns++;
+
+  auto bones = animation->getCurrentBones();
+  for(int i = 0; i < bones->size() && i < 50; i++)
   {
     mBones.data[0].mat[i] = bones->at(i);
-    //std::cout << "bone: x: " << bones->at(i)[0][0] << std::endl;
   }
   mBones.storeData(mImg);
+
+   _drawBatch();
 }
 
 void Render::Begin2DDraw()
@@ -449,64 +516,6 @@ void Render::Begin2DDraw()
   mVP2D.storeData(mImg);
 
   mPipeline2D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
-}
-
-void Render::_drawBatch() {
-  // std::cout << "batch" << std::endl;
-  vectPushConstants vps{glm::mat4(1.0f), glm::mat4(0.0f)};
-  vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
-                     mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                     sizeof(vectPushConstants), &vps);
-
-  switch(renderState)
-  {
-
-       case RenderState::DrawAnim3D:
-       case RenderState::Draw3D:
-         mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
-                            mPipeline3D.layout, currentModel, modelRuns,
-                            current3DInstanceIndex);
-      current3DInstanceIndex += modelRuns;
-      modelRuns = 0;
-      break;
-    case RenderState::Draw2D:
-      mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer,
-                           mPipeline3D.layout, 0, instance2Druns,
-                           current2DInstanceIndex, currentColour,
-                           currentTexOffset);
-      current2DInstanceIndex += instance2Druns;
-      instance2Druns = 0;
-      break;
-  }
-}
-
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix,glm::mat4 normalMat)
-{
-  if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
-#ifndef NDEBUG
-    std::cout << "single" << std::endl;
-#endif
-    vectPushConstants vps{modelMatrix, normalMat};
-    vps.normalMat[3][3] = 1.0;
-    vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
-                       mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(vectPushConstants), &vps);
-
-    mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
-                            mPipeline3D.layout, model, 1, 0);
-    return;
-  }
-
-  if (currentModel.ID != model.ID && modelRuns != 0)
-    _drawBatch();
-
-  currentModel = model;
-  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
-  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
-  modelRuns++;
-
-  if (current3DInstanceIndex + modelRuns == MAX_3D_INSTANCE)
-    _drawBatch();
 }
 
 void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix,
@@ -565,6 +574,35 @@ void Render::DrawString(Resource::Font font, std::string text, glm::vec2 positio
 float Render::MeasureString(Resource::Font font, std::string text, float size)
 {
   return mFontLoader->MeasureString(font, text, size);
+}
+
+void Render::_drawBatch() {
+  // std::cout << "batch" << std::endl;
+  vectPushConstants vps{glm::mat4(1.0f), glm::mat4(0.0f)};
+  vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
+                     mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                     sizeof(vectPushConstants), &vps);
+
+  switch(renderState)
+  {
+
+       case RenderState::DrawAnim3D:
+       case RenderState::Draw3D:
+         mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
+                            mPipeline3D.layout, currentModel, modelRuns,
+                            current3DInstanceIndex);
+      current3DInstanceIndex += modelRuns;
+      modelRuns = 0;
+      break;
+    case RenderState::Draw2D:
+      mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer,
+                           mPipeline3D.layout, 0, instance2Druns,
+                           current2DInstanceIndex, currentColour,
+                           currentTexOffset);
+      current2DInstanceIndex += instance2Druns;
+      instance2Druns = 0;
+      break;
+  }
 }
 
 void Render::EndDraw(std::atomic<bool> &submit) {

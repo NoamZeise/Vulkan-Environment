@@ -69,6 +69,9 @@ private:
 
   Resource::Model testModel;
   Resource::Model testWolf;
+  std::vector<Resource::ModelAnimation> wolfAnims;
+  Resource::ModelAnimation currentWolfAnim;
+  Resource::ModelAnimation secondWolfAnim;
   Resource::Texture testTex;
   Resource::Font testFont;
 };
