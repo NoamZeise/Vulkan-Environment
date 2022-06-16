@@ -59,6 +59,7 @@ void App::loadAssets() {
   testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
   currentWolfAnim = wolfAnims[0];
   secondWolfAnim = wolfAnims[1];
+  thirdWolfAnim = wolfAnims[4];
   testTex = mRender->LoadTexture("textures/error.png");
   testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
   mRender->EndResourceLoad();
@@ -104,6 +105,7 @@ void App::update() {
 
   currentWolfAnim.Update(timer);
   secondWolfAnim.Update(timer);
+  thirdWolfAnim.Update(timer);
 
   fpcam.update(input, previousInput, timer);
 
@@ -171,6 +173,17 @@ void App::draw() {
      glm::vec3(100.0f, 0, 0)),
 		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
     &secondWolfAnim
+  );
+
+  mRender->DrawAnimModel(
+		testWolf,
+    glm::translate(
+       glm::scale(
+         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(0.1f)),
+     glm::vec3(0.0f, 0, 0)),
+		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
+    &thirdWolfAnim
   );
 
 

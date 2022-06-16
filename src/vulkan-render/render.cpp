@@ -479,14 +479,13 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
     mBones.data[0].mat[i] = bones->at(i);
   }
   if(mBones.currentDynamicOffsetIndex >= MAX_ANIMATIONS_PER_FRAME)
+  {
+    std::cout << "warning, too many animation calls!\n";
     return;
+  }
   mBones.storeData(mImg);
   uint32_t offset = (mBones.currentDynamicOffsetIndex-1) * mBones.binding.bufferSize * mBones.binding.setCount;
-  ///std::cout << "offset: " << offset << std::endl;
-  vkCmdBindDescriptorSets(mSwapchain.frameData[mImg].commandBuffer,
-                          VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          mPipelineAnim3D.layout, 2, 1, &mBonesds.sets[mImg],
-                          1, &offset);
+  mPipelineAnim3D.bindDynamicDS(mSwapchain.frameData[mImg].commandBuffer, &mBonesds, mImg,  offset);
    _drawBatch();
 }
 

@@ -30,6 +30,7 @@ optimisations:
 * only buffer static object data to huge ssbo, use smaller one for things that change every frame
 * more elegant descriptor set + binding handle (too many members of render)
 *  use non host coherent memory and manually flush based on num used
+* check if animation is faster with array of shader buffers instead
 
 ## External libraries and their uses:
 

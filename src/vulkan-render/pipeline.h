@@ -38,6 +38,18 @@ public:
 		vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	}
 
+	void bindDynamicDS(VkCommandBuffer cmdBuff, DS::DescriptorSet *ds, size_t frameIndex, uint32_t dynOffset)
+	{
+		for (size_t i = 0; i < descriptorSets.size(); i++)
+			if(descriptorSets[i]->dynamicBuffer)
+				if(descriptorSets[i] == ds)
+					vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
+									 i, 1,
+									&descriptorSets[i]->sets[frameIndex],
+									1, &dynOffset
+            );
+	}
+
 	void destroy(VkDevice device)
 	{
 		vkDestroyPipeline(device, pipeline, nullptr);

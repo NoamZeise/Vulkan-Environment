@@ -1123,11 +1123,6 @@ size_t initVulkan::_createHostVisibleShaderBufferMemory(Base base, std::vector<D
 		memorySize += ds[i]->bufferSize * ds[i]->dynamicBufferCount * ds[i]->setCount;
 	}
 
-
-	//memorySize = vkhelper::correctAlignment(memorySize, physDevProps.limits.minUniformBufferOffsetAlignment);
-	std::cout << "mem size :" << memorySize << std::endl;
-
-
 	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory,
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 		VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
