@@ -85,6 +85,7 @@ struct Binding {
   size_t dataStructSize;
   size_t binding = 0;
   size_t descriptorCount = 1;
+  size_t dynamicBufferCount = 1;
 
   size_t offset;
   VkDeviceSize slotSize;
@@ -117,7 +118,7 @@ template <typename T> struct BindingAndData {
   std::vector<T> data;
 
   void setBufferProps(size_t setCount, VkDescriptorType type,
-                      DescriptorSet *set, uint32_t dataCount,
+                      DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount,
                       VkImageView *pImgViews, VkSampler *pSamplers) {
     data.resize(dataCount);
     binding.ds = set;
@@ -125,6 +126,7 @@ template <typename T> struct BindingAndData {
     binding.setCount = setCount;
     binding.dataStructSize = sizeof(T);
     binding.type = type;
+    binding.dynamicBufferCount = dynamicBufferCount;
     binding.imageViews = pImgViews;
     binding.samplers = pSamplers;
 
@@ -137,9 +139,24 @@ template <typename T> struct BindingAndData {
                                "but pSamplers was a nullptr!");
   }
 
+  void setImageViewBufferProps(size_t setCount, VkDescriptorType type,
+                      DescriptorSet *set, size_t dataCount, VkImageView *pImgViews) {
+    setBufferProps(setCount, type, set, dataCount, 1, pImgViews, nullptr);
+  }
+
+  void setSamplerBufferProps(size_t setCount, VkDescriptorType type,
+                      DescriptorSet *set, size_t dataCount, VkSampler *pSamplers) {
+    setBufferProps(setCount, type, set, dataCount, 1, nullptr, pSamplers);
+  }
+
+  void setDynamicBufferProps(size_t setCount, VkDescriptorType type,
+                      DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount) {
+    setBufferProps(setCount, type, set, dataCount, dynamicBufferCount, nullptr, nullptr);
+  }
+
   void setBufferProps(size_t setCount, VkDescriptorType type,
-                      DescriptorSet *set, uint32_t dataCount) {
-    setBufferProps(setCount, type, set, dataCount, nullptr, nullptr);
+                      DescriptorSet *set, size_t dataCount) {
+    setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr);
   }
   void storeData(size_t frameIndex) {
     for (size_t i = 0; i < data.size(); i++)

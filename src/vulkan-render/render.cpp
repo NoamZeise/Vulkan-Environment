@@ -113,12 +113,12 @@ void Render::_initFrameResources() {
                                      {&mLighting.binding},
                                      VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
-  mTextureSampler.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                 &mTexturesds, 1, nullptr,
+  mTextureSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                 &mTexturesds, 1,
                                  mTextureLoader->getSamplerP());
-  mTextureViews.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+  mTextureViews.setImageViewBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                                &mTexturesds, Resource::MAX_TEXTURES_SUPPORTED,
-                               mTextureLoader->getImageViewsP(), nullptr);
+                               mTextureLoader->getImageViewsP());
   initVulkan::DescriptorSetAndLayout(
       mBase.device, mTexturesds,
       {&mTextureSampler.binding, &mTextureViews.binding},
@@ -158,12 +158,11 @@ void Render::_initFrameResources() {
 
   // end
 
-  mOffscreenSampler.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                   &mOffscreends, 1, nullptr,
+  mOffscreenSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
+                                   &mOffscreends, 1,
                                    &offscreenSampler);
-  mOffscreenView.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                &mOffscreends, 1, &mSwapchain.offscreen.view,
-                                nullptr);
+  mOffscreenView.setImageViewBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                &mOffscreends, 1, &mSwapchain.offscreen.view);
   initVulkan::DescriptorSetAndLayout(
       mBase.device, mOffscreends,
       {&mOffscreenSampler.binding, &mOffscreenView.binding},
