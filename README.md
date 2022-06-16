@@ -28,6 +28,8 @@ optimisations:
 * use the same pipeline layout for multiple pipelines
 * unload old and load new textures while using renderer
 * only buffer static object data to huge ssbo, use smaller one for things that change every frame
+* more elegant descriptor set + binding handle (too many members of render)
+*  use non host coherent memory and manually flush based on num used
 
 ## External libraries and their uses:
 

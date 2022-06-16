@@ -1,5 +1,6 @@
 #include "render.h"
 #include "vulkan/vulkan_core.h"
+#include <stdint.h>
 
 Render::Render(GLFWwindow *window) {
   _initRender(window);
@@ -79,13 +80,11 @@ void Render::_initFrameResources() {
   size_t frameCount = mSwapchain.frameData.size();
 
   // vertex descriptor sets
-  mVP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds,
-                       1);
+  mVP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
   initVulkan::DescriptorSetAndLayout(mBase.device, mVP3Dds, {&mVP3D.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
-  mVP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds,
-                       1);
+  mVP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds, 1);
   initVulkan::DescriptorSetAndLayout(mBase.device, mVP2Dds, {&mVP2D.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
@@ -95,7 +94,7 @@ void Render::_initFrameResources() {
                                      {&mPerInstance.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
-  mBones.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mBonesds, 1);
+  mBones.setDynamicBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &mBonesds, 1, MAX_ANIMATIONS_PER_FRAME);
   initVulkan::DescriptorSetAndLayout(mBase.device, mBonesds,
                                      {&mBones.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
@@ -107,8 +106,7 @@ void Render::_initFrameResources() {
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
   // fragment descriptor sets
-  mLighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                           &mLightingds, 1);
+  mLighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds, 1);
   initVulkan::DescriptorSetAndLayout(mBase.device, mLightingds,
                                      {&mLighting.binding},
                                      VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
@@ -446,8 +444,8 @@ void Render::BeginAnim3DDraw()
       glm::transpose(glm::inverse(mVP3D.data[0].view)) *
       glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
   mLighting.storeData(mImg);
-
   mPipelineAnim3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
+  mBones.currentDynamicOffsetIndex = 0;
 }
 
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
@@ -480,8 +478,15 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
   {
     mBones.data[0].mat[i] = bones->at(i);
   }
+  if(mBones.currentDynamicOffsetIndex >= MAX_ANIMATIONS_PER_FRAME)
+    return;
   mBones.storeData(mImg);
-
+  uint32_t offset = (mBones.currentDynamicOffsetIndex-1) * mBones.binding.bufferSize * mBones.binding.setCount;
+  ///std::cout << "offset: " << offset << std::endl;
+  vkCmdBindDescriptorSets(mSwapchain.frameData[mImg].commandBuffer,
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          mPipelineAnim3D.layout, 2, 1, &mBonesds.sets[mImg],
+                          1, &offset);
    _drawBatch();
 }
 

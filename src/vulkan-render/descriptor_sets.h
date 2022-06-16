@@ -1,6 +1,7 @@
 #ifndef DESCRIPTOR_SETS_H
 #define DESCRIPTOR_SETS_H
 
+#include "vulkan/vulkan_core.h"
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -75,6 +76,7 @@ struct DescriptorSet {
   VkDescriptorSetLayout layout;
   std::vector<VkDescriptorSet> sets;
   std::vector<VkDescriptorPoolSize> poolSize;
+  bool dynamicBuffer = false;
 };
 
 struct Binding {
@@ -86,6 +88,7 @@ struct Binding {
   size_t binding = 0;
   size_t descriptorCount = 1;
   size_t dynamicBufferCount = 1;
+  size_t bufferSize = 0;
 
   size_t offset;
   VkDeviceSize slotSize;
@@ -93,13 +96,15 @@ struct Binding {
   VkImageView *imageViews;
   VkSampler *samplers;
 
-  void storeSetData(size_t frameIndex, void *data, size_t index) {
+  void storeSetData(size_t frameIndex, void *data, size_t index,  size_t dynamicOffsetIndex) {
     if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-        type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+        type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+        type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+        type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 #ifdef _MSC_VER
       std::memcpy(
-          static_cast<char *>(pointer) + offset +
-              ((frameIndex * slotSize * descriptorCount) + (index * slotSize)),
+          static_cast<char *>(pointer) + offset + dynamicOffsetIndex*setCount*bufferSize +
+              ((frameIndex * bufferSize) + (index * slotSize)),
           data, dataStructSize);
 #else
       memcpy(
@@ -116,6 +121,7 @@ struct Binding {
 template <typename T> struct BindingAndData {
   Binding binding;
   std::vector<T> data;
+  size_t currentDynamicOffsetIndex = 0;
 
   void setBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount,
@@ -151,23 +157,34 @@ template <typename T> struct BindingAndData {
 
   void setDynamicBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount) {
+    if(type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
+       type !=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+      throw std::runtime_error("set Dynamic Buffer, but type wasn't storage or uniform buffer dynamic");
     setBufferProps(setCount, type, set, dataCount, dynamicBufferCount, nullptr, nullptr);
+    binding.ds->dynamicBuffer = true;
   }
 
   void setBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount) {
     setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr);
   }
-  void storeData(size_t frameIndex) {
+  void storeData(size_t frameIndex)
+  {
     for (size_t i = 0; i < data.size(); i++)
       storeData(frameIndex, i);
+
+    if(binding.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+       binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+    {
+      currentDynamicOffsetIndex++;
+    }
   }
 
   void storeData(size_t frameIndex, size_t arrayIndex) {
     if (arrayIndex >= data.size())
       throw std::runtime_error("Descriptor Set Binding: tried to store data in "
                                "an index outside of the data range");
-    binding.storeSetData(frameIndex, &data[arrayIndex], arrayIndex);
+    binding.storeSetData(frameIndex, &data[arrayIndex], arrayIndex, currentDynamicOffsetIndex);
   }
 };
 

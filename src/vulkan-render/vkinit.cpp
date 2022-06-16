@@ -800,7 +800,11 @@ void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds
 		std::vector<VkWriteDescriptorSet> writes(ds[descI]->setCount, {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
 		std::vector<VkDescriptorBufferInfo> buffInfos;
 		std::vector<VkDescriptorImageInfo> imageInfos;
-		if(ds[descI]->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER || ds[descI]->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		if( ds[descI]->type ==  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+			ds[descI]->type == 	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+			ds[descI]->type == 	VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+			ds[descI]->type == 	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+        )
 		{
 			buffInfos.resize(ds[descI]->setCount * ds[descI]->descriptorCount);
 			ds[descI]->pointer = pointer;
@@ -808,6 +812,7 @@ void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds
 		if(ds[descI]->type == VK_DESCRIPTOR_TYPE_SAMPLER || ds[descI]->type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
 			imageInfos.resize(ds[descI]->setCount * ds[descI]->descriptorCount);
 
+		int buffIndex = 0;
 		for (size_t i = 0; i < ds[descI]->setCount; i++)
 		{
 			writes[i].dstSet = ds[descI]->ds->sets[i];
@@ -819,12 +824,16 @@ void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds
 			{
 				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
 				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
 					for (size_t j = 0; j < ds[descI]->descriptorCount; j++)
 					{
-						size_t buffIndex = (ds[descI]->descriptorCount * i) + j;
 						buffInfos[buffIndex].buffer = *buffer;
-						buffInfos[buffIndex].offset = ds[descI]->offset + (ds[descI]->slotSize * ds[descI]->descriptorCount * i) + (ds[descI]->slotSize * j);
-						buffInfos[buffIndex].range = ds[descI]->slotSize;
+						buffInfos[buffIndex].offset = ds[descI]->offset +
+							                         (ds[descI]->bufferSize * i) +
+													 (ds[descI]->slotSize * j);
+   						buffInfos[buffIndex].range = ds[descI]->slotSize;
+						buffIndex++;
 					}
 					writes[i].pBufferInfo = buffInfos.data() + (i * ds[descI]->descriptorCount);
 					break;
@@ -845,6 +854,8 @@ void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds
 					}
 					writes[i].pImageInfo = imageInfos.data() + (i * ds[descI]->descriptorCount);
 					break;
+				default:
+					throw std::runtime_error("descriptor type not recognized, in prepare shader buffer sets");
 			}
 		}
 		vkUpdateDescriptorSets(base.device, writes.size(), writes.data(), 0, nullptr);
@@ -1083,22 +1094,39 @@ void initVulkan::_createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, si
 
 size_t initVulkan::_createHostVisibleShaderBufferMemory(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
 {
+	VkPhysicalDeviceProperties physDevProps;
+	vkGetPhysicalDeviceProperties(base.physicalDevice, &physDevProps);
+
 	size_t memorySize = 0;
 	for (size_t i = 0; i < ds.size(); i++)
 	{
-		if(ds[i]->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER && ds[i]->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+		if(ds[i]->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER &&
+		   ds[i]->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
+		   ds[i]->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER &&
+		   ds[i]->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+		{
 			continue;
-		VkDeviceSize slot = ds[i]->dataStructSize;
-		VkPhysicalDeviceProperties physDevProps;
-		vkGetPhysicalDeviceProperties(base.physicalDevice, &physDevProps);
-		if (slot % physDevProps.limits.minUniformBufferOffsetAlignment != 0)
-			slot = slot + physDevProps.limits.minUniformBufferOffsetAlignment
-			- (slot % physDevProps.limits.minUniformBufferOffsetAlignment);
+		}
 
-		ds[i]->slotSize = slot;
+		VkDeviceSize alignment;
+		if(ds[i]->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+		   ds[i]->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+			alignment = physDevProps.limits.minStorageBufferOffsetAlignment;
+		else
+			alignment = physDevProps.limits.minUniformBufferOffsetAlignment;
+
+		ds[i]->slotSize = vkhelper::correctAlignment(ds[i]->dataStructSize, alignment);
+		memorySize = vkhelper::correctAlignment(memorySize, alignment);
+
 		ds[i]->offset = memorySize;
-		memorySize += ds[i]->slotSize * ds[i]->descriptorCount * ds[i]->setCount;
+		ds[i]->bufferSize = ds[i]->slotSize * ds[i]->descriptorCount;
+		memorySize += ds[i]->bufferSize * ds[i]->dynamicBufferCount * ds[i]->setCount;
 	}
+
+
+	//memorySize = vkhelper::correctAlignment(memorySize, physDevProps.limits.minUniformBufferOffsetAlignment);
+	std::cout << "mem size :" << memorySize << std::endl;
+
 
 	vkhelper::createBufferAndMemory(base, memorySize, buffer, memory,
 		VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,

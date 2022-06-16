@@ -47,5 +47,11 @@ void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize
 		throw std::runtime_error("failed to allocate memory of size " + size);
 }
 
+VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
+{
+	if (desiredSize % alignment != 0)
+		desiredSize = desiredSize + alignment - (desiredSize % alignment);
+	return desiredSize;
+}
 
 }//namespace end

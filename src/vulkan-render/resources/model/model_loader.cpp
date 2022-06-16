@@ -41,6 +41,8 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
         }
     }
 
+    importer.FreeScene();
+
     return model;            
 }
 

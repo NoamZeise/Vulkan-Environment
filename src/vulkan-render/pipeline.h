@@ -26,10 +26,14 @@ public:
 
 	void begin(VkCommandBuffer cmdBuff, size_t frameIndex)
 	{
-		//bind descriptor sets
-		for (unsigned int i = 0; i < descriptorSets.size(); i++)
-			vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
-									 i, 1, &descriptorSets[i]->sets[frameIndex], 0, nullptr);
+		//bind non dynamic descriptor sets
+		for (size_t i = 0; i < descriptorSets.size(); i++)
+			if(!descriptorSets[i]->dynamicBuffer)
+				vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
+									 i, 1,
+									&descriptorSets[i]->sets[frameIndex],
+									0, nullptr
+            );
 		//bind graphics pipeline
 		vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	}
