@@ -4,7 +4,8 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 ## Features:
 
 * Simultaneous 2D and 3D rendering
-* Import and Draw .fbx models -> only supports base colour image textures
+* Import and Draw .fbx models -> only supports diffuse image textures
+* Skeletal animation of .fbx models
 * Import and Draw image textures
 * Import and Draw fonts
 
@@ -20,7 +21,6 @@ bugs:
 * make first-person camera feel better
 
 features:
-* skeletal animation (and distinguish between animated and non-animated draws)
 * make multiple render passes optional
 
 optimisations:
