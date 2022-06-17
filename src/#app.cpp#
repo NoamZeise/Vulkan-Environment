@@ -10,8 +10,6 @@ App::App() {
   if (!glfwInit())
     throw std::runtime_error("failed to initialise glfw!");
 
-  Render::SetGLFWWindowHints();
-  
   mWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "Vulkan App", nullptr, nullptr);
   if (!mWindow)
   {

@@ -16,6 +16,7 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(Vulkan REQUIRED)
 
 if (UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     find_package(X11 REQUIRED)
     link_libraries(${X11_LIBRARIES})
     add_definitions(-DVK_USE_PLATFORM_XLIB_KHR)
