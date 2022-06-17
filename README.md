@@ -19,6 +19,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 ## Todo list:
 bugs:
 * make first-person camera feel normal when fullscreen
+* linux multiple animations not working!!!
 
 features:
 * make multiple render passes optional
