@@ -18,7 +18,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 
 ## Todo list:
 bugs:
-* make first-person camera feel better
+* make first-person camera feel normal when fullscreen
 
 features:
 * make multiple render passes optional
