@@ -14,7 +14,7 @@ namespace Resource
 	Font FontLoader::LoadFont(std::string file, TextureLoader* texLoader)
 	{
 		fonts.push_back(new LoadedFont(file, texLoader));
-		return Font(fonts.size() - 1);
+		return Font(static_cast<unsigned int>(fonts.size() - 1));
 	}
 
 	std::vector<QuadDraw> FontLoader::DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
@@ -108,7 +108,7 @@ bool FontLoader::LoadedFont::loadCharacter(TextureLoader* textureLoader, FT_Face
 			Resource::Texture(0, glm::vec2(0, 0), "NULL"),
 			glm::vec2(face->glyph->bitmap.width / (double)SIZE, face->glyph->bitmap.rows / (double)SIZE),
 			glm::vec2(face->glyph->bitmap_left / (double)SIZE, face->glyph->bitmap_top / (double)SIZE),
-			(face->glyph->advance.x >> 6) / (double)SIZE
+			static_cast<float>((face->glyph->advance.x >> 6) / (double)SIZE)
 		)));
 		return true;
 	}
@@ -118,7 +118,7 @@ bool FontLoader::LoadedFont::loadCharacter(TextureLoader* textureLoader, FT_Face
 			Resource::Texture(0, glm::vec2(0, 0), "NULL"),
 			glm::vec2(face->glyph->bitmap.width / (double)SIZE, face->glyph->bitmap.rows / (double)SIZE),
 			glm::vec2(face->glyph->bitmap_left / (double)SIZE, face->glyph->bitmap_top / (double)SIZE),
-			(face->glyph->advance.x >> 6) / (double)SIZE
+			static_cast<float>((face->glyph->advance.x >> 6) / (double)SIZE)
 		)));
 		return true;
 	}
@@ -146,7 +146,7 @@ bool FontLoader::LoadedFont::loadCharacter(TextureLoader* textureLoader, FT_Face
 		texture,
 		glm::vec2(face->glyph->bitmap.width / (double)SIZE, face->glyph->bitmap.rows / (double)SIZE),
 		glm::vec2(face->glyph->bitmap_left / (double)SIZE, face->glyph->bitmap_top / (double)SIZE),
-		(face->glyph->advance.x >> 6) / (double)SIZE
+		static_cast<float>((face->glyph->advance.x >> 6) / (double)SIZE)
 	)));
 
 

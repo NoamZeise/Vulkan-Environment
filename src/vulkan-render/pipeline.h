@@ -30,7 +30,7 @@ public:
 		for (size_t i = 0; i < descriptorSets.size(); i++)
 			if(!descriptorSets[i]->dynamicBuffer)
 				vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
-									 i, 1,
+									 static_cast<uint32_t>(i), 1,
 									&descriptorSets[i]->sets[frameIndex],
 									0, nullptr
             );
@@ -44,7 +44,7 @@ public:
 			if(descriptorSets[i]->dynamicBuffer)
 				if(descriptorSets[i] == ds)
 					vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
-									 i, 1,
+									static_cast<uint32_t>(i), 1,
 									&descriptorSets[i]->sets[frameIndex],
 									1, &dynOffset
             );

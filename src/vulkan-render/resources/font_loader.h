@@ -35,7 +35,7 @@ public:
 private:
 struct Character
 {
-	Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, double advance)
+	Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, float advance)
 	{
 		this->texture = texture;
 		this->size = size;
@@ -45,7 +45,7 @@ struct Character
 	Resource::Texture texture;
 	glm::vec2 size;
 	glm::vec2 bearing;
-	double advance;
+	float advance;
 };
 
 class LoadedFont

@@ -23,7 +23,7 @@ private:
     void processNode(const ModelInfo::AnimNodes &animNode, glm::mat4 parentMat);
     glm::mat4 boneTransform (const ModelInfo::AnimNodes &animNode);
 
-    inline float getFactor(float t1, float t2)
+    inline double getFactor(double t1, double t2)
     {
         return (currentTime - t1) / (t2 - t1);
     }

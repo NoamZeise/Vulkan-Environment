@@ -43,7 +43,7 @@ namespace AnimationKey
 
 struct Frame
 {
-  float time;
+  double time;
 };
 
 struct Position : public Frame

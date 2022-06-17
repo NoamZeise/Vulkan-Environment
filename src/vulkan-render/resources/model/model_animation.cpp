@@ -67,7 +67,7 @@ glm::mat4 ModelAnimation::bonePos(const std::vector<ModelInfo::AnimationKey::Pos
     //std::cout << "frames: " << posFrames.size() << std::endl;
     //std::cout  << "first: " << first << "  second: " << second << std::endl;
 
-    float factor = getFactor(posFrames[first].time, posFrames[second].time);
+    double factor = getFactor(posFrames[first].time, posFrames[second].time);
     return glm::translate(
         glm::mat4(1.0f),
         glm::mix(posFrames[first].Pos, posFrames[second].Pos, factor)
@@ -91,7 +91,7 @@ glm::mat4 ModelAnimation::boneRot(const std::vector<ModelInfo::AnimationKey::Rot
     }
     int first = (second - 1) % rotFrames.size();
 
-    float factor = getFactor(rotFrames[first].time, rotFrames[second].time);
+    float factor = static_cast<float>(getFactor(rotFrames[first].time, rotFrames[second].time));
     glm::quat rot = glm::slerp(rotFrames[first].Rot, rotFrames[second].Rot, factor);
     return glm::toMat4(glm::normalize(rot));
 }
@@ -113,7 +113,7 @@ glm::mat4 ModelAnimation::boneScl(const std::vector<ModelInfo::AnimationKey::Sca
         }
     }
     int first = (second - 1) % sclFrames.size();
-    float factor = getFactor(sclFrames[first].time, sclFrames[second].time);
+    double factor = getFactor(sclFrames[first].time, sclFrames[second].time);
     glm::vec3 scale = glm::mix(sclFrames[first].scale, sclFrames[second].scale, factor);
     return glm::scale(glm::mat4(1.0f), scale);
 }

@@ -104,10 +104,10 @@ private:
 
 	struct ModelInGPU
 	{
-		unsigned int vertexCount = 0;
-		unsigned int indexCount  = 0;
-		unsigned int vertexOffset = 0;
-		unsigned int indexOffset = 0;
+		size_t vertexCount = 0;
+		size_t indexCount  = 0;
+		size_t vertexOffset = 0;
+		size_t indexOffset = 0;
 		std::vector<MeshInfo> meshes;
 
 		std::vector<ModelAnimation> animations;
@@ -141,11 +141,11 @@ private:
 	VkBuffer buffer;
 	VkDeviceMemory memory;
 
-	unsigned int vertexDataSize = 0;
+	size_t vertexDataSize = 0;
 
-	unsigned int indexDataSize = 0;
+	size_t indexDataSize = 0;
 
-	unsigned int currentIndex = 0;
+	size_t currentIndex = 0;
 
 	bool boundThisFrame = false;
 	ModelType prevBoundType;

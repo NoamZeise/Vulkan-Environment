@@ -32,7 +32,7 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
     if(scene->HasAnimations())
     {
         model.animatedModel = true;
-        for(int i = 0; i < scene->mNumAnimations; i++)
+        for(size_t i = 0; i < scene->mNumAnimations; i++)
         {
         #ifndef NDEBUG
             std::cout << "loading animation: " << scene->mAnimations[i]->mName.C_Str() << std::endl;
@@ -54,11 +54,12 @@ void ModelLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiSce
     model->nodes.push_back(ModelInfo::Node{});
     model->nodes.back().parentNode = parentNode;
     model->nodes.back().transform = aiToGLM(node->mTransformation);
-    int thisID = model->nodes.size() - 1;
+    int thisID = static_cast<int>(model->nodes.size() - 1);
     model->nodeMap[node->mName.C_Str()] = thisID;
     if(parentNode >= 0)
+    {
         model->nodes[parentNode].children.push_back(thisID);
-
+    }
 	for(unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
@@ -77,7 +78,7 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
     mesh->bindTransform = aiToGLM(transform);
 
     auto material = scene->mMaterials[aimesh->mMaterialIndex];
-    for( int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
+    for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
     {
         aiString texPath;
         material->GetTexture(aiTextureType_DIFFUSE, i, &texPath);
@@ -111,7 +112,7 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
 	}
 
     //bones - relies on verticies
-    for(int i = 0; i < aimesh->mNumBones; i++)
+    for(unsigned int i = 0; i < aimesh->mNumBones; i++)
     {
         auto aibone = aimesh->mBones[i];
         unsigned int boneID;
@@ -119,14 +120,14 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
         if(model->boneMap.find(boneName) == model->boneMap.end())
         {
             model->bones.push_back(aiToGLM(aibone->mOffsetMatrix));
-            boneID = model->bones.size() - 1;
+            boneID = static_cast<unsigned int>(model->bones.size() - 1);
             model->boneMap[boneName] = boneID;
         }
         else
             boneID = model->boneMap[boneName];
 
 
-        for(int bone = 0; bone < aibone->mNumWeights; bone++)
+        for(unsigned int bone = 0; bone < aibone->mNumWeights; bone++)
         {
             auto vertexWeight = aibone->mWeights[bone];
             mesh->verticies[vertexWeight.mVertexId].BoneIDs.push_back(boneID);
@@ -148,7 +149,7 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
 void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
 {
     model->animations.push_back(ModelInfo::Animation());
-    model->animationMap[aiAnim->mName.C_Str()] = model->animations.size();
+    model->animationMap[aiAnim->mName.C_Str()] = static_cast<unsigned int>(model->animations.size());
     auto anim = &model->animations[model->animations.size() - 1];
     anim->name = aiAnim->mName.C_Str();
     //copy nodes from model
@@ -167,7 +168,7 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
     }
 
     //set animation props for anim nodes
-    for(int i = 0 ; i < aiAnim->mNumChannels; i++)
+    for(unsigned int i = 0 ; i < aiAnim->mNumChannels; i++)
     {
         auto channel = aiAnim->mChannels[i];
         std::string nodeName = channel->mNodeName.C_Str();
@@ -181,7 +182,7 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
         }
         //else bone directly affects no nodes;
 
-        for(int pos = 0; pos < channel->mNumPositionKeys; pos++)
+        for(unsigned int pos = 0; pos < channel->mNumPositionKeys; pos++)
         {
             auto posKey = channel->mPositionKeys[pos];
             node->positions.push_back(ModelInfo::AnimationKey::Position{});
@@ -189,7 +190,7 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
             node->positions.back().time = posKey.mTime;
         }
 
-        for(int rot = 0; rot < channel->mNumRotationKeys; rot++)
+        for(unsigned int rot = 0; rot < channel->mNumRotationKeys; rot++)
         {
             auto rotKey = channel->mRotationKeys[rot];
             node->rotationsQ.push_back(ModelInfo::AnimationKey::RotationQ{});
@@ -197,7 +198,7 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
             node->rotationsQ.back().time = rotKey.mTime;
         }
 
-        for(int scl = 0; scl < channel->mNumScalingKeys; scl++)
+        for(unsigned int scl = 0; scl < channel->mNumScalingKeys; scl++)
         {
             auto scaleKey = channel->mScalingKeys[scl];
             node->scalings.push_back(ModelInfo::AnimationKey::Scaling{});

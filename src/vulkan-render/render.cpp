@@ -360,7 +360,7 @@ void Render::_startDraw()
   std::array<VkClearValue, 2> clearColours{};
   clearColours[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
   clearColours[1].depthStencil = {1.0f, 0};
-  renderPassInfo.clearValueCount = clearColours.size();
+  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearColours.size());
   renderPassInfo.pClearValues = clearColours.data();
 
   vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer,
@@ -484,7 +484,7 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
     return;
   }
   mBones.storeData(mImg);
-  uint32_t offset = (mBones.currentDynamicOffsetIndex-1) * mBones.binding.bufferSize * mBones.binding.setCount;
+  uint32_t offset = static_cast<uint32_t>((mBones.currentDynamicOffsetIndex-1) * mBones.binding.bufferSize * mBones.binding.setCount);
   mPipelineAnim3D.bindDynamicDS(mSwapchain.frameData[mImg].commandBuffer, &mBonesds, mImg,  offset);
    _drawBatch();
 }
@@ -654,7 +654,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   std::array<VkClearValue, 1> clearColours{};
   clearColours[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-  renderPassInfo.clearValueCount = clearColours.size();
+  renderPassInfo.clearValueCount = static_cast<uint32_t>(clearColours.size());
   renderPassInfo.pClearValues = clearColours.data();
 
   vkCmdBeginRenderPass(mSwapchain.frameData[mImg].commandBuffer,
@@ -693,12 +693,12 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   // submit draw command
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-  submitInfo.waitSemaphoreCount = submitWaitSemaphores.size();
+  submitInfo.waitSemaphoreCount = static_cast<uint32_t>(submitWaitSemaphores.size());
   submitInfo.pWaitSemaphores = submitWaitSemaphores.data();
   submitInfo.pWaitDstStageMask = waitStages.data();
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &mSwapchain.frameData[mImg].commandBuffer;
-  submitInfo.signalSemaphoreCount = submitSignalSemaphores.size();
+  submitInfo.signalSemaphoreCount = static_cast<uint32_t>(submitSignalSemaphores.size());
   submitInfo.pSignalSemaphores = submitSignalSemaphores.data();
   if (vkQueueSubmit(mBase.queue.graphicsPresentQueue, 1, &submitInfo,
                     mSwapchain.frameData[mImg].frameFinishedFen) != VK_SUCCESS)
@@ -706,7 +706,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   // submit present command
   VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
-  presentInfo.waitSemaphoreCount = submitSignalSemaphores.size();
+  presentInfo.waitSemaphoreCount = static_cast<uint32_t>(submitSignalSemaphores.size());
   presentInfo.pWaitSemaphores = submitSignalSemaphores.data();
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = &mSwapchain.swapChain;

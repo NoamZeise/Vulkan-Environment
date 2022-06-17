@@ -255,7 +255,7 @@ void TextureLoader::endLoading()
 		int32_t mipW = tex.width;
 		int32_t mipH = tex.height;
 
-		for (size_t i = 1; i < tex.mipLevels; i++) //start at one as 0 is original image
+		for (uint32_t i = 1; i < tex.mipLevels; i++) //start at one as 0 is original image
 		{
 			//transfer previous image to be optimal for image transfer source
 			barrier.subresourceRange.baseMipLevel = i - 1;
@@ -366,7 +366,7 @@ void TextureLoader::endLoading()
 
 	vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
 
-	for(size_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
+	for(uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
 	{
 		imageViews[i] = _getImageView(i);
 	}

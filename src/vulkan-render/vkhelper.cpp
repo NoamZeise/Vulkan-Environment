@@ -7,7 +7,7 @@ uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBit
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-	for (size_t i = 0; i < memProperties.memoryTypeCount; i++)
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 	{
 		if (memoryTypeBits & (1 << i)
 			&& memProperties.memoryTypes[i].propertyFlags & properties)
@@ -29,7 +29,7 @@ void createBufferAndMemory(Base base, VkDeviceSize size, VkBuffer* buffer, VkDev
 	bufferInfo.flags = 0;
 
 	if (vkCreateBuffer(base.device, &bufferInfo, nullptr, buffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create buffer of size " + size);
+		throw std::runtime_error("failed to create buffer of size " + std::to_string(size));
 
 	VkMemoryRequirements memReq;
 	vkGetBufferMemoryRequirements(base.device, *buffer, &memReq);
@@ -44,7 +44,7 @@ void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize
 	memInfo.memoryTypeIndex = findMemoryIndex(physicalDevice, memoryTypeBits, properties);
 
 	if (vkAllocateMemory(device, &memInfo, nullptr, memory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory of size " + size);
+		throw std::runtime_error("failed to allocate memory of size " + std::to_string(size));
 }
 
 VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)

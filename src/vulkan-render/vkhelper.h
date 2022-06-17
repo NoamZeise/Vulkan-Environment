@@ -2,6 +2,7 @@
 #define VKHELPER_H
 
 #include <stdexcept>
+#include <string>
 
 #include "render_structs.h"
 #include "descriptor_sets.h"

@@ -99,9 +99,14 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
-		vkCmdDrawIndexed(cmdBuff, modelInfo->meshes[i].indexCount, count,
-			modelInfo->meshes[i].indexOffset + modelInfo->indexOffset,
-			modelInfo->meshes[i].vertexOffset + modelInfo->vertexOffset, instanceOffset);
+		vkCmdDrawIndexed(
+			cmdBuff,
+			static_cast<uint32_t>(modelInfo->meshes[i].indexCount),
+			static_cast<uint32_t>(count),
+			static_cast<uint32_t>(modelInfo->meshes[i].indexOffset + modelInfo->indexOffset),
+			static_cast<uint32_t>(modelInfo->meshes[i].vertexOffset + modelInfo->vertexOffset),
+		    static_cast<uint32_t>(instanceOffset)
+            );
 	}
 }
 
@@ -117,9 +122,13 @@ void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
 
 		ModelInGPU *modelInfo = &models[0];
-		vkCmdDrawIndexed(cmdBuff, modelInfo->meshes[0].indexCount, count,
-			modelInfo->meshes[0].indexOffset + modelInfo->indexOffset,
-			modelInfo->meshes[0].vertexOffset + modelInfo->vertexOffset, instanceOffset);
+		vkCmdDrawIndexed(cmdBuff,
+			static_cast<uint32_t>(modelInfo->meshes[0].indexCount),
+			static_cast<uint32_t>(count),
+			static_cast<uint32_t>(modelInfo->meshes[0].indexOffset + modelInfo->indexOffset),
+			static_cast<uint32_t>(modelInfo->meshes[0].vertexOffset + modelInfo->vertexOffset),
+			static_cast<uint32_t>(instanceOffset)
+        );
 }
 
 void ModelRender::loadQuad()
@@ -153,7 +162,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 
 	ModelInfo::Model loadM = modelLoader.LoadModel(path);
 
-	Model model(currentIndex);
+	Model model(static_cast<uint32_t>(currentIndex));
 
 	//TODO reuse more for animated vs static
 	if(loadM.animations.size() == 0 || pGetAnimations == nullptr)
@@ -161,7 +170,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 		loaded3D.models.push_back(LoadedModel<Vertex3D>());
 		auto ldModel = &loaded3D.models[loaded3D.models.size() - 1];
 		ldModel->directory = path.substr(0, path.find_last_of('/'));
-		ldModel->ID = currentIndex;
+		ldModel->ID = static_cast<uint32_t>(currentIndex);
 		for(int mesh = 0; mesh < loadM.meshes.size(); mesh++)
 		{
 			ldModel->meshes.push_back(new Mesh<Vertex3D>{});
@@ -192,7 +201,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 		loadedAnim3D.models.push_back(LoadedModel<VertexAnim3D>());
 		auto ldModel = &loadedAnim3D.models[loadedAnim3D.models.size() - 1];
 		ldModel->directory = path.substr(0, path.find_last_of('/'));
-		ldModel->ID = currentIndex;
+		ldModel->ID = static_cast<uint32_t>(currentIndex);
 		for(auto& mesh : loadM.meshes)
 		{
 			ldModel->meshes.push_back(new Mesh<VertexAnim3D>{});
@@ -272,7 +281,7 @@ template <class T_Vert >
 void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 {
 	pGroup->vertexDataOffset = vertexDataSize;
-	int modelVertexOffset = 0;
+	size_t modelVertexOffset = 0;
 	for(size_t i = 0; i < pGroup->models.size(); i++)
 	{
 		models[pGroup->models[i].ID] = ModelInGPU();
@@ -296,10 +305,10 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 		}
 		modelVertexOffset += model->vertexCount;
 
-		for(int anim = 0; anim < pGroup->models[i].animations.size(); anim++)
+		for(size_t anim = 0; anim < pGroup->models[i].animations.size(); anim++)
 		{
 			model->animations.push_back(pGroup->models[i].animations[anim]);
-			model->animationMap[pGroup->models[i].animations[anim].getName()] = pGroup->models[i].animations.size() - 1;
+			model->animationMap[pGroup->models[i].animations[anim].getName()] = static_cast<int>(pGroup->models[i].animations.size() - 1);
 		}
 
 	}
