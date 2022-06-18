@@ -2,46 +2,50 @@
 #include "vulkan/vulkan_core.h"
 #include <stdint.h>
 
-Render::Render(GLFWwindow *window) {
+Render::Render(GLFWwindow *window)
+{
   _initRender(window);
   targetResolution = glm::vec2(mSwapchain.swapchainExtent.width,
                                mSwapchain.swapchainExtent.height);
 }
 
-Render::Render(GLFWwindow *window, glm::vec2 target) {
+Render::Render(GLFWwindow *window, glm::vec2 target)
+{
   _initRender(window);
   targetResolution = target;
 }
 
-void Render::_initRender(GLFWwindow *window) {
+void Render::_initRender(GLFWwindow *window)
+{
   mWindow = window;
   initVulkan::Instance(&mInstance);
 #ifndef NDEBUG
   initVulkan::DebugMessenger(mInstance, &mDebugMessenger);
 #endif
-  if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) !=
-      VK_SUCCESS)
+  
+  if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
-  initVulkan::Device(mInstance, mBase.physicalDevice, &mBase.device, mSurface,
-                     &mBase.queue);
+  
+  initVulkan::Device(
+    mInstance,
+    mBase.physicalDevice,
+    &mBase.device,
+    mSurface,
+    &mBase.queue
+  );
+  
   // create general command pool
-  VkCommandPoolCreateInfo commandPoolInfo{
-      VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+  VkCommandPoolCreateInfo commandPoolInfo {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
   commandPoolInfo.queueFamilyIndex = mBase.queue.graphicsPresentFamilyIndex;
-
-  if (vkCreateCommandPool(mBase.device, &commandPoolInfo, nullptr,
-                          &mGeneralCommandPool) != VK_SUCCESS)
+  if (vkCreateCommandPool(mBase.device, &commandPoolInfo, nullptr, &mGeneralCommandPool) != VK_SUCCESS)
     throw std::runtime_error("failed to create command pool");
 
   // create transfer command buffer
-  VkCommandBufferAllocateInfo commandBufferInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+  VkCommandBufferAllocateInfo commandBufferInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   commandBufferInfo.commandPool = mGeneralCommandPool;
   commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   commandBufferInfo.commandBufferCount = 1;
-
-  if (vkAllocateCommandBuffers(mBase.device, &commandBufferInfo,
-                               &mTransferCommandBuffer))
+  if (vkAllocateCommandBuffers(mBase.device, &commandBufferInfo, &mTransferCommandBuffer))
     throw std::runtime_error("failed to allocate command buffer");
 
   mModelLoader = new Resource::ModelRender(mBase, mGeneralCommandPool);
@@ -50,36 +54,46 @@ void Render::_initRender(GLFWwindow *window) {
   mTextureLoader->LoadTexture("textures/error.png");
 }
 
-Render::~Render() {
+Render::~Render()
+{
   vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
+  
   delete mTextureLoader;
   delete mModelLoader;
   delete mFontLoader;
+  
   _destroyFrameResources();
   vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
   initVulkan::DestroySwapchain(&mSwapchain, mBase.device);
   vkDestroyDevice(mBase.device, nullptr);
   vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
 #ifndef NDEBUG
-  initVulkan::DestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger,
-                                            nullptr);
+  initVulkan::DestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger,nullptr);
 #endif
   vkDestroyInstance(mInstance, nullptr);
 }
 
-void Render::_initFrameResources() {
-  initVulkan::Swapchain(mBase.device, mBase.physicalDevice, mSurface,
-                        &mSwapchain, mWindow,
-                        mBase.queue.graphicsPresentFamilyIndex);
-
-  initVulkan::RenderPass(mBase.device, &mRenderPass, mSwapchain, false);
-  initVulkan::RenderPass(mBase.device, &mFinalRenderPass, mSwapchain, true);
-  initVulkan::Framebuffers(mBase.device, &mSwapchain, mRenderPass, false);
-  initVulkan::Framebuffers(mBase.device, &mSwapchain, mFinalRenderPass, true);
-
+void Render::_initFrameResources()
+{
+  initVulkan::Swapchain(
+      mBase.device,
+      mBase.physicalDevice,
+      mSurface,
+      &mSwapchain,
+      mWindow,
+      mBase.queue.graphicsPresentFamilyIndex
+  );
   size_t frameCount = mSwapchain.frameData.size();
 
-  // vertex descriptor sets
+  initVulkan::RenderPass(  mBase.device, &mRenderPass,  mSwapchain, false);
+  initVulkan::Framebuffers(mBase.device,  mRenderPass, &mSwapchain, false);
+  initVulkan::RenderPass(  mBase.device, &mFinalRenderPass,  mSwapchain, true);
+  initVulkan::Framebuffers(mBase.device,  mFinalRenderPass, &mSwapchain, true);
+
+  ///set shader  descripor sets
+
+  ///vertex descripor sets
+  
   mVP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
   initVulkan::DescriptorSetAndLayout(mBase.device, mVP3Dds, {&mVP3D.binding},
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
@@ -106,6 +120,7 @@ void Render::_initFrameResources() {
                                      VK_SHADER_STAGE_VERTEX_BIT, frameCount);
 
   // fragment descriptor sets
+  
   mLighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds, 1);
   initVulkan::DescriptorSetAndLayout(mBase.device, mLightingds,
                                      {&mLighting.binding},
@@ -127,53 +142,50 @@ void Render::_initFrameResources() {
   initVulkan::DescriptorSetAndLayout(mBase.device, mPer2Dfragds,
                                      {&mPer2Dfrag.binding},
                                      VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+  
+  // render offscreen to tex, then  appy  to quad in final shader
+  offscreenSampler = vkhelper::createTextureSampler(mBase.device, mBase.physicalDevice, 1.0f, false);
 
-  // temp, move somewhere else later
-
-  VkPhysicalDeviceProperties deviceProps{};
-  vkGetPhysicalDeviceProperties(mBase.physicalDevice, &deviceProps);
-  VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = samplerInfo.addressModeU;
-  samplerInfo.addressModeW = samplerInfo.addressModeU;
-  if (settings::PIXELATED) {
-    samplerInfo.magFilter = VK_FILTER_NEAREST;
-    samplerInfo.minFilter = VK_FILTER_NEAREST;
-  } else {
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-  }
-  samplerInfo.maxAnisotropy = 1.0f;
-  samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  samplerInfo.mipLodBias = 0.0f;
-  samplerInfo.maxLod = 1.0f;
-  samplerInfo.minLod = 0.0f;
-  if (vkCreateSampler(mBase.device, &samplerInfo, nullptr, &offscreenSampler) !=
-      VK_SUCCESS)
-    throw std::runtime_error("Failed create sampler");
-
-  // end
-
-  mOffscreenSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                   &mOffscreends, 1,
-                                   &offscreenSampler);
-  mOffscreenView.setImageViewBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                &mOffscreends, 1, &mSwapchain.offscreen.view);
+  mOffscreenSampler.setSamplerBufferProps(
+       frameCount,
+       VK_DESCRIPTOR_TYPE_SAMPLER,
+       &mOffscreends, 1,
+       &offscreenSampler
+  );
+  mOffscreenView.setImageViewBufferProps(
+       frameCount,
+       VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+       &mOffscreends,
+       1,
+       &mSwapchain.offscreen.view
+  );
+  
   initVulkan::DescriptorSetAndLayout(
       mBase.device, mOffscreends,
       {&mOffscreenSampler.binding, &mOffscreenView.binding},
       VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
 
+  // create memory mapped buffer for all descriptor set bindings
   initVulkan::PrepareShaderBufferSets(
       mBase,
-      {&mVP3D.binding, &mVP2D.binding, &mPerInstance.binding, &mBones.binding,
-       &mPer2Dvert.binding, &mLighting.binding, &mTextureSampler.binding,
-       &mTextureViews.binding, &mPer2Dfrag.binding, &mOffscreenSampler.binding,
-       &mOffscreenView.binding},
-      &mShaderBuffer, &mShaderMemory);
+      {
+        &mVP3D.binding,
+        &mVP2D.binding,
+        &mPerInstance.binding,
+        &mBones.binding,
+        &mPer2Dvert.binding,
+        &mLighting.binding,
+        &mTextureSampler.binding,
+        &mTextureViews.binding,
+        &mPer2Dfrag.binding,
+        &mOffscreenSampler.binding,
+        &mOffscreenView.binding
+      },
+      &mShaderBuffer, &mShaderMemory
+  );
 
+  // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
+  
   initVulkan::GraphicsPipeline(
       mBase.device, &mPipeline3D, mSwapchain, mRenderPass,
       {&mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},
@@ -182,7 +194,7 @@ void Render::_initFrameResources() {
         sizeof(fragPushConstants)}},
       "shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false,
       Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
-);
+  );
 
   initVulkan::GraphicsPipeline(
     mBase.device, &mPipelineAnim3D, mSwapchain, mRenderPass,
@@ -200,15 +212,20 @@ void Render::_initFrameResources() {
        {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
         sizeof(fragPushConstants)}},
       "shaders/vflat.spv", "shaders/fflat.spv", true, false,
-      Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions());
+      Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
+  );
 
   initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain,
                                mFinalRenderPass, {&mOffscreends}, {},
                                "shaders/vfinal.spv", "shaders/ffinal.spv",
                                false, true,
-                               Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions());
+                               Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
+  );
+
 
   _updateViewProjectionMatrix();
+
+  //set initial data
   mVP2D.data[0].view = glm::mat4(1.0f);
   for (size_t i = 0; i < MAX_3D_INSTANCE; i++) {
     mPerInstance.data[i].model = glm::mat4(1.0f);

@@ -48,7 +48,7 @@ public:
 	static void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex);
 	static void DestroySwapchain(SwapChain* swapchain, const VkDevice& device);
 	static void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, bool presentOnly);
-	static void Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass, bool presentOnly);
+	static void Framebuffers(VkDevice device, VkRenderPass renderPass, SwapChain* swapchain, bool presentOnly);
 	static void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
 								std::vector<DS::DescriptorSet*> descriptorSets,
 								std::vector<VkPushConstantRange> pushConstantsRanges,

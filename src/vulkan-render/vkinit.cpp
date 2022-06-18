@@ -557,7 +557,7 @@ void initVulkan::RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain
 	}
 }
 
-void initVulkan::Framebuffers(VkDevice device, SwapChain* swapchain, VkRenderPass renderPass, bool presentOnly)
+void initVulkan::Framebuffers(VkDevice device, VkRenderPass renderPass, SwapChain* swapchain, bool presentOnly)
 {
 	if(presentOnly)
 	{
