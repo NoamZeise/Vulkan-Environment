@@ -340,9 +340,6 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 		std::cout << "no model data to load to gpu" << std::endl;
 		return;
 	}
-#ifndef NDEBUG
-	std::cout << "sending model data to gpu" << std::endl;
-#endif
 
 	//get size of vertex data + offsets
 	processLoadGroup(&loaded2D);
@@ -365,7 +362,6 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 	void* pMem;
 	vkMapMemory(base.device, stagingMemory, 0, vertexDataSize + indexDataSize, 0, &pMem);
 
-std::cout << "staging memory allocated" << std::endl;
 		//copy each model's data to staging memory
 	size_t currentVertexOffset = 0;
 	size_t currentIndexOffset = vertexDataSize;
