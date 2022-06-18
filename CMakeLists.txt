@@ -25,16 +25,15 @@ if (UNIX)
 endif()
 
 #add executables
-file(GLOB SOURCES src/*)
-file(GLOB VULKAN-RENDER src/vulkan-render/*)
-file(GLOB VULKAN-RENDER-RESOURCES src/vulkan-render/resources/*)
-file(GLOB VULKAN-RENDER-RESOURCES-MODEL src/vulkan-render/resources/model/*)
-add_executable(${ProjectName} ${SOURCES}
-                              ${VULKAN-RENDER}
-                              ${PROJ_INCLUDE}
-                              ${VULKAN-RENDER-RESOURCES}
-                              ${VULKAN-RENDER-RESOURCES-MODEL}
-                            )
+file(GLOB SOURCES src/*
+  src/vulkan-render/*
+  src/vulkan-render/resources/*
+  src/vulkan-render/resources/model/*)
+
+#ignore any temps from emacs
+list(FILTER SOURCES EXCLUDE REGEX ".*#+")
+
+add_executable(${ProjectName} ${SOURCES})
 
 #link
 target_include_directories(${ProjectName} PUBLIC include/)
