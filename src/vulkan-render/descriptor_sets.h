@@ -103,15 +103,12 @@ struct Binding {
         type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
 #ifdef _MSC_VER
       std::memcpy(
+#else
+           memcpy(
+#endif
           static_cast<char *>(pointer) + offset + dynamicOffsetIndex*setCount*bufferSize +
               ((frameIndex * bufferSize) + (index * slotSize)),
           data, dataStructSize);
-#else
-      memcpy(
-          static_cast<char *>(pointer) + offset +
-              ((frameIndex * slotSize * descriptorCount) + (index * slotSize)),
-          data, dataStructSize);
-#endif
     else
       throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
                                "in non uniform or storage buffer!");

@@ -379,6 +379,7 @@ void Render::_startDraw()
   vkCmdSetScissor(mSwapchain.frameData[mImg].commandBuffer, 0, 1, &scissor);
 
   mModelLoader->bindBuffers(mSwapchain.frameData[mImg].commandBuffer);
+  mBones.currentDynamicOffsetIndex = 0;
 }
 
 void Render::Begin3DDraw()
@@ -445,7 +446,6 @@ void Render::BeginAnim3DDraw()
       glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
   mLighting.storeData(mImg);
   mPipelineAnim3D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
-  mBones.currentDynamicOffsetIndex = 0;
 }
 
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
