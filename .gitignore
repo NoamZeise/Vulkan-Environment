@@ -6,4 +6,6 @@ include/ft2build.h
 .cache/*
 compile_commands.json
 process-palette.json
-
+*~
+\#*\#
+.\#*
