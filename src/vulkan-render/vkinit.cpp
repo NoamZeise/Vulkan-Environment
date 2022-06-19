@@ -82,6 +82,13 @@ void initVulkan::Device(VkInstance instance, Base* base, VkSurfaceKHR surface)
 		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, nullptr);
 		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, queueFamilies.data());
+
+
+
+		std::cout << "push const size : " << deviceProperties.limits.maxPushConstantsSize << std::endl;
+		std::cout << "per stage storage buffer size: " << deviceProperties.limits.maxPerStageDescriptorStorageBuffers << std::endl;
+		std::cout << "all storage buffer size: " << deviceProperties.limits.maxDescriptorSetStorageBuffers << std::endl;
+
 		//supports graphics and present queues?
 		if (!foundSuitable || deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) //prioritise discrete gpu
 		{
@@ -171,7 +178,7 @@ void initVulkan::Device(VkInstance instance, Base* base, VkSurfaceKHR surface)
       base->features.samplerAnisotropy = true;
     }
 	if(settings::SAMPLE_SHADING)
-      if(deviceFeatures.sampleRateShading)
+      if(bestDeviceFeatures.sampleRateShading)
       {
 		deviceFeatures.sampleRateShading = VK_TRUE;
         base->features.sampleRateShading = true;
@@ -829,8 +836,6 @@ void initVulkan::DescriptorPool(VkDevice device, VkDescriptorPool* pool, std::ve
     {
 		poolSizes.push_back(descriptorSets[i]->poolSize[j]);
 		poolSizes.back().descriptorCount *= frameCount;
-		//std::cout << "fpool type: " << descriptorSets[i]->poolSize[j].type << std::endl;
-		//std::cout << "fdesc size: " << descriptorSets[i]->poolSize[j].descriptorCount << std::endl;
     }
   }
   VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};

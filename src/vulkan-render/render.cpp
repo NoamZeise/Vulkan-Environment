@@ -186,7 +186,7 @@ void Render::_initFrameResources()
       {{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
        {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
         sizeof(fragPushConstants)}},
-      "shaders/v3D-lighting.spv", "shaders/fblinnphong.spv", true, false,
+      "shaders/3D-lighting.vert.spv", "shaders/blinnphong.frag.spv", true, false,
       Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
   );
 
@@ -195,7 +195,7 @@ void Render::_initFrameResources()
     {&mVP3Dds, &mPerInstance3Dds, &mBonesds, &mTexturesds, &mLightingds},
     { {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
       {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
-    "shaders/v3D-lighting-anim.spv", "shaders/fblinnphong-anim.spv", true, false,
+    "shaders/3D-lighting-anim.vert.spv", "shaders/blinnphong-anim.frag.spv", true, false,
     VertexAnim3D::attributeDescriptions(), VertexAnim3D::bindingDescriptions()
   );
 
@@ -205,13 +205,13 @@ void Render::_initFrameResources()
       {{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
        {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
         sizeof(fragPushConstants)}},
-      "shaders/vflat.spv", "shaders/fflat.spv", true, false,
+      "shaders/flat.vert.spv", "shaders/flat.frag.spv", true, false,
       Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
   );
 
   initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain,
                                mFinalRenderPass, {&mOffscreends}, {},
-                               "shaders/vfinal.spv", "shaders/ffinal.spv",
+                               "shaders/final.vert.spv", "shaders/final.frag.spv",
                                false, true,
                                Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
   );

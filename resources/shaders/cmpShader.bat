@@ -1,6 +1,6 @@
 for /r %%f in (*.vert) do (
-	glslc %%~nf.vert -o v%%~nf.spv
+	glslc %%f -o %%f.spv
 )
 for /r %%f in (*.frag) do (
-	glslc %%~nf.frag -o f%%~nf.spv
+	glslc %%f -o %%f.spv
 )

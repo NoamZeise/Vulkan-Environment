@@ -9,7 +9,7 @@ layout(push_constant) uniform fragconstants
 
 
 layout(set = 2, binding = 0) uniform sampler texSamp;
-layout(set = 2, binding = 1) uniform texture2D textures[200];
+layout(set = 2, binding = 1) uniform texture2D textures[120];
 
 layout(set = 3, binding = 0) readonly buffer PerInstanceBuffer {
     vec4 colour;
