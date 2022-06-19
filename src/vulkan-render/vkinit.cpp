@@ -85,9 +85,9 @@ void initVulkan::Device(VkInstance instance, Base* base, VkSurfaceKHR surface)
 
 
 
-		std::cout << "push const size : " << deviceProperties.limits.maxPushConstantsSize << std::endl;
-		std::cout << "per stage storage buffer size: " << deviceProperties.limits.maxPerStageDescriptorStorageBuffers << std::endl;
-		std::cout << "all storage buffer size: " << deviceProperties.limits.maxDescriptorSetStorageBuffers << std::endl;
+		//std::cout << "push const size : " << deviceProperties.limits.maxPushConstantsSize << std::endl;
+		//std::cout << "per stage storage buffer size: " << deviceProperties.limits.maxPerStageDescriptorStorageBuffers << std::endl;
+		//std::cout << "all storage buffer size: " << deviceProperties.limits.maxDescriptorSetStorageBuffers << std::endl;
 
 		//supports graphics and present queues?
 		if (!foundSuitable || deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) //prioritise discrete gpu

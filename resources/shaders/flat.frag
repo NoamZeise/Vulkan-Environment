@@ -1,21 +1,18 @@
 #version 450
 
-layout(push_constant) uniform fragconstants
-{
-    layout(offset = 128) vec4 colour;
-    vec4 texOffset;
-    uint texID;
-} pc;
-
-
 layout(set = 2, binding = 0) uniform sampler texSamp;
 layout(set = 2, binding = 1) uniform texture2D textures[120];
 
-layout(set = 3, binding = 0) readonly buffer PerInstanceBuffer {
+struct per2DFragData
+{
     vec4 colour;
     vec4 texOffset;
     uint texID;
-} pib[300];
+};
+
+layout(std140, set = 3, binding = 0) readonly buffer PerInstanceBuffer {
+    per2DFragData data[];
+} pib;
 
 layout(location = 0) in vec3 inTexCoord;
 
@@ -38,13 +35,7 @@ vec4 calcColour(vec4 texOffset, vec4 colour, uint texID)
 
 void main()
 {
-    if(pc.texID == 0)
-    {
-        uint index = uint(inTexCoord.z);
-        outColour = calcColour(pib[index].texOffset, pib[index].colour, pib[index].texID);
-    }
-    else
-    {
-      outColour = calcColour(pc.texOffset, pc.colour, pc.texID);
-    }
+    uint index = uint(inTexCoord.z);
+    outColour = calcColour(pib.data[index].texOffset, pib.data[index].colour, pib.data[index].texID);
+
 }

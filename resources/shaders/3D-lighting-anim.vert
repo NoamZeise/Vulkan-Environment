@@ -1,11 +1,5 @@
 #version 450
 
-layout(push_constant) uniform vertconstants
-{
-    mat4 model;
-    mat4 normalMat;
-} pcs;
-
 layout(set = 0, binding = 0) uniform UniformBufferObject
 {
     mat4 view;
@@ -55,17 +49,8 @@ void main()
       skin += inWeights[i] * bones.mat[inBoneIDs[i]];
     }
 
-    vec4 fragPos = vec4(0.0);
-    if(pcs.normalMat[3][3] == 0.0) //draw instance (use per frame buffer)
-    {
-        fragPos = ubo.view * pid.data[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
-        outNormal = (pid.data[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
-    }
-    else //draw once (use push constants)
-    {
-        fragPos = ubo.view * pcs.model * skin * vec4(inPos, 1.0f);
-        outNormal = (pcs.normalMat * skin * vec4(inNormal, 1.0f)).xyz;
-    }
+    vec4 fragPos = ubo.view * pid.data[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
+    outNormal = (pid.data[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
 
     gl_Position = ubo.proj * fragPos;
     outFragPos = vec3(fragPos) / fragPos.w;

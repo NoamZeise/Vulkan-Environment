@@ -57,12 +57,6 @@ public:
 	}
 };
 
-struct vectPushConstants
-{
-	glm::mat4 model;
-	glm::mat4 normalMat;
-};
-
 struct fragPushConstants
 {
 	glm::vec4 colour;

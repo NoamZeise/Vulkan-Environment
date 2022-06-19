@@ -1,6 +1,7 @@
 #include "render.h"
 #include "vkinit.h"
 #include "vulkan/vulkan_core.h"
+#include <stdexcept>
 #include <stdint.h>
 
 Render::Render(GLFWwindow *window)
@@ -96,7 +97,7 @@ void Render::_initFrameResources()
   initVulkan::DescriptorSetLayout(mBase.device, &mVP2Dds, {&mVP2D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mPerInstance.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                              &mPerInstance3Dds, DS::ShaderStructs::MAX_3D_INSTANCE);
+                              &mPerInstance3Dds, 1);
   initVulkan::DescriptorSetLayout(mBase.device, &mPerInstance3Dds, {&mPerInstance.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mBones.setDynamicBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &mBonesds, 1, MAX_ANIMATIONS_PER_FRAME);
@@ -104,7 +105,7 @@ void Render::_initFrameResources()
 
 
   mPer2Dvert.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            &mPer2DVertds, MAX_2D_INSTANCE);
+                            &mPer2DVertds, 1);
   initVulkan::DescriptorSetLayout(mBase.device, &mPer2DVertds, {&mPer2Dvert.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   // fragment descriptor sets
@@ -122,7 +123,7 @@ void Render::_initFrameResources()
 
 
   mPer2Dfrag.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            &mPer2Dfragds, MAX_2D_INSTANCE);
+                            &mPer2Dfragds, 1);
   initVulkan::DescriptorSetLayout(mBase.device, &mPer2Dfragds, {&mPer2Dfrag.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
   
   // render offscreen to tex, then  appy  to quad in final shader
@@ -182,9 +183,8 @@ void Render::_initFrameResources()
   
   initVulkan::GraphicsPipeline(
       mBase.device, &mPipeline3D, mSwapchain, mRenderPass,
-      {&mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},
-      {{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
-       {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
+      {&mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},{
+       {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
         sizeof(fragPushConstants)}},
       "shaders/3D-lighting.vert.spv", "shaders/blinnphong.frag.spv", true, false,
       Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
@@ -193,8 +193,8 @@ void Render::_initFrameResources()
   initVulkan::GraphicsPipeline(
     mBase.device, &mPipelineAnim3D, mSwapchain, mRenderPass,
     {&mVP3Dds, &mPerInstance3Dds, &mBonesds, &mTexturesds, &mLightingds},
-    { {VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
-      {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants), sizeof(fragPushConstants)}},
+    {
+      {VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
     "shaders/3D-lighting-anim.vert.spv", "shaders/blinnphong-anim.frag.spv", true, false,
     VertexAnim3D::attributeDescriptions(), VertexAnim3D::bindingDescriptions()
   );
@@ -202,9 +202,7 @@ void Render::_initFrameResources()
   initVulkan::GraphicsPipeline(
       mBase.device, &mPipeline2D, mSwapchain, mRenderPass,
       {&mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
-      {{VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(vectPushConstants)},
-       {VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(vectPushConstants),
-        sizeof(fragPushConstants)}},
+      {},
       "shaders/flat.vert.spv", "shaders/flat.frag.spv", true, false,
       Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
   );
@@ -225,11 +223,11 @@ void Render::_initFrameResources()
     mPerInstance.data[0].data[i].model = glm::mat4(1.0f);
     mPerInstance.data[0].data[i].normalMat = glm::mat4(1.0f);
   }
-  for (size_t i = 0; i < MAX_2D_INSTANCE; i++) {
-    mPer2Dvert.data[i].model = glm::mat4(1.0f);
-    mPer2Dfrag.data[i].colour = glm::vec4(1.0f);
-    mPer2Dfrag.data[i].texOffset = glm::vec4(0, 0, 1, 1);
-    mPer2Dfrag.data[i].texID = 0;
+  for (size_t i = 0; i < DS::ShaderStructs::MAX_2D_INSTANCE; i++) {
+    mPer2Dvert.data[0].model[i] = glm::mat4(1.0f);
+    mPer2Dfrag.data[0].data[i].colour = glm::vec4(1.0f);
+    mPer2Dfrag.data[0].data[i].texOffset = glm::vec4(0, 0, 1, 1);
+    mPer2Dfrag.data[0].data[i].texID = 0;
   }
 }
 
@@ -417,18 +415,7 @@ void Render::Begin3DDraw()
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
 {
   if (current3DInstanceIndex >= DS::ShaderStructs::MAX_3D_INSTANCE) {
-#ifndef NDEBUG
-    std::cout << "single" << std::endl;
-#endif
-    vectPushConstants vps{modelMatrix, normalMat};
-    vps.normalMat[3][3] = 1.0;
-    vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
-                       mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(vectPushConstants), &vps);
-
-    mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
-                            mPipeline3D.layout, model, 1, 0);
-    return;
+    std::cout << "WARNING: ran out of 3D instance models!\n";
   }
 
   if (currentModel.ID != model.ID && modelRuns != 0)
@@ -464,18 +451,7 @@ void Render::BeginAnim3DDraw()
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
 {
    if (current3DInstanceIndex >= DS::ShaderStructs::MAX_3D_INSTANCE) {
-#ifndef NDEBUG
-    std::cout << "single" << std::endl;
-#endif
-    vectPushConstants vps{modelMatrix, normalMat};
-    vps.normalMat[3][3] = 1.0;
-    vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
-                       mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(vectPushConstants), &vps);
-
-    mModelLoader->drawModel(mSwapchain.frameData[mImg].commandBuffer,
-                            mPipeline3D.layout, model, 1, 0);
-    return;
+     std::cout << "WARNING: Ran out of 3D Anim Instance models!\n";
   }
 
   if (currentModel.ID != model.ID && modelRuns != 0)
@@ -534,33 +510,21 @@ void Render::Begin2DDraw()
   mPipeline2D.begin(mSwapchain.frameData[mImg].commandBuffer, mImg);
 }
 
-void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix,
-                      glm::vec4 colour, glm::vec4 texOffset) {
-  if (current2DInstanceIndex >= MAX_2D_INSTANCE) {
-#ifndef NDEBUG
-    std::cout << "single" << std::endl;
-#endif
-    vectPushConstants vps{modelMatrix, glm::mat4(1.0f)};
-
-    vps.normalMat[3][3] = 1.0;
-    vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
-                       mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                       sizeof(vectPushConstants), &vps);
-
-    mModelLoader->drawQuad(mSwapchain.frameData[mImg].commandBuffer,
-                           mPipeline3D.layout, texture.ID, 1, 0, colour,
-                           texOffset);
-    return;
+void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset)
+{
+  if (current2DInstanceIndex >= DS::ShaderStructs::MAX_2D_INSTANCE)
+  {
+    std::cout << "WARNING: ran out of 2D instance models!\n";
   }
 
-  mPer2Dvert.data[current2DInstanceIndex + instance2Druns].model = modelMatrix;
-  mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].colour = colour;
-  mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texOffset =
+  mPer2Dvert.data[0].model[current2DInstanceIndex + instance2Druns] = modelMatrix;
+  mPer2Dfrag.data[0].data[current2DInstanceIndex + instance2Druns].colour = colour;
+  mPer2Dfrag.data[0].data[current2DInstanceIndex + instance2Druns].texOffset =
       texOffset;
-  mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texID = texture.ID;
+  mPer2Dfrag.data[0].data[current2DInstanceIndex + instance2Druns].texID = texture.ID;
   instance2Druns++;
 
-  if (current2DInstanceIndex + instance2Druns == MAX_2D_INSTANCE)
+  if (current2DInstanceIndex + instance2Druns == DS::ShaderStructs::MAX_2D_INSTANCE)
     _drawBatch();
 }
 
@@ -592,13 +556,8 @@ float Render::MeasureString(Resource::Font font, std::string text, float size)
   return mFontLoader->MeasureString(font, text, size);
 }
 
-void Render::_drawBatch() {
-  // std::cout << "batch" << std::endl;
-  vectPushConstants vps{glm::mat4(1.0f), glm::mat4(0.0f)};
-  vkCmdPushConstants(mSwapchain.frameData[mImg].commandBuffer,
-                     mPipeline3D.layout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                     sizeof(vectPushConstants), &vps);
-
+void Render::_drawBatch()
+{
   switch(renderState)
   {
 
@@ -634,20 +593,31 @@ void Render::EndDraw(std::atomic<bool> &submit) {
         _drawBatch();
       break;
     case RenderState::Draw2D:
-      if (instance2Druns != 0 && current2DInstanceIndex < MAX_2D_INSTANCE)
+      if (instance2Druns != 0 && current2DInstanceIndex < DS::ShaderStructs::MAX_2D_INSTANCE)
         _drawBatch();
       break;
   }
 
-  for (size_t i = 0; i < current3DInstanceIndex; i++)
-    mPerInstance.storeData(mImg, i);
-  current3DInstanceIndex = 0;
+  //TODO only send batched data, not all!!!
 
-  for (size_t i = 0; i < current2DInstanceIndex; i++) {
-    mPer2Dvert.storeData(mImg, i);
-    mPer2Dfrag.storeData(mImg, i);
-  }
+ // for (size_t i = 0; i < current3DInstanceIndex; i++)
+ //   mPerInstance.storeData(mImg, i);
+ // current3DInstanceIndex = 0;
+ //
+ mPerInstance.storeData(mImg, 0);
+ current3DInstanceIndex = 0;
+
+
+
+  //for (size_t i = 0; i < current2DInstanceIndex; i++) {
+  //  mPer2Dvert.storeData(mImg, i);
+  //  mPer2Dfrag.storeData(mImg, i);
+ // }
+ //
+  mPer2Dvert.storeData(mImg, 0);
+  mPer2Dfrag.storeData(mImg, 0);
   current2DInstanceIndex = 0;
+
 
   // end render pass
   vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);

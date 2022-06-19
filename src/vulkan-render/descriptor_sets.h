@@ -39,14 +39,21 @@ struct Per3DInstance {
     PerFrame3D data[MAX_3D_INSTANCE];
 };
 
+ const int MAX_2D_INSTANCE = 2000;
+
+
 struct Per2DVert {
-  alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 model[MAX_3D_INSTANCE];
 };
 
-struct Per2DFrag {
+struct Frag2DData {
   alignas(16) glm::vec4 colour;
   alignas(16) glm::vec4 texOffset;
   alignas(4) uint32_t texID;
+};
+
+struct Per2DFrag {
+ Frag2DData data[MAX_2D_INSTANCE];
 };
 
 struct lighting {

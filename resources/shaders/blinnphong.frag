@@ -2,7 +2,7 @@
 
 layout(push_constant) uniform fragconstants
 {
-    layout(offset = 128) vec4 colour;
+    vec4 colour;
     vec4 texOffset;
     uint texID;
 } pc;

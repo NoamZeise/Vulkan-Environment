@@ -1,11 +1,5 @@
 #version 450
 
-layout(push_constant) uniform vertconstants
-{
-    mat4 model;
-    mat4 normalMat;
-} pcs;
-
 layout(set = 0, binding = 0) uniform UniformBufferObject
 {
     mat4 view;
@@ -37,17 +31,9 @@ layout(location = 2) out vec3 outNormal;
 void main()
 {
     outTexCoord = inTexCoord;
-    vec4 fragPos = vec4(0.0);
-    if(pcs.normalMat[3][3] == 0.0) //draw instance (use per frame buffer)
-    {
-        fragPos = ubo.view * pid.data[gl_InstanceIndex].model * vec4(inPos, 1.0);
-        outNormal = mat3(pid.data[gl_InstanceIndex].normalMat) * inNormal;
-    }
-    else //draw once (use push constants)
-    {
-        fragPos = ubo.view * pcs.model * vec4(inPos, 1.0);
-        outNormal = mat3(pcs.normalMat) * inNormal;
-    }
+    vec4 fragPos = ubo.view * pid.data[gl_InstanceIndex].model * vec4(inPos, 1.0);
+    outNormal = mat3(pid.data[gl_InstanceIndex].normalMat) * inNormal;
+
     gl_Position = ubo.proj * fragPos;
     outFragPos = vec3(fragPos) / fragPos.w;
 }

@@ -97,7 +97,7 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 		};
 
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
-			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
+			0, sizeof(fragPushConstants), &fps);
 
 		vkCmdDrawIndexed(
 			cmdBuff,
@@ -119,7 +119,7 @@ void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 			texID
 		};
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
-			sizeof(vectPushConstants), sizeof(fragPushConstants), &fps);
+			0, sizeof(fragPushConstants), &fps);
 
 		ModelInGPU *modelInfo = &models[0];
 		vkCmdDrawIndexed(cmdBuff,
