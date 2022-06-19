@@ -704,7 +704,6 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   presentInfo.pImageIndices = &mImg;
   presentInfo.pResults = nullptr;
 
-  // most of draw call time spent here!
   VkResult result =
       vkQueuePresentKHR(mBase.queue.graphicsPresentQueue, &presentInfo);
 
