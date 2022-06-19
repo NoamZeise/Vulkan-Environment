@@ -12,11 +12,16 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
     mat4 proj;
 } ubo;
 
-layout(set = 1, binding = 0) readonly buffer PerInstanceData
+struct Obj3DPerFrame
 {
     mat4 model;
     mat4 normalMat;
-} pid[100];
+};
+
+layout(std140, set = 1, binding = 0) readonly buffer PerInstanceData
+{
+    Obj3DPerFrame data[];
+} pid;
 
 const int MAX_BONES = 50;
 layout(set = 2, binding = 0) uniform boneView
@@ -53,8 +58,8 @@ void main()
     vec4 fragPos = vec4(0.0);
     if(pcs.normalMat[3][3] == 0.0) //draw instance (use per frame buffer)
     {
-        fragPos = ubo.view * pid[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
-        outNormal = (pid[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
+        fragPos = ubo.view * pid.data[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
+        outNormal = (pid.data[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
     }
     else //draw once (use push constants)
     {

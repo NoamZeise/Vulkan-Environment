@@ -96,7 +96,7 @@ void Render::_initFrameResources()
   initVulkan::DescriptorSetLayout(mBase.device, &mVP2Dds, {&mVP2D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mPerInstance.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                              &mPerInstance3Dds, MAX_3D_INSTANCE);
+                              &mPerInstance3Dds, DS::ShaderStructs::MAX_3D_INSTANCE);
   initVulkan::DescriptorSetLayout(mBase.device, &mPerInstance3Dds, {&mPerInstance.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mBones.setDynamicBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &mBonesds, 1, MAX_ANIMATIONS_PER_FRAME);
@@ -157,7 +157,7 @@ void Render::_initFrameResources()
                                &mPer2Dfragds,
                                &mOffscreends
                              }
-                             , frameCount);
+                             , static_cast<uint32_t>(frameCount));
 
   // create memory mapped buffer for all descriptor set bindings
   initVulkan::PrepareShaderBufferSets(
@@ -221,9 +221,9 @@ void Render::_initFrameResources()
 
   //set initial data
   mVP2D.data[0].view = glm::mat4(1.0f);
-  for (size_t i = 0; i < MAX_3D_INSTANCE; i++) {
-    mPerInstance.data[i].model = glm::mat4(1.0f);
-    mPerInstance.data[i].normalMat = glm::mat4(1.0f);
+  for (size_t i = 0; i < DS::ShaderStructs::MAX_3D_INSTANCE; i++) {
+    mPerInstance.data[0].data[i].model = glm::mat4(1.0f);
+    mPerInstance.data[0].data[i].normalMat = glm::mat4(1.0f);
   }
   for (size_t i = 0; i < MAX_2D_INSTANCE; i++) {
     mPer2Dvert.data[i].model = glm::mat4(1.0f);
@@ -416,7 +416,7 @@ void Render::Begin3DDraw()
 
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
 {
-  if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
+  if (current3DInstanceIndex >= DS::ShaderStructs::MAX_3D_INSTANCE) {
 #ifndef NDEBUG
     std::cout << "single" << std::endl;
 #endif
@@ -435,11 +435,11 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
     _drawBatch();
 
   currentModel = model;
-  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
-  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
+  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
   modelRuns++;
 
-  if (current3DInstanceIndex + modelRuns == MAX_3D_INSTANCE)
+  if (current3DInstanceIndex + modelRuns == DS::ShaderStructs::MAX_3D_INSTANCE)
     _drawBatch();
 }
 
@@ -463,7 +463,7 @@ void Render::BeginAnim3DDraw()
 
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
 {
-   if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
+   if (current3DInstanceIndex >= DS::ShaderStructs::MAX_3D_INSTANCE) {
 #ifndef NDEBUG
     std::cout << "single" << std::endl;
 #endif
@@ -482,8 +482,8 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
     _drawBatch();
 
   currentModel = model;
-  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
-  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
+  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
   modelRuns++;
 
   auto bones = animation->getCurrentBones();
@@ -630,7 +630,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   {
     case RenderState::Draw3D:
     case RenderState::DrawAnim3D:
-      if (modelRuns != 0 && current3DInstanceIndex < MAX_3D_INSTANCE)
+      if (modelRuns != 0 && current3DInstanceIndex < DS::ShaderStructs::MAX_3D_INSTANCE)
         _drawBatch();
       break;
     case RenderState::Draw2D:

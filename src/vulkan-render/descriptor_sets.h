@@ -29,9 +29,14 @@ struct viewProjection {
   alignas(16) glm::mat4 proj;
 };
 
-struct Per3DInstance {
+struct PerFrame3D {
   alignas(16) glm::mat4 model;
   alignas(16) glm::mat4 normalMat;
+};
+
+const int MAX_3D_INSTANCE = 2000;
+struct Per3DInstance {
+    PerFrame3D data[MAX_3D_INSTANCE];
 };
 
 struct Per2DVert {

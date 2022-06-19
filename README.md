@@ -19,7 +19,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 ## Todo list:
 bugs:
 * make first-person camera feel normal when fullscreen
-* linux multiple animations not working!!!
+* llvmlipe supported
 
 features:
 * make multiple render passes optional
@@ -30,8 +30,10 @@ optimisations:
 * unload old and load new textures while using renderer
 * only buffer static object data to huge ssbo, use smaller one for things that change every frame
 * more elegant descriptor set + binding handle (too many members of render)
-*  use non host coherent memory and manually flush based on num used
 * check if animation is faster with array of shader buffers instead
+* resizable descriptor struct
+* update part of array in ds 
+
 
 ## External libraries and their uses:
 

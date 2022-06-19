@@ -29,7 +29,6 @@
 #include "vkhelper.h"
 #include "vkinit.h"
 
-const size_t MAX_3D_INSTANCE = 100;
 const size_t MAX_2D_INSTANCE = 300;
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
 
