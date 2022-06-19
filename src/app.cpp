@@ -140,6 +140,8 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
+std::cout << "start draw\n";
+
   /*mRender->Begin3DDraw();
 
    mRender->DrawModel(
@@ -151,7 +153,9 @@ void App::draw() {
      glm::vec3(0, 0, 0)),
      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 */
-  mRender->BeginAnim3DDraw();
+mRender->BeginAnim3DDraw();
+
+std::cout << "3D anim start\n";
 
   mRender->DrawAnimModel(
 		testWolf,
@@ -200,8 +204,10 @@ void App::draw() {
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
     									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
 */
-  submitDraw =
-      std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
+  //submitDraw =
+  //  std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
+  mRender->EndDraw(finishedDrawSubmit);
+//TODO reenable multithreaded
 
 
 #ifdef TIME_APP_DRAW_UPDATE

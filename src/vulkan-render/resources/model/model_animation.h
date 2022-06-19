@@ -34,7 +34,7 @@ private:
 
     std::vector<glm::mat4> bones;
     ModelInfo::Animation animation;
-    double currentTime;
+    double currentTime = 0;
 };
 
 }

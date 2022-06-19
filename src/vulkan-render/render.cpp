@@ -320,6 +320,9 @@ void Render::_startDraw()
     throw std::runtime_error(
         "resource loading must be finished before drawing to screen!");
   mBegunDraw = true;
+
+  std::cout << "beginning draw\n";
+
   if (mSwapchain.imageAquireSem.empty()) {
     VkSemaphoreCreateInfo semaphoreInfo{
         VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
@@ -345,6 +348,8 @@ void Render::_startDraw()
                   &mSwapchain.frameData[mImg].frameFinishedFen);
   }
   vkResetCommandPool(mBase.device, mSwapchain.frameData[mImg].commandPool, 0);
+
+std::cout << "command pool reset\n";
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -558,6 +563,9 @@ float Render::MeasureString(Resource::Font font, std::string text, float size)
 
 void Render::_drawBatch()
 {
+
+  std::cout << "draw call\n";
+
   switch(renderState)
   {
 
@@ -675,7 +683,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
       mSwapchain.frameData[mImg].presentReadySem};
 
   // submit draw command
-  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr};
   submitInfo.waitSemaphoreCount = static_cast<uint32_t>(submitWaitSemaphores.size());
   submitInfo.pWaitSemaphores = submitWaitSemaphores.data();
   submitInfo.pWaitDstStageMask = waitStages.data();
@@ -688,7 +696,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
     throw std::runtime_error("failed to submit draw command buffer");
 
   // submit present command
-  VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+  VkPresentInfoKHR presentInfo{VK_STRUCTURE_TYPE_PRESENT_INFO_KHR, nullptr};
   presentInfo.waitSemaphoreCount = static_cast<uint32_t>(submitSignalSemaphores.size());
   presentInfo.pWaitSemaphores = submitSignalSemaphores.data();
   presentInfo.swapchainCount = 1;
@@ -708,6 +716,11 @@ void Render::EndDraw(std::atomic<bool> &submit) {
     throw std::runtime_error("failed to present swapchain image to queue");
 
   mSwapchain.imageAquireSem.push_back(mImgAquireSem);
+
+//TODO remove when segfault fixed
+  vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
+
+  std::cout << "finished draw\n";
 
   submit = true;
 }

@@ -34,12 +34,12 @@ struct PerFrame3D {
   alignas(16) glm::mat4 normalMat;
 };
 
-const int MAX_3D_INSTANCE = 2000;
+const int MAX_3D_INSTANCE = 20;
 struct Per3DInstance {
     PerFrame3D data[MAX_3D_INSTANCE];
 };
 
- const int MAX_2D_INSTANCE = 2000;
+ const int MAX_2D_INSTANCE = 20;
 
 
 struct Per2DVert {

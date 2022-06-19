@@ -1,4 +1,5 @@
 #include "vkinit.h"
+#include "config.h"
 #include "vulkan/vulkan_core.h"
 #include <stdexcept>
 
@@ -288,7 +289,7 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 		swapchain->offscreenExtent = swapchain->swapchainExtent;
 
 	//choose present mode
-	VkPresentModeKHR presentMode;
+	VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 	uint32_t presentModeCount;
 	if(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr) != VK_SUCCESS)
 		throw std::runtime_error("failed to get physical device surface present mode count!");
@@ -296,21 +297,23 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	if(vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to get physical device surface present modes!");
 	bool modeChosen = false;
-	for (const auto& mode : presentModes)
+
+	if(!settings::VSYNC)
 	{
-		if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
+		for (const auto& mode : presentModes)
 		{
-			presentMode = mode;
-			modeChosen = true;
-		}
-		else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
-		{
-			presentMode = mode;//for low stuttering
-			modeChosen = true;
+			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) //for low latency
+			{
+				presentMode = mode;
+				modeChosen = true;
+			}
+			else if (!modeChosen && mode == VK_PRESENT_MODE_FIFO_RELAXED_KHR)
+			{
+				presentMode = mode;//for low stuttering
+				modeChosen = true;
+			}
 		}
 	}
-	if (!modeChosen || settings::VSYNC)
-		presentMode = VK_PRESENT_MODE_FIFO_KHR; //guarenteed
 
 	//find a supporte transform
 	VkSurfaceTransformFlagBitsKHR preTransform;
@@ -346,15 +349,25 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 
 	//create swapchain
 	VkSwapchainCreateInfoKHR createInfo{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+	createInfo.flags = 0;
 	createInfo.surface = surface;
 	createInfo.minImageCount = imageCount;
-	createInfo.presentMode = presentMode;
 	createInfo.imageFormat = swapchain->format.format;
 	createInfo.imageColorSpace = swapchain->format.colorSpace;
-	createInfo.imageExtent = swapchain->swapchainExtent;
+	createInfo.imageExtent = { swapchain->swapchainExtent.width, swapchain->swapchainExtent.height };
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	if(surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+	{
+		createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	}
+	if(surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+	{
+		createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	}
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.queueFamilyIndexCount = 0;
+	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
 	createInfo.oldSwapchain = oldSwapChain;
 	createInfo.compositeAlpha = compositeAlpha;
@@ -383,7 +396,9 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 		viewInfo.image = swapchain->frameData[i].image;
 		viewInfo.format = swapchain->format.format;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		viewInfo.subresourceRange.baseMipLevel = 0;
 		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
