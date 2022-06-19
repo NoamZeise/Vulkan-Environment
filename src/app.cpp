@@ -153,7 +153,7 @@ std::cout << "start draw\n";
      glm::vec3(0, 0, 0)),
      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 */
-/*mRender->BeginAnim3DDraw();
+mRender->BeginAnim3DDraw();
 
 std::cout << "3D anim start\n";
 
@@ -188,12 +188,12 @@ std::cout << "3D anim start\n";
      glm::vec3(0.0f, 0, 0)),
 		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
     &thirdWolfAnim
-  );*/
+  );
   
 
-  mRender->Begin2DDraw();
+  //mRender->Begin2DDraw();
 
-  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+  //mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
 //    										glm::vec4(1), 0.0f);
 
  // mRender->DrawQuad(testTex,
