@@ -26,13 +26,7 @@ void Render::_initRender(GLFWwindow *window)
   if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
   
-  initVulkan::Device(
-    mInstance,
-    mBase.physicalDevice,
-    &mBase.device,
-    mSurface,
-    &mBase.queue
-  );
+  initVulkan::Device(mInstance, &mBase, mSurface);
   
   // create general command pool
   VkCommandPoolCreateInfo commandPoolInfo {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};

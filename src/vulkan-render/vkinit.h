@@ -44,7 +44,7 @@ struct initVulkan
 {
 public:
 	static void Instance(VkInstance* instance);
-	static void Device(VkInstance instance, VkPhysicalDevice& device, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families);
+  static void Device(VkInstance instance, Base* base, VkSurfaceKHR surface);
 	static void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex);
 	static void DestroySwapchain(SwapChain* swapchain, const VkDevice& device);
 	static void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, bool presentOnly);

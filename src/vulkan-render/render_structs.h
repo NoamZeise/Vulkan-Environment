@@ -15,12 +15,18 @@ struct QueueFamilies
 	VkQueue graphicsPresentQueue;
 };
 
+struct EnabledFeatures
+{
+  bool samplerAnisotropy = false;
+  bool sampleRateShading = false;
+};
 
 struct Base
 {
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;
 	QueueFamilies queue;
+    EnabledFeatures features;
 };
 
 struct FrameData

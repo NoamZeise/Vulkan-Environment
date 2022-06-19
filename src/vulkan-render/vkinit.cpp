@@ -10,7 +10,7 @@ void initVulkan::Instance(VkInstance* instance)
 	VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	appInfo.pApplicationName = "Vulkan App";
 	appInfo.pEngineName = "No Engine";
-	appInfo.apiVersion = VK_API_VERSION_1_2;
+	appInfo.apiVersion = VK_API_VERSION_1_0;
 	appInfo.applicationVersion = VK_MAKE_VERSION(0, 1, 0);
 	instanceCreateInfo.pApplicationInfo = &appInfo; //give to instance create info
 
@@ -53,7 +53,7 @@ void initVulkan::Instance(VkInstance* instance)
 	}
 }
 
-void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, VkDevice* logicalDevice, VkSurfaceKHR surface, QueueFamilies* families)
+void initVulkan::Device(VkInstance instance, Base* base, VkSurfaceKHR surface)
 {
 	uint32_t deviceCount;
 	if (vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr) != VK_SUCCESS)
@@ -99,9 +99,9 @@ void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 			if (!(graphicQueueSupport && presentQueueSupport))
 				continue;
 
-			families->graphicsPresentFamilyIndex = graphicsPresent;
+			base->queue.graphicsPresentFamilyIndex = graphicsPresent;
 
-			physicalDevice = gpus[i];
+			base->physicalDevice = gpus[i];
 			bestDeviceFeatures = deviceFeatures;
 			bestDeviceProperties = deviceProperties;
 			bestQueueFamilies = queueFamilies;
@@ -117,7 +117,7 @@ void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 	VkDeviceCreateInfo deviceInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 
 	//create queues
-	std::set<uint32_t> uniqueQueueFamilies = { families->graphicsPresentFamilyIndex };
+	std::set<uint32_t> uniqueQueueFamilies = { base->queue.graphicsPresentFamilyIndex };
 	std::vector<VkDeviceQueueCreateInfo> queueInfos(uniqueQueueFamilies.size());
 	float queuePriority = 1.0f;
 	int familyCount = 0;
@@ -137,16 +137,17 @@ void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 
 	//check requested extensions
 	uint32_t extensionCount;
-	if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr) != VK_SUCCESS)
+	if (vkEnumerateDeviceExtensionProperties(base->physicalDevice, nullptr, &extensionCount, nullptr) != VK_SUCCESS)
 		throw std::runtime_error("failed to find device extenions count");
 	std::vector<VkExtensionProperties> deviceExtensions(extensionCount);
-	if (vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, deviceExtensions.data()) != VK_SUCCESS)
+	if (vkEnumerateDeviceExtensionProperties(base->physicalDevice, nullptr, &extensionCount, deviceExtensions.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to find device extenions");
 	for(const auto& extension : REQUESTED_DEVICE_EXTENSIONS)
 	{
 		bool found = false;
 		for (const auto& supported : deviceExtensions)
 		{
+          //std::cout << supported.extensionName  << std::endl;
 			if (std::strcmp(extension, supported.extensionName) == 0)
 			{
 				found = true;
@@ -159,11 +160,21 @@ void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 	deviceInfo.enabledExtensionCount = static_cast<uint32_t>(REQUESTED_DEVICE_EXTENSIONS.size());
 	deviceInfo.ppEnabledExtensionNames = REQUESTED_DEVICE_EXTENSIONS.data();
 
+    //get device features
+    
 	//enable optional device features
 	VkPhysicalDeviceFeatures deviceFeatures{};
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
+    if(bestDeviceFeatures.samplerAnisotropy)
+    {
+      deviceFeatures.samplerAnisotropy = VK_TRUE;
+      base->features.samplerAnisotropy = true;
+    }
 	if(settings::SAMPLE_SHADING)
+      if(deviceFeatures.sampleRateShading)
+      {
 		deviceFeatures.sampleRateShading = VK_TRUE;
+        base->features.sampleRateShading = true;
+      }
 
 	deviceInfo.pEnabledFeatures = &deviceFeatures;
 
@@ -174,11 +185,11 @@ void initVulkan::Device(VkInstance instance, VkPhysicalDevice& physicalDevice, V
 	deviceInfo.enabledLayerCount = 0;
 #endif//NDEBUG
 
-	if (vkCreateDevice(physicalDevice, &deviceInfo, nullptr, logicalDevice) != VK_SUCCESS)
+	if (vkCreateDevice(base->physicalDevice, &deviceInfo, nullptr, &base->device) != VK_SUCCESS)
 		throw std::runtime_error("failed to create logical device");
 
 	//get queue handles for graphics and present
-	vkGetDeviceQueue(*logicalDevice, families->graphicsPresentFamilyIndex, 0, &families->graphicsPresentQueue);
+	vkGetDeviceQueue(base->device, base->queue.graphicsPresentFamilyIndex, 0, &base->queue.graphicsPresentQueue);
 }
 
 void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex)
@@ -232,8 +243,6 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;;
 	if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount)
 		imageCount = surfaceCapabilities.maxImageCount;
-
-	imageCount = surfaceCapabilities.maxImageCount;
 
 	//set extent
 	swapchain->swapchainExtent = { 0, 0 };
