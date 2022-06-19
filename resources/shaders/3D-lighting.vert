@@ -12,10 +12,16 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
     mat4 proj;
 } ubo;
 
-layout(set = 1, binding = 0) readonly buffer PerInstanceData {
+struct Obj3DPerFrame
+{
     mat4 model;
     mat4 normalMat;
-} pid[100];
+};
+
+layout(std140, set = 1, binding = 0) readonly buffer PerInstanceData
+{
+    Obj3DPerFrame data[];
+} pid;
 
 
 layout(location = 0) in vec3 inPos;
@@ -34,8 +40,8 @@ void main()
     vec4 fragPos = vec4(0.0);
     if(pcs.normalMat[3][3] == 0.0) //draw instance (use per frame buffer)
     {
-        fragPos = ubo.view * pid[gl_InstanceIndex].model * vec4(inPos, 1.0);
-        outNormal = mat3(pid[gl_InstanceIndex].normalMat) * inNormal;
+        fragPos = ubo.view * pid.data[gl_InstanceIndex].model * vec4(inPos, 1.0);
+        outNormal = mat3(pid.data[gl_InstanceIndex].normalMat) * inNormal;
     }
     else //draw once (use push constants)
     {
