@@ -92,6 +92,8 @@ private:
   VkDeviceMemory mShaderMemory;
   VkBuffer mShaderBuffer;
 
+  VkDescriptorPool mDescPool;
+
   DS::DescriptorSet mVP3Dds;
   DS::DescriptorSet mVP2Dds;
   DS::DescriptorSet mPerInstance3Dds;

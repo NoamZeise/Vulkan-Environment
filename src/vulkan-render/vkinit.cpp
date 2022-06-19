@@ -1,5 +1,6 @@
 #include "vkinit.h"
 #include "vulkan/vulkan_core.h"
+#include <stdexcept>
 
 
 void initVulkan::Instance(VkInstance* instance)
@@ -240,7 +241,7 @@ void initVulkan::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkS
 	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities) != VK_SUCCESS)
 		throw std::runtime_error("failed to get physical device surface capabilities!");
 	//get image count
-	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;;
+	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
 	if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount)
 		imageCount = surfaceCapabilities.maxImageCount;
 
@@ -791,10 +792,74 @@ void initVulkan::GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain
 	vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
 }
 
-void initVulkan::DescriptorSetAndLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags, size_t setCount)
+
+void initVulkan::DescriptorSetLayout(VkDevice device, DS::DescriptorSet *ds,
+	 std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags)
 {
-	_createDescriptorSetLayout(device, ds, bindings, stageFlags);
-	_createDescriptorSet(device, ds, setCount);
+	//create layout
+	std::vector<VkDescriptorSetLayoutBinding> layoutBindings(bindings.size());
+	ds->poolSize.resize(bindings.size());
+	for(size_t i = 0; i < bindings.size(); i++)
+	{
+		bindings[i]->binding = static_cast<uint32_t>(i);
+		layoutBindings[i].binding = static_cast<uint32_t>(bindings[i]->binding);
+		layoutBindings[i].descriptorType = bindings[i]->type;
+		layoutBindings[i].descriptorCount = static_cast<uint32_t>(bindings[i]->descriptorCount);
+		layoutBindings[i].stageFlags = stageFlags;
+
+		ds->poolSize[i].type = bindings[i]->type;
+		ds->poolSize[i].descriptorCount = static_cast<uint32_t>(bindings[i]->descriptorCount);
+
+	}
+
+	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+	layoutInfo.pBindings = layoutBindings.data();
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &ds->layout) != VK_SUCCESS)
+		throw std::runtime_error("failed to create descriptor sets");
+}
+
+void initVulkan::DescriptorPool(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount)
+{
+  std::vector<VkDescriptorPoolSize> poolSizes;
+
+  for(size_t i = 0; i < descriptorSets.size(); i++)
+  {
+    for(size_t j = 0; j < descriptorSets[i]->poolSize.size(); j++)
+    {
+		poolSizes.push_back(descriptorSets[i]->poolSize[j]);
+		poolSizes.back().descriptorCount *= frameCount;
+		//std::cout << "fpool type: " << descriptorSets[i]->poolSize[j].type << std::endl;
+		//std::cout << "fdesc size: " << descriptorSets[i]->poolSize[j].descriptorCount << std::endl;
+    }
+  }
+  VkDescriptorPoolCreateInfo poolInfo{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.maxSets = frameCount * static_cast<uint32_t>(descriptorSets.size());
+  if(vkCreateDescriptorPool(device, &poolInfo, nullptr, pool) != VK_SUCCESS)
+    throw std::runtime_error("Failed to create descriptor pool!");
+}
+
+void initVulkan::DescriptorSet(VkDevice device, VkDescriptorPool pool, DS::DescriptorSet *ds, uint32_t frameCount)
+{
+     std::vector<VkDescriptorSetLayout> layouts(frameCount, ds->layout);
+	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+	allocInfo.descriptorPool = pool;
+	allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
+	allocInfo.pSetLayouts = layouts.data();
+	ds->sets.resize(frameCount);
+	if (vkAllocateDescriptorSets(device, &allocInfo, ds->sets.data()) != VK_SUCCESS)
+		throw std::runtime_error("failed to allocate descriptor sets");
+}
+
+void initVulkan::DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount)
+{
+  DescriptorPool(device, pool, descriptorSets, frameCount);
+  for(int i = 0; i < descriptorSets.size(); i++)
+  {
+    DescriptorSet(device, *pool, descriptorSets[i], frameCount);
+  }    
 }
 
 void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
@@ -1056,52 +1121,6 @@ void initVulkan::_destroyAttachmentImageResources(VkDevice device, AttachmentIma
 	vkDestroyImage(device, attachment.image, nullptr);
 	vkFreeMemory(device, attachment.memory, nullptr);
 }
-
-void initVulkan::_createDescriptorSetLayout(VkDevice device, DS::DescriptorSet &ds,
-	 std::vector<DS::Binding*> &bindings, VkShaderStageFlagBits stageFlags)
-{
-	//create layout
-	std::vector<VkDescriptorSetLayoutBinding> layoutBindings(bindings.size());
-	ds.poolSize.resize(bindings.size());
-	for(size_t i = 0; i < bindings.size(); i++)
-	{
-		bindings[i]->binding = static_cast<uint32_t>(i);
-		layoutBindings[i].binding = static_cast<uint32_t>(bindings[i]->binding);
-		layoutBindings[i].descriptorType = bindings[i]->type;
-		layoutBindings[i].descriptorCount = static_cast<uint32_t>(bindings[i]->descriptorCount);
-		layoutBindings[i].stageFlags = stageFlags;
-
-		ds.poolSize[i].type = bindings[i]->type;
-		ds.poolSize[i].descriptorCount = static_cast<uint32_t>(bindings[i]->descriptorCount);
-	}
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
-	layoutInfo.pBindings = layoutBindings.data();
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &ds.layout) != VK_SUCCESS)
-		throw std::runtime_error("failed to create descriptor sets");
-}
-
-void initVulkan::_createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount)
-{
-	VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	poolInfo.poolSizeCount = static_cast<uint32_t>(ds.poolSize.size());
-	poolInfo.pPoolSizes = ds.poolSize.data();
-	poolInfo.maxSets = static_cast<uint32_t>(setCount);
-	if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &ds.pool) != VK_SUCCESS)
-		throw std::runtime_error("failed to create descriptor pool");
-
-	std::vector<VkDescriptorSetLayout> layouts(setCount, ds.layout);
-	VkDescriptorSetAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	allocInfo.descriptorPool = ds.pool;
-	allocInfo.descriptorSetCount = static_cast<uint32_t>(layouts.size());
-	allocInfo.pSetLayouts = layouts.data();
-	ds.sets.resize(setCount);
-	if (vkAllocateDescriptorSets(device, &allocInfo, ds.sets.data()) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate descriptor sets");
-
-}
-
 
 
 size_t initVulkan::_createHostVisibleShaderBufferMemory(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)

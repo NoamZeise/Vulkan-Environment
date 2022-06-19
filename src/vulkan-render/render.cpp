@@ -1,4 +1,5 @@
 #include "render.h"
+#include "vkinit.h"
 #include "vulkan/vulkan_core.h"
 #include <stdint.h>
 
@@ -89,36 +90,27 @@ void Render::_initFrameResources()
   ///vertex descripor sets
   
   mVP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mVP3Dds, {&mVP3D.binding},
-                                     VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mVP3Dds, {&mVP3D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mVP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds, 1);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mVP2Dds, {&mVP2D.binding},
-                                     VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mVP2Dds, {&mVP2D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mPerInstance.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                               &mPerInstance3Dds, MAX_3D_INSTANCE);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mPerInstance3Dds,
-                                     {&mPerInstance.binding},
-                                     VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mPerInstance3Dds, {&mPerInstance.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mBones.setDynamicBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &mBonesds, 1, MAX_ANIMATIONS_PER_FRAME);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mBonesds,
-                                     {&mBones.binding},
-                                     VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mBonesds, { &mBones.binding }, VK_SHADER_STAGE_VERTEX_BIT);
+
 
   mPer2Dvert.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                             &mPer2DVertds, MAX_2D_INSTANCE);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mPer2DVertds,
-                                     {&mPer2Dvert.binding},
-                                     VK_SHADER_STAGE_VERTEX_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mPer2DVertds, {&mPer2Dvert.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   // fragment descriptor sets
   
   mLighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds, 1);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mLightingds,
-                                     {&mLighting.binding},
-                                     VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mLightingds, {&mLighting.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
 
   mTextureSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
                                  &mTexturesds, 1,
@@ -126,16 +118,12 @@ void Render::_initFrameResources()
   mTextureViews.setImageViewBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
                                &mTexturesds, Resource::MAX_TEXTURES_SUPPORTED,
                                mTextureLoader->getImageViewsP());
-  initVulkan::DescriptorSetAndLayout(
-      mBase.device, mTexturesds,
-      {&mTextureSampler.binding, &mTextureViews.binding},
-      VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mTexturesds, {&mTextureSampler.binding, &mTextureViews.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
+
 
   mPer2Dfrag.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                             &mPer2Dfragds, MAX_2D_INSTANCE);
-  initVulkan::DescriptorSetAndLayout(mBase.device, mPer2Dfragds,
-                                     {&mPer2Dfrag.binding},
-                                     VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mPer2Dfragds, {&mPer2Dfrag.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
   
   // render offscreen to tex, then  appy  to quad in final shader
   offscreenSampler = vkhelper::createTextureSampler(mBase.device, mBase.physicalDevice, 1.0f, false);
@@ -153,11 +141,23 @@ void Render::_initFrameResources()
        1,
        &mSwapchain.offscreen.view
   );
-  
-  initVulkan::DescriptorSetAndLayout(
-      mBase.device, mOffscreends,
-      {&mOffscreenSampler.binding, &mOffscreenView.binding},
-      VK_SHADER_STAGE_FRAGMENT_BIT, frameCount);
+  initVulkan::DescriptorSetLayout(mBase.device, &mOffscreends, {&mOffscreenSampler.binding, &mOffscreenView.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+  //create descripor pool
+
+  initVulkan::DescriptorPoolAndSet(mBase.device, &mDescPool,
+                             {
+                               &mVP3Dds,
+                               &mVP2Dds,
+                               &mPerInstance3Dds,
+                               &mBonesds,
+                               &mPer2DVertds,
+                               &mLightingds,
+                               &mTexturesds,
+                               &mPer2Dfragds,
+                               &mOffscreends
+                             }
+                             , frameCount);
 
   // create memory mapped buffer for all descriptor set bindings
   initVulkan::PrepareShaderBufferSets(
@@ -248,6 +248,8 @@ void Render::_destroyFrameResources() {
   mTexturesds.destroySet(mBase.device);
   mPer2Dfragds.destroySet(mBase.device);
   mOffscreends.destroySet(mBase.device);
+
+  vkDestroyDescriptorPool(mBase.device, mDescPool, nullptr);
 
   vkDestroyFramebuffer(mBase.device, mSwapchain.offscreenFramebuffer, nullptr);
   for (size_t i = 0; i < mSwapchain.frameData.size(); i++) {

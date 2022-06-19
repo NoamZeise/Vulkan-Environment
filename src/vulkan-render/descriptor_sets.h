@@ -68,11 +68,10 @@ struct Bones
 } // namespace ShaderStructs
 
 struct DescriptorSet {
-  void destroySet(VkDevice device) {
-    vkDestroyDescriptorPool(device, pool, nullptr);
+  void destroySet(VkDevice device)
+  {
     vkDestroyDescriptorSetLayout(device, layout, nullptr);
   }
-  VkDescriptorPool pool;
   VkDescriptorSetLayout layout;
   std::vector<VkDescriptorSet> sets;
   std::vector<VkDescriptorPoolSize> poolSize;
@@ -96,7 +95,8 @@ struct Binding {
   VkImageView *imageViews;
   VkSampler *samplers;
 
-  void storeSetData(size_t frameIndex, void *data, size_t index,  size_t dynamicOffsetIndex) {
+  void storeSetData(size_t frameIndex, void *data, size_t index,  size_t dynamicOffsetIndex)
+  {
     if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
         type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
         type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
@@ -115,7 +115,8 @@ struct Binding {
   }
 };
 
-template <typename T> struct BindingAndData {
+template <typename T> struct BindingAndData
+{
   Binding binding;
   std::vector<T> data;
   size_t currentDynamicOffsetIndex = 0;

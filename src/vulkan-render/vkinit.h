@@ -1,6 +1,7 @@
 #ifndef VK_H
 #define VK_H
 
+#include <vulkan/vulkan_core.h>
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -58,7 +59,10 @@ public:
 								std::vector<VkVertexInputBindingDescription> vertexBindingDesc
 );
 
-	static void DescriptorSetAndLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags, size_t setCount);
+  	static void DescriptorSetLayout(VkDevice device, DS::DescriptorSet *ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags);
+    static void DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount);
+    static void DescriptorPool(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount);
+    static void DescriptorSet(VkDevice device, VkDescriptorPool pool, DS::DescriptorSet *ds, uint32_t frameCount);
 	static void PrepareShaderBufferSets(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
 #ifndef NDEBUG
 	static void DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
@@ -79,8 +83,6 @@ private:
 	static VkFormat _findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
 	static void _destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment);
 	static size_t _createHostVisibleShaderBufferMemory(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
-	static void _createDescriptorSetLayout(VkDevice device, DS::DescriptorSet &ds, std::vector<DS::Binding*> &bindings, VkShaderStageFlagBits stageFlags);
-	static void _createDescriptorSet(VkDevice device, DS::DescriptorSet &ds, size_t setCount);
 	//DEBUG MEMBERS
 #ifndef NDEBUG
 
