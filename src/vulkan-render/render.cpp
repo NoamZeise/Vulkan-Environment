@@ -349,8 +349,6 @@ void Render::_startDraw()
   }
   vkResetCommandPool(mBase.device, mSwapchain.frameData[mImg].commandPool, 0);
 
-std::cout << "command pool reset\n";
-
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -564,8 +562,6 @@ float Render::MeasureString(Resource::Font font, std::string text, float size)
 void Render::_drawBatch()
 {
 
-  std::cout << "draw call\n";
-
   switch(renderState)
   {
 
@@ -591,6 +587,7 @@ void Render::_drawBatch()
 void Render::EndDraw(std::atomic<bool> &submit) {
   if (!mBegunDraw)
     throw std::runtime_error("start draw before ending it");
+
   mBegunDraw = false;
 
   switch(renderState)
@@ -605,6 +602,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
         _drawBatch();
       break;
   }
+
 
   //TODO only send batched data, not all!!!
 

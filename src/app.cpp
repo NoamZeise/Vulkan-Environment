@@ -140,8 +140,6 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
-std::cout << "start draw\n";
-
   /*mRender->Begin3DDraw();
 
    mRender->DrawModel(
@@ -154,8 +152,6 @@ std::cout << "start draw\n";
      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 */
 mRender->BeginAnim3DDraw();
-
-std::cout << "3D anim start\n";
 
   mRender->DrawAnimModel(
 		testWolf,
@@ -191,10 +187,10 @@ std::cout << "3D anim start\n";
   );
   
 
-  //mRender->Begin2DDraw();
+  mRender->Begin2DDraw();
 
-  //mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
-//    										glm::vec4(1), 0.0f);
+  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+    										glm::vec4(1), 0.0f);
 
  // mRender->DrawQuad(testTex,
 //    								glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),

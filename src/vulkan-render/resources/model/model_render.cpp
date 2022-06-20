@@ -121,7 +121,7 @@ void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			0, sizeof(fragPushConstants), &fps);
 
-		ModelInGPU *modelInfo = &models[0];
+		ModelInGPU *modelInfo = &models[quadID];
 		vkCmdDrawIndexed(cmdBuff,
 			static_cast<uint32_t>(modelInfo->meshes[0].indexCount),
 			static_cast<uint32_t>(count),
@@ -133,10 +133,11 @@ void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 
 void ModelRender::loadQuad()
 {
-	currentIndex++;
 	loaded2D.models.push_back(LoadedModel<Vertex2D>());
 	auto ldModel = &loaded2D.models[loaded2D.models.size() - 1];
 	ldModel->directory = "quad";
+	quadID = currentIndex;
+	ldModel->ID = static_cast<uint32_t>(currentIndex);
 	ldModel->meshes.push_back(new Mesh<Vertex2D>());
 	auto mesh = ldModel->meshes[ldModel->meshes.size() - 1];
 	mesh->texture =  Texture(0, glm::vec2(0,0), "quad");
@@ -149,7 +150,7 @@ void ModelRender::loadQuad()
 			{{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
 		};
 	mesh->indicies = { 0, 3, 2, 2, 1, 0};
-
+    currentIndex++;
 }
 
 Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations)
@@ -318,7 +319,6 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 template <class T_Vert >
 void ModelRender::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup, size_t &pVertexDataOffset, size_t &pIndexDataOffset)
 {
-
 	for(auto& model: pGroup->models)
 	{
 		for(size_t i = 0; i < model.meshes.size(); i++)
@@ -365,6 +365,7 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 		//copy each model's data to staging memory
 	size_t currentVertexOffset = 0;
 	size_t currentIndexOffset = vertexDataSize;
+
 	stageLoadGroup(pMem, &loaded2D, currentVertexOffset, currentIndexOffset);
 	stageLoadGroup(pMem, &loaded3D, currentVertexOffset, currentIndexOffset);
 	stageLoadGroup(pMem, &loadedAnim3D, currentVertexOffset, currentIndexOffset);

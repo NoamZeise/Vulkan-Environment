@@ -149,6 +149,8 @@ private:
 
 	bool boundThisFrame = false;
 	ModelType prevBoundType;
+
+	size_t quadID = 0;
 };
 
 }
