@@ -34,27 +34,13 @@ struct PerFrame3D {
   alignas(16) glm::mat4 normalMat;
 };
 
-const int MAX_3D_INSTANCE = 20;
-struct Per3DInstance {
-    PerFrame3D data[MAX_3D_INSTANCE];
-};
-
- const int MAX_2D_INSTANCE = 20;
-
-
-struct Per2DVert {
-  alignas(16) glm::mat4 model[MAX_3D_INSTANCE];
-};
-
 struct Frag2DData {
   alignas(16) glm::vec4 colour;
   alignas(16) glm::vec4 texOffset;
   alignas(4) uint32_t texID;
 };
 
-struct Per2DFrag {
- Frag2DData data[MAX_2D_INSTANCE];
-};
+
 
 struct lighting {
   lighting()
@@ -98,6 +84,7 @@ struct Binding {
   size_t dataStructSize;
   size_t binding = 0;
   size_t descriptorCount = 1;
+  size_t arraySize = 1;
   size_t dynamicBufferCount = 1;
   size_t bufferSize = 0;
 
@@ -107,7 +94,7 @@ struct Binding {
   VkImageView *imageViews;
   VkSampler *samplers;
 
-  void storeSetData(size_t frameIndex, void *data, size_t index,  size_t dynamicOffsetIndex)
+  void storeSetData(size_t frameIndex, void *data, size_t descriptorIndex, size_t arrayIndex, size_t dynamicOffsetIndex)
   {
     if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
         type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
@@ -119,7 +106,7 @@ struct Binding {
            memcpy(
 #endif
           static_cast<char *>(pointer) + offset + dynamicOffsetIndex*setCount*bufferSize +
-              ((frameIndex * bufferSize) + (index * slotSize)),
+              ((frameIndex * bufferSize) + (descriptorIndex * arraySize * slotSize) + (arrayIndex * slotSize)),
           data, dataStructSize);
     else
       throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
@@ -135,10 +122,13 @@ template <typename T> struct BindingAndData
 
   void setBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount,
-                      VkImageView *pImgViews, VkSampler *pSamplers) {
+                      VkImageView *pImgViews, VkSampler *pSamplers, bool structArray) {
     data.resize(dataCount);
     binding.ds = set;
-    binding.descriptorCount = dataCount;
+    if(structArray)
+      binding.arraySize = dataCount;
+    else
+      binding.descriptorCount = dataCount;
     binding.setCount = setCount;
     binding.dataStructSize = sizeof(T);
     binding.type = type;
@@ -157,12 +147,12 @@ template <typename T> struct BindingAndData
 
   void setImageViewBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount, VkImageView *pImgViews) {
-    setBufferProps(setCount, type, set, dataCount, 1, pImgViews, nullptr);
+    setBufferProps(setCount, type, set, dataCount, 1, pImgViews, nullptr, false);
   }
 
   void setSamplerBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount, VkSampler *pSamplers) {
-    setBufferProps(setCount, type, set, dataCount, 1, nullptr, pSamplers);
+    setBufferProps(setCount, type, set, dataCount, 1, nullptr, pSamplers, false);
   }
 
   void setDynamicBufferProps(size_t setCount, VkDescriptorType type,
@@ -170,18 +160,30 @@ template <typename T> struct BindingAndData
     if(type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
        type !=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
       throw std::runtime_error("set Dynamic Buffer, but type wasn't storage or uniform buffer dynamic");
-    setBufferProps(setCount, type, set, dataCount, dynamicBufferCount, nullptr, nullptr);
+    setBufferProps(setCount, type, set, dataCount, dynamicBufferCount, nullptr, nullptr, false);
     binding.ds->dynamicBuffer = true;
   }
 
-  void setBufferProps(size_t setCount, VkDescriptorType type,
+  void setSingleStructArrayBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount) {
-    setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr);
+    setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr, true);
   }
+
+  void setMultiDSBufferProps(size_t setCount, VkDescriptorType type,
+                      DescriptorSet *set, size_t dataCount) {
+    setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr, false);
+  }
+
+    void setBufferProps(size_t setCount, VkDescriptorType type,
+                      DescriptorSet *set) {
+    setBufferProps(setCount, type, set, 1, 1, nullptr, nullptr, false);
+  }
+
   void storeData(size_t frameIndex)
   {
-    for (size_t i = 0; i < data.size(); i++)
-      storeData(frameIndex, i);
+    for (size_t i = 0; i < binding.descriptorCount; i++)
+      for(size_t j = 0; j < binding.arraySize; j++)
+        storeData(frameIndex, i, j);
 
     if(binding.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
        binding.type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
@@ -190,11 +192,11 @@ template <typename T> struct BindingAndData
     }
   }
 
-  void storeData(size_t frameIndex, size_t arrayIndex) {
+  void storeData(size_t frameIndex, size_t descriptorIndex, size_t arrayIndex) {
     if (arrayIndex >= data.size())
       throw std::runtime_error("Descriptor Set Binding: tried to store data in "
                                "an index outside of the data range");
-    binding.storeSetData(frameIndex, &data[arrayIndex], arrayIndex, currentDynamicOffsetIndex);
+    binding.storeSetData(frameIndex, &data[(descriptorIndex * binding.arraySize) + arrayIndex], descriptorIndex, arrayIndex, currentDynamicOffsetIndex);
   }
 };
 

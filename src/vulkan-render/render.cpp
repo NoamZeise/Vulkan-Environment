@@ -90,27 +90,27 @@ void Render::_initFrameResources()
 
   ///vertex descripor sets
   
-  mVP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds, 1);
+  mVP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP3Dds);
   initVulkan::DescriptorSetLayout(mBase.device, &mVP3Dds, {&mVP3D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
-  mVP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds, 1);
+  mVP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mVP2Dds);
   initVulkan::DescriptorSetLayout(mBase.device, &mVP2Dds, {&mVP2D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
-  mPerInstance.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                              &mPerInstance3Dds, 1);
+  mPerInstance.setSingleStructArrayBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                              &mPerInstance3Dds, MAX_3D_INSTANCE);
   initVulkan::DescriptorSetLayout(mBase.device, &mPerInstance3Dds, {&mPerInstance.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   mBones.setDynamicBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &mBonesds, 1, MAX_ANIMATIONS_PER_FRAME);
   initVulkan::DescriptorSetLayout(mBase.device, &mBonesds, { &mBones.binding }, VK_SHADER_STAGE_VERTEX_BIT);
 
 
-  mPer2Dvert.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            &mPer2DVertds, 1);
+  mPer2Dvert.setSingleStructArrayBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            &mPer2DVertds, MAX_2D_INSTANCE);
   initVulkan::DescriptorSetLayout(mBase.device, &mPer2DVertds, {&mPer2Dvert.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   // fragment descriptor sets
   
-  mLighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds, 1);
+  mLighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &mLightingds);
   initVulkan::DescriptorSetLayout(mBase.device, &mLightingds, {&mLighting.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
 
   mTextureSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
@@ -122,8 +122,8 @@ void Render::_initFrameResources()
   initVulkan::DescriptorSetLayout(mBase.device, &mTexturesds, {&mTextureSampler.binding, &mTextureViews.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
 
 
-  mPer2Dfrag.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            &mPer2Dfragds, 1);
+  mPer2Dfrag.setSingleStructArrayBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            &mPer2Dfragds, MAX_2D_INSTANCE);
   initVulkan::DescriptorSetLayout(mBase.device, &mPer2Dfragds, {&mPer2Dfrag.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
   
   // render offscreen to tex, then  appy  to quad in final shader
@@ -219,15 +219,15 @@ void Render::_initFrameResources()
 
   //set initial data
   mVP2D.data[0].view = glm::mat4(1.0f);
-  for (size_t i = 0; i < DS::ShaderStructs::MAX_3D_INSTANCE; i++) {
-    mPerInstance.data[0].data[i].model = glm::mat4(1.0f);
-    mPerInstance.data[0].data[i].normalMat = glm::mat4(1.0f);
+  for (size_t i = 0; i < MAX_3D_INSTANCE; i++) {
+    mPerInstance.data[i].model = glm::mat4(1.0f);
+    mPerInstance.data[i].normalMat = glm::mat4(1.0f);
   }
-  for (size_t i = 0; i < DS::ShaderStructs::MAX_2D_INSTANCE; i++) {
-    mPer2Dvert.data[0].model[i] = glm::mat4(1.0f);
-    mPer2Dfrag.data[0].data[i].colour = glm::vec4(1.0f);
-    mPer2Dfrag.data[0].data[i].texOffset = glm::vec4(0, 0, 1, 1);
-    mPer2Dfrag.data[0].data[i].texID = 0;
+  for (size_t i = 0; i < MAX_2D_INSTANCE; i++) {
+    mPer2Dvert.data[i] = glm::mat4(1.0f);
+    mPer2Dfrag.data[i].colour = glm::vec4(1.0f);
+    mPer2Dfrag.data[i].texOffset = glm::vec4(0, 0, 1, 1);
+    mPer2Dfrag.data[i].texID = 0;
   }
 }
 
@@ -320,8 +320,6 @@ void Render::_startDraw()
     throw std::runtime_error(
         "resource loading must be finished before drawing to screen!");
   mBegunDraw = true;
-
-  std::cout << "beginning draw\n";
 
   if (mSwapchain.imageAquireSem.empty()) {
     VkSemaphoreCreateInfo semaphoreInfo{
@@ -417,19 +415,20 @@ void Render::Begin3DDraw()
 
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
 {
-  if (current3DInstanceIndex >= DS::ShaderStructs::MAX_3D_INSTANCE) {
-    std::cout << "WARNING: ran out of 3D instance models!\n";
+  if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
+    std::cout << "WARNING: ran out of 3D instances!\n";
+    return;
   }
 
   if (currentModel.ID != model.ID && modelRuns != 0)
     _drawBatch();
 
   currentModel = model;
-  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].model = modelMatrix;
-  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
   modelRuns++;
 
-  if (current3DInstanceIndex + modelRuns == DS::ShaderStructs::MAX_3D_INSTANCE)
+  if (current3DInstanceIndex + modelRuns == MAX_3D_INSTANCE)
     _drawBatch();
 }
 
@@ -453,16 +452,17 @@ void Render::BeginAnim3DDraw()
 
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
 {
-   if (current3DInstanceIndex >= DS::ShaderStructs::MAX_3D_INSTANCE) {
+   if (current3DInstanceIndex >= MAX_3D_INSTANCE) {
      std::cout << "WARNING: Ran out of 3D Anim Instance models!\n";
+     return;
   }
 
   if (currentModel.ID != model.ID && modelRuns != 0)
     _drawBatch();
 
   currentModel = model;
-  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].model = modelMatrix;
-  mPerInstance.data[0].data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].model = modelMatrix;
+  mPerInstance.data[current3DInstanceIndex + modelRuns].normalMat = normalMat;
   modelRuns++;
 
   auto bones = animation->getCurrentBones();
@@ -515,19 +515,20 @@ void Render::Begin2DDraw()
 
 void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset)
 {
-  if (current2DInstanceIndex >= DS::ShaderStructs::MAX_2D_INSTANCE)
+  if (current2DInstanceIndex >= MAX_2D_INSTANCE)
   {
     std::cout << "WARNING: ran out of 2D instance models!\n";
+    return;
   }
 
-  mPer2Dvert.data[0].model[current2DInstanceIndex + instance2Druns] = modelMatrix;
-  mPer2Dfrag.data[0].data[current2DInstanceIndex + instance2Druns].colour = colour;
-  mPer2Dfrag.data[0].data[current2DInstanceIndex + instance2Druns].texOffset =
+  mPer2Dvert.data[current2DInstanceIndex + instance2Druns] = modelMatrix;
+  mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].colour = colour;
+  mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texOffset =
       texOffset;
-  mPer2Dfrag.data[0].data[current2DInstanceIndex + instance2Druns].texID = texture.ID;
+  mPer2Dfrag.data[current2DInstanceIndex + instance2Druns].texID = texture.ID;
   instance2Druns++;
 
-  if (current2DInstanceIndex + instance2Druns == DS::ShaderStructs::MAX_2D_INSTANCE)
+  if (current2DInstanceIndex + instance2Druns == MAX_2D_INSTANCE)
     _drawBatch();
 }
 
@@ -594,11 +595,11 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   {
     case RenderState::Draw3D:
     case RenderState::DrawAnim3D:
-      if (modelRuns != 0 && current3DInstanceIndex < DS::ShaderStructs::MAX_3D_INSTANCE)
+      if (modelRuns != 0 && current3DInstanceIndex < MAX_3D_INSTANCE)
         _drawBatch();
       break;
     case RenderState::Draw2D:
-      if (instance2Druns != 0 && current2DInstanceIndex < DS::ShaderStructs::MAX_2D_INSTANCE)
+      if (instance2Druns != 0 && current2DInstanceIndex < MAX_2D_INSTANCE)
         _drawBatch();
       break;
   }
@@ -606,29 +607,24 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   //TODO only send batched data, not all!!!
 
- // for (size_t i = 0; i < current3DInstanceIndex; i++)
- //   mPerInstance.storeData(mImg, i);
- // current3DInstanceIndex = 0;
- //
- mPerInstance.storeData(mImg, 0);
- current3DInstanceIndex = 0;
+  for (size_t i = 0; i < current3DInstanceIndex; i++)
+    mPerInstance.storeData(mImg, 0, i);
+  current3DInstanceIndex = 0;
 
 
-
-  //for (size_t i = 0; i < current2DInstanceIndex; i++) {
-  //  mPer2Dvert.storeData(mImg, i);
-  //  mPer2Dfrag.storeData(mImg, i);
- // }
- //
-  mPer2Dvert.storeData(mImg, 0);
-  mPer2Dfrag.storeData(mImg, 0);
+  for (size_t i = 0; i < current2DInstanceIndex; i++)
+  {
+    mPer2Dvert.storeData(mImg, 0, i);
+    mPer2Dfrag.storeData(mImg, 0, i);
+  }
   current2DInstanceIndex = 0;
 
 
-  // end render pass
+
+  // end last offscreen render pass
   vkCmdEndRenderPass(mSwapchain.frameData[mImg].commandBuffer);
 
-  // final render pass
+  // final, onscreen render pass
 
   // fill render pass begin struct
   VkRenderPassBeginInfo renderPassInfo{};
@@ -716,8 +712,6 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
 //TODO remove when segfault fixed
   vkQueueWaitIdle(mBase.queue.graphicsPresentQueue);
-
-  std::cout << "finished draw\n";
 
   submit = true;
 }

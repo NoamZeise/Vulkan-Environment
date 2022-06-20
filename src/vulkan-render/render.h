@@ -30,6 +30,8 @@
 #include "vkinit.h"
 
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
+const int MAX_3D_INSTANCE = 20;
+const int MAX_2D_INSTANCE = 20;
 
 class Render {
 public:
@@ -104,12 +106,12 @@ private:
 
   DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
   DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
-  DS::BindingAndData<DS::ShaderStructs::Per3DInstance> mPerInstance;
+  DS::BindingAndData<DS::ShaderStructs::PerFrame3D> mPerInstance;
   DS::BindingAndData<DS::ShaderStructs::Bones> mBones;
-  DS::BindingAndData<DS::ShaderStructs::Per2DVert> mPer2Dvert;
+  DS::BindingAndData<glm::mat4> mPer2Dvert;
   DS::BindingAndData<bool> mTextureViews;
   DS::BindingAndData<bool> mTextureSampler;
-  DS::BindingAndData<DS::ShaderStructs::Per2DFrag> mPer2Dfrag;
+  DS::BindingAndData<DS::ShaderStructs::Frag2DData> mPer2Dfrag;
   DS::BindingAndData<DS::ShaderStructs::lighting> mLighting;
   DS::BindingAndData<bool> mOffscreenSampler;
   DS::BindingAndData<bool> mOffscreenView;

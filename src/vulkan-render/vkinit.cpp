@@ -928,8 +928,8 @@ void initVulkan::PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds
 						buffInfos[buffIndex].buffer = *buffer;
 						buffInfos[buffIndex].offset = ds[descI]->offset +
 							                         (ds[descI]->bufferSize * i) +
-													 (ds[descI]->slotSize * j);
-   						buffInfos[buffIndex].range = ds[descI]->slotSize;
+							                          (ds[descI]->arraySize * ds[descI]->slotSize * j);
+   						buffInfos[buffIndex].range = ds[descI]->slotSize * ds[descI]->arraySize;
 						buffIndex++;
 					}
 					writes[i].pBufferInfo = buffInfos.data() + (i * ds[descI]->descriptorCount);
@@ -1170,7 +1170,7 @@ size_t initVulkan::_createHostVisibleShaderBufferMemory(Base base, std::vector<D
 		memorySize = vkhelper::correctAlignment(memorySize, alignment);
 
 		ds[i]->offset = memorySize;
-		ds[i]->bufferSize = ds[i]->slotSize * ds[i]->descriptorCount;
+		ds[i]->bufferSize = ds[i]->slotSize * ds[i]->descriptorCount * ds[i]->arraySize;
 		memorySize += ds[i]->bufferSize * ds[i]->dynamicBufferCount * ds[i]->setCount;
 	}
 

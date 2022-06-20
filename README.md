@@ -19,7 +19,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 ## Todo list:
 bugs:
 * make first-person camera feel normal when fullscreen
-* llvmlipe supported
+* working with lavapipe(segfaults atm - something to do with swapchain possibly?)
 
 features:
 * make multiple render passes optional
@@ -32,8 +32,8 @@ optimisations:
 * more elegant descriptor set + binding handle (too many members of render)
 * check if animation is faster with array of shader buffers instead
 * resizable descriptor struct
-* update part of array in ds 
-
+* update all changed DS data in one memcpy might be faster?
+* 
 
 ## External libraries and their uses:
 

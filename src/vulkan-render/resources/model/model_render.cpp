@@ -91,7 +91,7 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 	for(size_t i = 0; i < modelInfo->meshes.size(); i++)
 	{
 		fragPushConstants fps{
-			glm::vec4(1.0f), //colour
+			glm::vec4(1.0f), //colour //TODO have colour set by model
 			glm::vec4(0, 0, 1, 1), //texOffset
 			modelInfo->meshes[i].texture.ID
 		};
@@ -114,7 +114,7 @@ void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, uns
 {
 		bindGroupVertexBuffer(cmdBuff, ModelType::model2D);
 
-		ModelInGPU *modelInfo = &models[quadID];
+		ModelInGPU *modelInfo = &models[static_cast<int>(quadID)];
 		vkCmdDrawIndexed(cmdBuff,
 			static_cast<uint32_t>(modelInfo->meshes[0].indexCount),
 			static_cast<uint32_t>(count),
