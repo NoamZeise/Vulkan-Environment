@@ -532,8 +532,8 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
     _drawBatch();
 }
 
-void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix,
-                      glm::vec4 colour) {
+void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour)
+{
   DrawQuad(texture, modelMatrix, colour, glm::vec4(0, 0, 1, 1));
 }
 
@@ -543,11 +543,10 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix) {
 
 void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
 {
-  auto draws = mFontLoader->DrawString(font, text, position, size, depth,
-                                       colour, rotate);
+  auto draws = mFontLoader->DrawString(font, text, position, size, depth, colour, rotate);
   for (const auto &draw : draws)
   {
-    DrawQuad(draw.tex, draw.model, draw.colour);
+    DrawQuad(draw.tex, draw.model, draw.colour, draw.texOffset);
   }
 }
 void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour)
