@@ -28,7 +28,8 @@ endif()
 file(GLOB SOURCES src/*
   src/vulkan-render/*
   src/vulkan-render/resources/*
-  src/vulkan-render/resources/model/*)
+  src/vulkan-render/resources/model/*
+  src/vulkan-render/parts/*)
 
 #ignore any temps from emacs
 list(FILTER SOURCES EXCLUDE REGEX ".*#+")

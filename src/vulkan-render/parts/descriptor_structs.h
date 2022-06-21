@@ -1,5 +1,5 @@
-#ifndef DESCRIPTOR_SETS_H
-#define DESCRIPTOR_SETS_H
+#ifndef DESCRIPTOR_STRUCTS_H
+#define DESCRIPTOR_STRUCTS_H
 
 #include "vulkan/vulkan_core.h"
 #ifndef GLFW_INCLUDE_VULKAN

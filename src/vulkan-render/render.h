@@ -20,7 +20,8 @@
 
 #include <glmhelper.h>
 
-#include "descriptor_sets.h"
+#include "parts/descriptor_structs.h"
+#include "parts/descriptors.h"
 #include "resources/model/model_render.h"
 #include "pipeline.h"
 #include "render_structs.h"

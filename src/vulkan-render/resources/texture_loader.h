@@ -16,7 +16,6 @@
 #include "stb_image.h"
 #include "../config.h"
 #include "../render_structs.h"
-#include "../descriptor_sets.h"
 #include "../vkhelper.h"
 #include "resources.h"
 

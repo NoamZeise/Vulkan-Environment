@@ -19,7 +19,7 @@
 #include "config.h"
 #include "render_structs.h"
 #include "pipeline.h"
-#include "descriptor_sets.h"
+#include "parts/descriptor_structs.h"
 #include "vkhelper.h"
 
 #ifndef NDEBUG
@@ -60,11 +60,7 @@ public:
 								std::vector<VkVertexInputBindingDescription> vertexBindingDesc
 );
 
-  	static void DescriptorSetLayout(VkDevice device, DS::DescriptorSet *ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags);
-    static void DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount);
-    static void DescriptorPool(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount);
-    static void DescriptorSet(VkDevice device, VkDescriptorPool pool, DS::DescriptorSet *ds, uint32_t frameCount);
-	static void PrepareShaderBufferSets(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
+
 #ifndef NDEBUG
 	static void DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
 	static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
