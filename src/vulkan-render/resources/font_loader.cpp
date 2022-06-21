@@ -128,7 +128,11 @@ FontLoader::LoadedFont::LoadedFont(std::string file, TextureLoader* texLoader)
 	}
 
 	Resource::Texture texture = texLoader->LoadTexture(
-		finalBuff, totalWidth, largestHeight, 4);
+		finalBuff,
+		static_cast<int>(totalWidth),
+		static_cast<int>(largestHeight),
+		4
+    );
 
 	for (unsigned char c = 32; c < 126; c++)
 	{

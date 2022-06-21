@@ -2,10 +2,6 @@
 #define DESCRIPTOR_STRUCTS_H
 
 #include "vulkan/vulkan_core.h"
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
-#include <GLFW/glfw3.h>
 
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -155,8 +151,8 @@ template <typename T> struct BindingAndData
     setBufferProps(setCount, type, set, dataCount, 1, nullptr, pSamplers, false);
   }
 
-  void setDynamicBufferProps(size_t setCount, VkDescriptorType type,
-                      DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount) {
+  void setDynamicBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount)
+  {
     if(type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
        type !=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
       throw std::runtime_error("set Dynamic Buffer, but type wasn't storage or uniform buffer dynamic");
@@ -164,18 +160,32 @@ template <typename T> struct BindingAndData
     binding.ds->dynamicBuffer = true;
   }
 
-  void setSingleStructArrayBufferProps(size_t setCount, VkDescriptorType type,
-                      DescriptorSet *set, size_t dataCount) {
+  //shader data like this:
+  /*
+  **layout(std140, set = 0, binding = 0) uniform myData
+  **{
+  **    MyStruct data[10];
+  **} my;
+   */
+  void setSingleStructArrayBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet *set, size_t dataCount)
+  {
     setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr, true);
   }
 
-  void setMultiDSBufferProps(size_t setCount, VkDescriptorType type,
-                      DescriptorSet *set, size_t dataCount) {
+  //shader data like this:
+  /*layout(set = 1, binding = 0) uniform myData
+  **{
+  **  mat4 model;
+  **  mat4 normalMatrix;
+  **} data[100];
+   */
+  void setMultiDSBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet *set, size_t dataCount)
+  {
     setBufferProps(setCount, type, set, dataCount, 1, nullptr, nullptr, false);
   }
 
-    void setBufferProps(size_t setCount, VkDescriptorType type,
-                      DescriptorSet *set) {
+  void setBufferProps(size_t setCount, VkDescriptorType type,  DescriptorSet *set)
+  {
     setBufferProps(setCount, type, set, 1, 1, nullptr, nullptr, false);
   }
 
