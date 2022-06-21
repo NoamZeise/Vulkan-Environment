@@ -33,33 +33,38 @@ public:
 	float MeasureString(Font font, std::string text, float size);
 
 private:
-struct Character
-{
-	Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, float advance)
-	{
-		this->texture = texture;
-		this->size = size;
-		this->bearing = bearing;
-		this->advance = advance;
-	}
-	Resource::Texture texture;
-	glm::vec2 size;
-	glm::vec2 bearing;
-	float advance;
-};
+    struct Character
+    {
+		Character(){}
+		Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, float advance)
+		{
+			this->texture = texture;
+			this->size = size;
+			this->bearing = bearing;
+			this->advance = advance;
+		}
 
-class LoadedFont
-{
-public:
-	LoadedFont(std::string file, TextureLoader* texLoader);
-	~LoadedFont();
-	Character* getChar(char c);
-	float MeasureString(std::string text, float size);
-private:
-	std::map<char, Character*> _chars;
-	bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);
-	const int SIZE = 100;
-};
+		Resource::Texture texture;
+		glm::vec2 size;
+		glm::vec2 bearing;
+		float advance;
+	};
+
+    class LoadedFont
+    {
+	public:
+		LoadedFont(std::string file, TextureLoader* texLoader);
+		~LoadedFont();
+		Character* getChar(char c);
+		float MeasureString(std::string text, float size);
+    private:
+	    Character blankChar(const FT_Face &face);
+		Character makeChar(Resource::Texture texture, const FT_Face &face);
+
+		std::map<char, Character> _chars;
+		bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);
+	    const int SIZE = 100;
+    };
 
 	std::vector<LoadedFont*> fonts;
 };
