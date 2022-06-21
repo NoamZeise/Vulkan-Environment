@@ -10,7 +10,7 @@ layout(push_constant) uniform fragconstants
 //maybe add uniform buffer for lighting
 
 layout(set = 3, binding = 0) uniform sampler texSamp;
-layout(set = 3, binding = 1) uniform texture2D textures[120];
+layout(set = 3, binding = 1) uniform texture2D textures[20];
 layout(set = 4, binding = 0) uniform LightingUBO
 {
     vec4 ambient;

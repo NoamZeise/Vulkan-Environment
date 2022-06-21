@@ -199,7 +199,7 @@ mRender->BeginAnim3DDraw();
 
   mRender->Begin2DDraw();
 
-  mRender->DrawString(testFont, "test", glm::vec2(400, 100), 100, -0.5,
+  mRender->DrawString(testFont, "Font Render", glm::vec2(0, 100), 100, -0.5,
     										glm::vec4(1), 0.0f);
 
   mRender->DrawQuad(testTex,

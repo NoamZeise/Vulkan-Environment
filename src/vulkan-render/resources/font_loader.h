@@ -26,7 +26,6 @@ class FontLoader
 {
 public:
 	FontLoader() {}
-
 	~FontLoader();
 	Font LoadFont(std::string file, TextureLoader* texLoader);
 	std::vector<QuadDraw> DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
@@ -36,15 +35,21 @@ private:
     struct Character
     {
 		Character(){}
-		Character(Resource::Texture texture, glm::vec2 size, glm::vec2 bearing, float advance)
+		Character(unsigned char* buffer, size_t buffW, size_t buffH, glm::vec2 size, glm::vec2 bearing, float advance)
 		{
-			this->texture = texture;
+			this->buffer = buffer;
+			this->buffW = buffW;
+			this->buffH = buffH;
 			this->size = size;
 			this->bearing = bearing;
 			this->advance = advance;
 		}
 
 		Resource::Texture texture;
+		glm::vec4 textureOffset;
+		unsigned char* buffer = nullptr;
+		size_t buffW;
+		size_t buffH;
 		glm::vec2 size;
 		glm::vec2 bearing;
 		float advance;
@@ -54,12 +59,11 @@ private:
     {
 	public:
 		LoadedFont(std::string file, TextureLoader* texLoader);
-		~LoadedFont();
 		Character* getChar(char c);
 		float MeasureString(std::string text, float size);
     private:
 	    Character blankChar(const FT_Face &face);
-		Character makeChar(Resource::Texture texture, const FT_Face &face);
+		Character makeChar(unsigned char* texture, const FT_Face &face);
 
 		std::map<char, Character> _chars;
 		bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);

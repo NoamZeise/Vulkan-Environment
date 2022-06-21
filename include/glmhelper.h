@@ -41,6 +41,11 @@ inline glm::vec4 getTextureOffset(glm::vec4 drawArea, glm::vec4 textureArea)
 	return offset;
 }
 
+inline glm::vec4 getTextureOffset(glm::vec2 texDim, glm::vec4 section)
+{
+	return glm::vec4(section.x / texDim.x, section.y / texDim.y, section.z / texDim.x, section.w /  texDim.y);
+}
+
 inline glm::mat4 calcMatFromRect(glm::vec4 rect, float rotate, float depth)
 {
 	glm::mat4 model = glm::mat4(1.0f);

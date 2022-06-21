@@ -67,6 +67,7 @@ Texture TextureLoader::LoadTexture(std::string path)
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 
+	//takes ownership of data
 Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels)
 {
 	texToLoad.push_back({ "NULL" });
