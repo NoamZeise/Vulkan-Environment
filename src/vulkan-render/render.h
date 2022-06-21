@@ -20,15 +20,17 @@
 
 #include <glmhelper.h>
 
-#include "parts/descriptor_structs.h"
+#include "parts/primary.h"
+#include "parts/swapchain.h"
+#include "parts/render_style.h"
 #include "parts/descriptors.h"
+#include "parts/descriptor_structs.h"
 #include "resources/model/model_render.h"
 #include "pipeline.h"
 #include "render_structs.h"
 #include "resources/font_loader.h"
 #include "resources/texture_loader.h"
 #include "vkhelper.h"
-#include "vkinit.h"
 
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
 const int MAX_3D_INSTANCE = 20;

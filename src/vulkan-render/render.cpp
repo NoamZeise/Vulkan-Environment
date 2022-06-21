@@ -1,8 +1,4 @@
 #include "render.h"
-#include "vkinit.h"
-#include "vulkan/vulkan_core.h"
-#include <stdexcept>
-#include <stdint.h>
 
 Render::Render(GLFWwindow *window)
 {
@@ -20,15 +16,15 @@ Render::Render(GLFWwindow *window, glm::vec2 target)
 void Render::_initRender(GLFWwindow *window)
 {
   mWindow = window;
-  initVulkan::Instance(&mInstance);
+  part::create::Instance(&mInstance);
 #ifndef NDEBUG
-  initVulkan::DebugMessenger(mInstance, &mDebugMessenger);
+  part::create::DebugMessenger(mInstance, &mDebugMessenger);
 #endif
   
   if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
   
-  initVulkan::Device(mInstance, &mBase, mSurface);
+  part::create::Device(mInstance, &mBase, mSurface);
   
   // create general command pool
   VkCommandPoolCreateInfo commandPoolInfo {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
@@ -60,18 +56,18 @@ Render::~Render()
   
   _destroyFrameResources();
   vkDestroyCommandPool(mBase.device, mGeneralCommandPool, nullptr);
-  initVulkan::DestroySwapchain(&mSwapchain, mBase.device);
+  part::destroy::Swapchain(mBase.device, &mSwapchain);
   vkDestroyDevice(mBase.device, nullptr);
   vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
 #ifndef NDEBUG
-  initVulkan::DestroyDebugUtilsMessengerEXT(mInstance, mDebugMessenger,nullptr);
+  part::destroy::DebugMessenger(mInstance, mDebugMessenger,nullptr);
 #endif
   vkDestroyInstance(mInstance, nullptr);
 }
 
 void Render::_initFrameResources()
 {
-  initVulkan::Swapchain(
+  part::create::Swapchain(
       mBase.device,
       mBase.physicalDevice,
       mSurface,
@@ -81,10 +77,10 @@ void Render::_initFrameResources()
   );
   size_t frameCount = mSwapchain.frameData.size();
 
-  initVulkan::RenderPass(  mBase.device, &mRenderPass,  mSwapchain, false);
-  initVulkan::Framebuffers(mBase.device,  mRenderPass, &mSwapchain, false);
-  initVulkan::RenderPass(  mBase.device, &mFinalRenderPass,  mSwapchain, true);
-  initVulkan::Framebuffers(mBase.device,  mFinalRenderPass, &mSwapchain, true);
+  part::create::RenderPass(  mBase.device, &mRenderPass,  mSwapchain, false);
+  part::create::Framebuffers(mBase.device,  mRenderPass, &mSwapchain, false);
+  part::create::RenderPass(  mBase.device, &mFinalRenderPass,  mSwapchain, true);
+  part::create::Framebuffers(mBase.device,  mFinalRenderPass, &mSwapchain, true);
 
   ///set shader  descripor sets
 
@@ -181,7 +177,7 @@ void Render::_initFrameResources()
 
   // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
   
-  initVulkan::GraphicsPipeline(
+  part::create::GraphicsPipeline(
       mBase.device, &mPipeline3D, mSwapchain, mRenderPass,
       {&mVP3Dds, &mPerInstance3Dds, &mTexturesds, &mLightingds},{
        {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
@@ -190,7 +186,7 @@ void Render::_initFrameResources()
       Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
   );
 
-  initVulkan::GraphicsPipeline(
+  part::create::GraphicsPipeline(
     mBase.device, &mPipelineAnim3D, mSwapchain, mRenderPass,
     {&mVP3Dds, &mPerInstance3Dds, &mBonesds, &mTexturesds, &mLightingds},
     {
@@ -199,7 +195,7 @@ void Render::_initFrameResources()
     VertexAnim3D::attributeDescriptions(), VertexAnim3D::bindingDescriptions()
   );
 
-  initVulkan::GraphicsPipeline(
+  part::create::GraphicsPipeline(
       mBase.device, &mPipeline2D, mSwapchain, mRenderPass,
       {&mVP2Dds, &mPer2DVertds, &mTexturesds, &mPer2Dfragds},
       {},
@@ -207,7 +203,7 @@ void Render::_initFrameResources()
       Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
   );
 
-  initVulkan::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain,
+  part::create::GraphicsPipeline(mBase.device, &mPipelineFinal, mSwapchain,
                                mFinalRenderPass, {&mOffscreends}, {},
                                "shaders/final.vert.spv", "shaders/final.frag.spv",
                                false, true,
