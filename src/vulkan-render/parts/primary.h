@@ -14,7 +14,7 @@ namespace part
 {
     namespace create
     {
-        	void Instance(VkInstance* instance);
+            void Instance(VkInstance* instance);
             void Device(VkInstance instance, Base* base, VkSurfaceKHR surface);
     #ifndef NDEBUG
             void DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);

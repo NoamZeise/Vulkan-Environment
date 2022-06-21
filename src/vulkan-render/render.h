@@ -71,58 +71,58 @@ public:
   void FramebufferResize();
 
 private:
-  bool mFramebufferResized = false;
+  bool _framebufferResized = false;
 
-  GLFWwindow *mWindow;
-  glm::vec2 targetResolution;
-  VkInstance mInstance;
-  VkSurfaceKHR mSurface;
-  Base mBase;
-  FrameData mFrame;
-  SwapChain mSwapchain;
-  VkRenderPass mRenderPass;
-  VkRenderPass mFinalRenderPass;
+  GLFWwindow *_window;
+  glm::vec2 _targetResolution;
+  VkInstance _instance;
+  VkSurfaceKHR _surface;
+  Base _base;
+  FrameData _frame;
+  SwapChain _swapchain;
+  VkRenderPass _renderPass;
+  VkRenderPass _finalRenderPass;
 
-  VkCommandPool mGeneralCommandPool;
-  VkCommandBuffer mTransferCommandBuffer;
+  VkCommandPool _generalCommandPool;
+  VkCommandBuffer _transferCommandBuffer;
 
-  Pipeline mPipeline3D;
-  Pipeline mPipelineAnim3D;
-  Pipeline mPipeline2D;
-  Pipeline mPipelineFinal;
+  Pipeline _pipeline3D;
+  Pipeline _pipelineAnim3D;
+  Pipeline _pipeline2D;
+  Pipeline _pipelineFinal;
 
   // descriptor set members
-  VkDeviceMemory mShaderMemory;
-  VkBuffer mShaderBuffer;
+  VkDeviceMemory _shaderMemory;
+  VkBuffer _shaderBuffer;
 
-  VkDescriptorPool mDescPool;
+  VkDescriptorPool _descPool;
 
-  DS::DescriptorSet mVP3Dds;
-  DS::DescriptorSet mVP2Dds;
-  DS::DescriptorSet mPerInstance3Dds;
-  DS::DescriptorSet mBonesds;
-  DS::DescriptorSet mPer2DVertds;
-  DS::DescriptorSet mLightingds;
-  DS::DescriptorSet mTexturesds;
-  DS::DescriptorSet mPer2Dfragds;
-  DS::DescriptorSet mOffscreends;
+  DS::DescriptorSet _VP3Dds;
+  DS::DescriptorSet _VP2Dds;
+  DS::DescriptorSet _perInstance3Dds;
+  DS::DescriptorSet _bonesds;
+  DS::DescriptorSet _per2DVertds;
+  DS::DescriptorSet _lightingds;
+  DS::DescriptorSet _texturesds;
+  DS::DescriptorSet _per2Dfragds;
+  DS::DescriptorSet _offscreends;
 
-  DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP3D;
-  DS::BindingAndData<DS::ShaderStructs::viewProjection> mVP2D;
-  DS::BindingAndData<DS::ShaderStructs::PerFrame3D> mPerInstance;
-  DS::BindingAndData<DS::ShaderStructs::Bones> mBones;
-  DS::BindingAndData<glm::mat4> mPer2Dvert;
-  DS::BindingAndData<bool> mTextureViews;
-  DS::BindingAndData<bool> mTextureSampler;
-  DS::BindingAndData<DS::ShaderStructs::Frag2DData> mPer2Dfrag;
-  DS::BindingAndData<DS::ShaderStructs::lighting> mLighting;
-  DS::BindingAndData<bool> mOffscreenSampler;
-  DS::BindingAndData<bool> mOffscreenView;
-  VkSampler offscreenSampler;
+  DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP3D;
+  DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP2D;
+  DS::BindingAndData<DS::ShaderStructs::PerFrame3D> _perInstance;
+  DS::BindingAndData<DS::ShaderStructs::Bones> _bones;
+  DS::BindingAndData<glm::mat4> _per2Dvert;
+  DS::BindingAndData<bool> _textureViews;
+  DS::BindingAndData<bool> _textureSampler;
+  DS::BindingAndData<DS::ShaderStructs::Frag2DData> _per2Dfrag;
+  DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
+  DS::BindingAndData<bool> _offscreenSampler;
+  DS::BindingAndData<bool> _offscreenView;
+  VkSampler _offscreenTextureSampler;
 
-  Resource::TextureLoader *mTextureLoader;
-  Resource::ModelRender *mModelLoader;
-  Resource::FontLoader *mFontLoader;
+  Resource::TextureLoader *_textureLoader;
+  Resource::ModelRender *_modelLoader;
+  Resource::FontLoader *_fontLoader;
 
   enum class RenderState
   {
@@ -131,23 +131,23 @@ private:
     DrawAnim3D,
   };
 
-  bool mBegunDraw = false;
-  bool mFinishedLoadingResources = false;
-  RenderState renderState;
-  uint32_t mImg;
-  VkSemaphore mImgAquireSem;
-  float mProjectionFov = 45.0f;
-  float scale2D = 1.0f;
+  bool _begunDraw = false;
+  bool _finishedLoadingResources = false;
+  RenderState _renderState;
+  uint32_t _frameI;
+  VkSemaphore _imgAquireSem;
+  float _projectionFov = 45.0f;
+  float _scale2D = 1.0f;
 
-  unsigned int modelRuns = 0;
-  unsigned int current3DInstanceIndex = 0;
-  Resource::Model currentModel;
-  Resource::Texture currentTexture;
-  glm::vec4 currentTexOffset = glm::vec4(0, 0, 1, 1);
-  glm::vec4 currentColour = glm::vec4(1, 1, 1, 1);
+  unsigned int _modelRuns = 0;
+  unsigned int _current3DInstanceIndex = 0;
+  Resource::Model _currentModel;
+  Resource::Texture _currentTexture;
+  glm::vec4 _currentTexOffset = glm::vec4(0, 0, 1, 1);
+  glm::vec4 _currentColour = glm::vec4(1, 1, 1, 1);
 
-  unsigned int instance2Druns = 0;
-  unsigned int current2DInstanceIndex = 0;
+  unsigned int _instance2Druns = 0;
+  unsigned int _current2DInstanceIndex = 0;
 
   void _initRender(GLFWwindow *window);
   void _initFrameResources();
@@ -158,7 +158,7 @@ private:
   void _drawBatch();
 
 #ifndef NDEBUG
-  VkDebugUtilsMessengerEXT mDebugMessenger;
+  VkDebugUtilsMessengerEXT _debugMessenger;
 #endif
 };
 

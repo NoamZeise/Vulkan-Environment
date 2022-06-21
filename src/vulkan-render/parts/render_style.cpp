@@ -1,4 +1,5 @@
 #include "render_style.h"
+#include "vulkan/vulkan_core.h"
 
 namespace part
 {
@@ -166,61 +167,26 @@ void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, 
 	}
 }
 
-void Framebuffers(VkDevice device, VkRenderPass renderPass, SwapChain* swapchain, bool presentOnly)
+void Framebuffer(VkDevice device, VkRenderPass renderPass, VkFramebuffer* framebuffer, std::vector<VkImageView> attachments, uint32_t width, uint32_t height)
 {
-	if(presentOnly)
-	{
-		for (size_t i = 0; i < swapchain->frameData.size(); i++)
-		{
-			std::vector<VkImageView> attachments { swapchain->frameData[i].view };
+    VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
+    createInfo.renderPass = renderPass;
+    createInfo.width = width;
+    createInfo.height = height;
+    createInfo.layers = 1;
+    createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    createInfo.pAttachments = attachments.data();
 
-			VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-			createInfo.renderPass = renderPass;
-			createInfo.width = swapchain->swapchainExtent.width;
-			createInfo.height = swapchain->swapchainExtent.height;
-			createInfo.layers = 1;
-			createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-			createInfo.pAttachments = attachments.data();
-
-			if (vkCreateFramebuffer(device, &createInfo, nullptr, &swapchain->frameData[i].framebuffer) != VK_SUCCESS)
-				throw std::runtime_error("failed to create framebuffer");
-		}
-	}
-	else
-	{
-
-		std::vector<VkImageView> attachments;
-		if(settings::MULTISAMPLING)
-			attachments =
-			{
-				swapchain->multisampling.view,
-				swapchain->depthBuffer.view,
-		  		swapchain->offscreen.view
-			};
-		else
-			attachments =
-			{
-				swapchain->offscreen.view,
-				swapchain->depthBuffer.view
-			};
-
-		VkFramebufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
-		createInfo.renderPass = renderPass;
-		createInfo.width = swapchain->offscreenExtent.width;
-		createInfo.height = swapchain->offscreenExtent.height;
-		createInfo.layers = 1;
-		createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-		createInfo.pAttachments = attachments.data();
-
-		if (vkCreateFramebuffer(device, &createInfo, nullptr, &swapchain->offscreenFramebuffer) != VK_SUCCESS)
-			throw std::runtime_error("failed to create framebuffer");
-	}
+    if (vkCreateFramebuffer(device, &createInfo, nullptr, framebuffer) != VK_SUCCESS)
+        throw std::runtime_error("failed to create framebuffer");
 }
 
 void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
 	std::vector<DS::DescriptorSet*> descriptorSets,
 	std::vector<VkPushConstantRange> pushConstantsRanges,
-	std::string vertexShaderPath, std::string fragmentShaderPath, bool useDepthTest, bool presentOnly,
+	std::string vertexShaderPath, std::string fragmentShaderPath,
+    bool useDepthTest, bool useMultisampling, bool useBlend,
+    VkExtent2D extent, VkCullModeFlags cullMode,
 	std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
 	std::vector<VkVertexInputBindingDescription> vertexBindingDesc
 )
@@ -252,37 +218,30 @@ void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, 
 
 	//config vertex input
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-	vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
-	vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
-	vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDesc.size());
-	vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc.data();
-	if(presentOnly)
-	{
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.pVertexBindingDescriptions = nullptr;
-	}
+
+    if(vertexAttribDesc.size() == 0 && vertexBindingDesc.size() == 0)
+    {
+        vertexInputInfo.vertexAttributeDescriptionCount = 0;
+        vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+        vertexInputInfo.vertexBindingDescriptionCount = 0;
+        vertexInputInfo.pVertexBindingDescriptions = nullptr;
+    }
+    else
+    {
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttribDesc.size());
+        vertexInputInfo.pVertexAttributeDescriptions = vertexAttribDesc.data();
+        vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDesc.size());
+        vertexInputInfo.pVertexBindingDescriptions = vertexBindingDesc.data();
+    }
 
 	//config viewport and scissor
 	VkViewport viewport
 	{
 		0.0f, 0.0f, // x  y
-		(float)swapchain.offscreenExtent.width, (float)swapchain.offscreenExtent.height, //width  height
+		(float)extent.width, (float)extent.height, //width  height
 		0.0f, 1.0f // min/max depth
 	};
-	VkRect2D scissor{ VkOffset2D{0, 0}, swapchain.offscreenExtent };
-
-	if(presentOnly)
-	{
-		viewport =
-		{
-			0.0f, 0.0f, // x  y
-			(float)swapchain.swapchainExtent.width, (float)swapchain.swapchainExtent.height, //width  height
-			0.0f, 1.0f // min/max depth
-		};
-		scissor = { VkOffset2D{0, 0}, swapchain.swapchainExtent };
-	}
+	VkRect2D scissor{ VkOffset2D{0, 0}, extent };
 
 	VkPipelineViewportStateCreateInfo viewportInfo{VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO};
 	viewportInfo.viewportCount = 1;
@@ -300,9 +259,7 @@ void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, 
 	VkPipelineRasterizationStateCreateInfo rasterizationInfo{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
 	rasterizationInfo.depthClampEnable = VK_FALSE;
 	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-	if(presentOnly)
-		rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+	rasterizationInfo.cullMode = cullMode;
 	rasterizationInfo.lineWidth = 1.0f;
 	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
@@ -314,17 +271,20 @@ void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, 
 
 	//config multisampler
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-	multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
-	if(presentOnly)
+    if(useMultisampling)
+    {
+        multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
+        if(settings::SAMPLE_SHADING && settings::MULTISAMPLING)
+        {
+            multisampleInfo.minSampleShading = 1.0f;
+            multisampleInfo.sampleShadingEnable = VK_TRUE;
+        }
+    }
+    else
 	{
 		multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 	}
-	else if(settings::SAMPLE_SHADING && settings::MULTISAMPLING)
-	{
-		multisampleInfo.minSampleShading = 1.0f;
-		multisampleInfo.sampleShadingEnable = VK_TRUE;
 
-	}
 	//config depthStencil
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
 	if(useDepthTest)
@@ -344,10 +304,11 @@ void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, 
 	//config colour blend attachment
 	VkPipelineColorBlendAttachmentState blendAttachment{};
 	blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	blendAttachment.blendEnable = VK_TRUE;
-	if(presentOnly)
-		blendAttachment.blendEnable = VK_FALSE;
-	blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    if(useBlend)
+        blendAttachment.blendEnable = VK_TRUE;
+    else
+        blendAttachment.blendEnable = VK_FALSE;
+    blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 	blendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 	blendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 	blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
