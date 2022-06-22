@@ -78,6 +78,85 @@ void Render::_initFrameResources()
   );
   size_t frameCount = _swapchain.frameData.size();
 
+	if(settings::USE_TARGET_RESOLUTION)
+		_swapchain.offscreenExtent = { settings::TARGET_WIDTH, settings::TARGET_HEIGHT };
+	else
+		_swapchain.offscreenExtent = _swapchain.swapchainExtent;
+
+	//create attachment resources
+	//
+	VkFormat depthBufferFormat = vkhelper::findSupportedFormat(_base.physicalDevice,
+        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+    );
+
+	if(settings::MULTISAMPLING)
+		_swapchain.maxMsaaSamples = vkhelper::getMaxSupportedMsaaSamples(_base.device, _base.physicalDevice);
+	else
+		_swapchain.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+	VkDeviceSize totalMemory = 0;
+	uint32_t memoryFlagBits = 0;
+	for(size_t i = 0; i < _swapchain.frameData.size(); i++)
+	{
+    VkMemoryRequirements memReq;
+		if(settings::MULTISAMPLING)
+		{
+			_swapchain.frameData[i].multisampling.format = _swapchain.format.format;
+			_swapchain.frameData[i].multisampling.memoryOffset = totalMemory;
+			memReq = part::create::Image(
+				                     _base.device, _base.physicalDevice,
+                             &_swapchain.frameData[i].multisampling.image,
+                            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+									          _swapchain.offscreenExtent, _swapchain.frameData[i].multisampling.format,
+									          _swapchain.maxMsaaSamples);
+      totalMemory += memReq.size;
+      memoryFlagBits |= memReq.memoryTypeBits;
+		}
+
+		_swapchain.frameData[i].depthBuffer.format = depthBufferFormat;
+		_swapchain.frameData[i].depthBuffer.memoryOffset = totalMemory;
+		memReq = part::create::Image(
+				                     _base.device, _base.physicalDevice, &_swapchain.frameData[i].depthBuffer.image,
+                                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+									 _swapchain.offscreenExtent, _swapchain.frameData[i].depthBuffer.format,
+									 _swapchain.maxMsaaSamples);
+    totalMemory += memReq.size;
+    memoryFlagBits |= memReq.memoryTypeBits;
+
+
+		_swapchain.frameData[i].offscreen.format = _swapchain.format.format;
+		_swapchain.frameData[i].offscreen.memoryOffset = totalMemory;
+		memReq = part::create::Image(
+				                     _base.device, _base.physicalDevice, &_swapchain.frameData[i].offscreen.image,
+                                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+									 _swapchain.offscreenExtent, _swapchain.frameData[i].offscreen.format,
+									 VK_SAMPLE_COUNT_1_BIT);
+    totalMemory += memReq.size;
+    memoryFlagBits |= memReq.memoryTypeBits;
+	}
+
+	vkhelper::createMemory(_base.device, _base.physicalDevice, totalMemory, &_swapchain.attachmentMemory,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryFlagBits);
+
+	for(size_t i = 0; i < _swapchain.frameData.size(); i++)
+	{
+		if(settings::MULTISAMPLING)
+		{
+			vkBindImageMemory(_base.device, _swapchain.frameData[i].multisampling.image, _swapchain.attachmentMemory, _swapchain.frameData[i].multisampling.memoryOffset);
+			part::create::ImageView(_base.device, &_swapchain.frameData[i].multisampling.view, _swapchain.frameData[i].multisampling.image,
+							 _swapchain.frameData[i].multisampling.format, VK_IMAGE_ASPECT_COLOR_BIT);
+		}
+
+		vkBindImageMemory(_base.device, _swapchain.frameData[i].depthBuffer.image, _swapchain.attachmentMemory, _swapchain.frameData[i].depthBuffer.memoryOffset);
+		part::create::ImageView(_base.device, &_swapchain.frameData[i].depthBuffer.view, _swapchain.frameData[i].depthBuffer.image,
+		_swapchain.frameData[i].depthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+		vkBindImageMemory(_base.device, _swapchain.frameData[i].offscreen.image, _swapchain.attachmentMemory, _swapchain.frameData[i].offscreen.memoryOffset);
+		part::create::ImageView(_base.device, &_swapchain.frameData[i].offscreen.view, _swapchain.frameData[i].offscreen.image,
+		_swapchain.frameData[i].offscreen.format, VK_IMAGE_ASPECT_COLOR_BIT);
+	}
 
   part::create::RenderPass( _base.device, &_renderPass,  _swapchain, false);
   for(size_t i = 0; i < _swapchain.frameData.size(); i++)

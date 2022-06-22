@@ -17,6 +17,8 @@ namespace vkhelper
   void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
   VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment);
   VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice, float maxLod, bool enableAnisotrophy);
+  VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
+  VkSampleCountFlagBits getMaxSupportedMsaaSamples(VkDevice device, VkPhysicalDevice physicalDevice);
 };
 
 
