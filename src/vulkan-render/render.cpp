@@ -78,15 +78,19 @@ void Render::_initFrameResources()
   );
   size_t frameCount = _swapchain.frameData.size();
 
-  std::vector<VkImageView> offscreenAttachments;
-  if(settings::MULTISAMPLING)
-    offscreenAttachments = { _swapchain.multisampling.view,  _swapchain.depthBuffer.view, _swapchain.offscreen.view };
-  else
-    offscreenAttachments = { _swapchain.offscreen.view, _swapchain.depthBuffer.view };
 
   part::create::RenderPass( _base.device, &_renderPass,  _swapchain, false);
-  part::create::Framebuffer(_base.device,  _renderPass, &_swapchain.offscreenFramebuffer, offscreenAttachments, _swapchain.offscreenExtent.width, _swapchain.offscreenExtent.height);
-
+  for(size_t i = 0; i < _swapchain.frameData.size(); i++)
+  {
+      std::vector<VkImageView> offscreenAttachments;
+  if(settings::MULTISAMPLING)
+    offscreenAttachments = { _swapchain.frameData[i].multisampling.view,
+    _swapchain.frameData[i].depthBuffer.view, _swapchain.frameData[i].offscreen.view };
+  else
+    offscreenAttachments = {
+    _swapchain.frameData[i].offscreen.view, _swapchain.frameData[i].depthBuffer.view };
+   part::create::Framebuffer(_base.device,  _renderPass, &_swapchain.frameData[i].offscreenFramebuffer, offscreenAttachments, _swapchain.offscreenExtent.width, _swapchain.offscreenExtent.height);
+  }
   part::create::RenderPass(  _base.device, &_finalRenderPass,  _swapchain, true);
   for(size_t i = 0; i < _swapchain.frameData.size(); i++)
     part::create::Framebuffer(_base.device,  _finalRenderPass, &_swapchain.frameData[i].framebuffer, {_swapchain.frameData[i].view}, _swapchain.swapchainExtent.width, _swapchain.swapchainExtent.height);
@@ -140,12 +144,15 @@ void Render::_initFrameResources()
        &_offscreends, 1,
        &_offscreenTextureSampler
   );
-  _offscreenView.setImageViewBufferProps(
+  std::vector<VkImageView> offscreenViews;
+  for(size_t i = 0; i < _swapchain.frameData.size(); i++)
+     offscreenViews.push_back(_swapchain.frameData[i].offscreen.view);
+
+  _offscreenView.setPerFrameImageViewBufferProps(
        frameCount,
        VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
        &_offscreends,
-       1,
-       &_swapchain.offscreen.view
+       offscreenViews.data()
   );
   part::create::DescriptorSetLayout(_base.device, &_offscreends, {&_offscreenSampler.binding, &_offscreenView.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
 
@@ -257,10 +264,10 @@ void Render::_destroyFrameResources() {
 
   vkDestroyDescriptorPool(_base.device, _descPool, nullptr);
 
-  vkDestroyFramebuffer(_base.device, _swapchain.offscreenFramebuffer, nullptr);
   for (size_t i = 0; i < _swapchain.frameData.size(); i++) {
     vkDestroyFramebuffer(_base.device, _swapchain.frameData[i].framebuffer,
                          nullptr);
+    vkDestroyFramebuffer(_base.device, _swapchain.frameData[i].offscreenFramebuffer, nullptr);
   }
   _pipeline3D.destroy(_base.device);
   _pipelineAnim3D.destroy(_base.device);
@@ -370,7 +377,7 @@ void Render::_startDraw()
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass = _renderPass;
   renderPassInfo.framebuffer =
-      _swapchain.offscreenFramebuffer; // framebuffer for each swapchain image
+      _swapchain.frameData[_frameI].offscreenFramebuffer; // framebuffer for each swapchain image
                                        // should match size of attachments
   renderPassInfo.renderArea.offset = {0, 0};
   renderPassInfo.renderArea.extent = _swapchain.offscreenExtent;
@@ -602,7 +609,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   {
     case RenderState::Draw3D:
     case RenderState::DrawAnim3D:
-      if (_modelRuns != 0 &_current3DInstanceIndex < MAX_3D_INSTANCE)
+      if (_modelRuns != 0 && _current3DInstanceIndex < MAX_3D_INSTANCE)
         _drawBatch();
       break;
     case RenderState::Draw2D:

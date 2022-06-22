@@ -1,4 +1,5 @@
 #include "swapchain.h"
+#include "vulkan/vulkan_core.h"
 
 namespace part
 {
@@ -11,9 +12,11 @@ void _swapchain(SwapChain* swapchain, const VkDevice& device, const VkSwapchainK
 namespace create
 {
 
-void _createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
-void _createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain);
-void _createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice, AttachmentImage* attachIm, SwapChain& swapchain, VkImageUsageFlags usage, VkImageAspectFlags imgAspect, VkSampleCountFlagBits samples);
+VkDeviceSize _createImageAndGetMemReq(VkDevice device, VkPhysicalDevice physicalDevice, VkImage* image,
+									  VkImageUsageFlags usageFlags, VkExtent2D extent, VkFormat format,
+									  VkSampleCountFlagBits sampleFlags, uint32_t &memoryFlagRef);
+void _createImageView(VkDevice device, VkImageView* imgView, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+VkSampleCountFlagBits _getMaxSupportedMsaaSamples(VkDevice device, VkPhysicalDevice physicalDevice);
 VkFormat _findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features);
 void _fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex);
 
@@ -232,93 +235,137 @@ void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR su
 	}
 
 	//create attachment resources
-	if(settings::MULTISAMPLING)
-		_createMultisamplingBuffer(device, physicalDevice, swapchain); //this first as sets max msaa used by rest of attachments
-	else
-		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
-	_createDepthBuffer(device, physicalDevice, swapchain);
-	swapchain->offscreen.format = swapchain->format.format;
-	_createAttachmentImageResources(device, physicalDevice, &swapchain->offscreen, *swapchain,
-		VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT);
-}
-
-void _createDepthBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
-{
-	//get a supported format for depth buffer
-	swapchain->depthBuffer.format = _findSupportedFormat( physicalDevice,
+	//
+	VkFormat depthBufferFormat = _findSupportedFormat( physicalDevice,
         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
         VK_IMAGE_TILING_OPTIMAL,
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
     );
 
-	_createAttachmentImageResources(device, physicalDevice, &swapchain->depthBuffer, *swapchain,
-									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, swapchain->maxMsaaSamples);
+	if(settings::MULTISAMPLING)
+		swapchain->maxMsaaSamples = _getMaxSupportedMsaaSamples(device, physicalDevice);
+	else
+		swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+//	swapchain->frameData[i].multisampling.format = swapchain->format.format;
+
+//	_createAttachmentImageResources(device, physicalDevice, &swapchain->frameData[i].multisampling, *swapchain,
+//		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT, swapchain->maxMsaaSamples);
+//	_createAttachmentImageResources(device, physicalDevice, &swapchain->frameData[i].depthBuffer, *swapchain,
+//									VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, swapchain->maxMsaaSamples);
+
+
+	VkDeviceSize totalMemory = 0;
+	uint32_t memoryFlagBits;
+	for(size_t i = 0; i < swapchain->frameData.size(); i++)
+	{
+		if(settings::MULTISAMPLING)
+		{
+			swapchain->frameData[i].multisampling.format = swapchain->format.format;
+			swapchain->frameData[i].multisampling.memoryOffset = totalMemory;
+			totalMemory += _createImageAndGetMemReq(
+				                     device, physicalDevice, &swapchain->frameData[i].multisampling.image,
+                                     VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+									 swapchain->offscreenExtent, swapchain->frameData[i].multisampling.format,
+									 swapchain->maxMsaaSamples, memoryFlagBits);
+		}
+
+		swapchain->frameData[i].depthBuffer.format = depthBufferFormat;
+		swapchain->frameData[i].depthBuffer.memoryOffset = totalMemory;
+		totalMemory += _createImageAndGetMemReq(
+				                     device, physicalDevice, &swapchain->frameData[i].depthBuffer.image,
+                                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+									 swapchain->offscreenExtent, swapchain->frameData[i].depthBuffer.format,
+									 swapchain->maxMsaaSamples, memoryFlagBits);
+
+
+		swapchain->frameData[i].offscreen.format = swapchain->format.format;
+		swapchain->frameData[i].offscreen.memoryOffset = totalMemory;
+		totalMemory += _createImageAndGetMemReq(
+				                     device, physicalDevice, &swapchain->frameData[i].offscreen.image,
+                                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+									 swapchain->offscreenExtent, swapchain->frameData[i].offscreen.format,
+									 VK_SAMPLE_COUNT_1_BIT, memoryFlagBits);
+	}
+
+	vkhelper::createMemory(device, physicalDevice, totalMemory, &swapchain->attachmentMemory,
+		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryFlagBits);
+
+	for(size_t i = 0; i < swapchain->frameData.size(); i++)
+	{
+		if(settings::MULTISAMPLING)
+		{
+			vkBindImageMemory(device, swapchain->frameData[i].multisampling.image, swapchain->attachmentMemory, swapchain->frameData[i].multisampling.memoryOffset);
+			_createImageView(device, &swapchain->frameData[i].multisampling.view, swapchain->frameData[i].multisampling.image,
+							 swapchain->frameData[i].multisampling.format, VK_IMAGE_ASPECT_COLOR_BIT);
+		}
+
+		vkBindImageMemory(device, swapchain->frameData[i].depthBuffer.image, swapchain->attachmentMemory, swapchain->frameData[i].depthBuffer.memoryOffset);
+		_createImageView(device, &swapchain->frameData[i].depthBuffer.view, swapchain->frameData[i].depthBuffer.image,
+		swapchain->frameData[i].depthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+		vkBindImageMemory(device, swapchain->frameData[i].offscreen.image, swapchain->attachmentMemory, swapchain->frameData[i].offscreen.memoryOffset);
+		_createImageView(device, &swapchain->frameData[i].offscreen.view, swapchain->frameData[i].offscreen.image,
+		swapchain->frameData[i].offscreen.format, VK_IMAGE_ASPECT_COLOR_BIT);
+	}
 }
 
-void _createMultisamplingBuffer(VkDevice device, VkPhysicalDevice physicalDevice, SwapChain* swapchain)
+VkSampleCountFlagBits _getMaxSupportedMsaaSamples(VkDevice device, VkPhysicalDevice physicalDevice)
 {
-	//get max msaa samples supported by physical device
-	swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+	VkSampleCountFlagBits maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	VkPhysicalDeviceProperties props;
  	vkGetPhysicalDeviceProperties(physicalDevice, &props);
 	VkSampleCountFlags samplesSupported = props.limits.framebufferColorSampleCounts & props.limits.framebufferDepthSampleCounts;
-	if     (samplesSupported & VK_SAMPLE_COUNT_64_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
-	else if(samplesSupported & VK_SAMPLE_COUNT_32_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_32_BIT;
-	else if(samplesSupported & VK_SAMPLE_COUNT_16_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_16_BIT;
-	else if(samplesSupported & VK_SAMPLE_COUNT_8_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
-	else if(samplesSupported & VK_SAMPLE_COUNT_4_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
-	else if(samplesSupported & VK_SAMPLE_COUNT_2_BIT) swapchain->maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
+	if     (samplesSupported & VK_SAMPLE_COUNT_64_BIT) maxMsaaSamples = VK_SAMPLE_COUNT_64_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_32_BIT) maxMsaaSamples = VK_SAMPLE_COUNT_32_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_16_BIT) maxMsaaSamples = VK_SAMPLE_COUNT_16_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_8_BIT)  maxMsaaSamples = VK_SAMPLE_COUNT_8_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_4_BIT)  maxMsaaSamples = VK_SAMPLE_COUNT_4_BIT;
+	else if(samplesSupported & VK_SAMPLE_COUNT_2_BIT)  maxMsaaSamples = VK_SAMPLE_COUNT_2_BIT;
 
-	swapchain->multisampling.format = swapchain->format.format;
-
-	_createAttachmentImageResources(device, physicalDevice, &swapchain->multisampling, *swapchain,
-		VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_ASPECT_COLOR_BIT, swapchain->maxMsaaSamples);
+	return maxMsaaSamples;
 }
 
-void _createAttachmentImageResources(VkDevice device, VkPhysicalDevice physicalDevice,
-									AttachmentImage* attachIm, SwapChain& swapchain,
-									 VkImageUsageFlags usage, VkImageAspectFlags imgAspect, VkSampleCountFlagBits samples)
+VkDeviceSize _createImageAndGetMemReq(VkDevice device, VkPhysicalDevice physicalDevice, VkImage* image, VkImageUsageFlags usageFlags, VkExtent2D extent, VkFormat format, VkSampleCountFlagBits sampleFlags, uint32_t &memoryFlagRef)
 {
 //create attach image
 	VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = swapchain.offscreenExtent.width;
-	imageInfo.extent.height = swapchain.offscreenExtent.height;
+	imageInfo.extent.width = extent.width;
+	imageInfo.extent.height = extent.height;
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
-	imageInfo.format = attachIm->format;
+	imageInfo.format = format;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = usage;
+	imageInfo.usage = usageFlags;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	imageInfo.samples = samples;
+	imageInfo.samples = sampleFlags;
 
-	if (vkCreateImage(device, &imageInfo, nullptr, &attachIm->image) != VK_SUCCESS)
+	if (vkCreateImage(device, &imageInfo, nullptr, image) != VK_SUCCESS)
 		throw std::runtime_error("failed to create attachment image");
 
 	//assign memory for attach image
 	VkMemoryRequirements memreq;
-	vkGetImageMemoryRequirements(device, attachIm->image, &memreq);
+	vkGetImageMemoryRequirements(device, *image, &memreq);
+	memoryFlagRef |= memreq.memoryTypeBits;
+	return memreq.size;
+}
 
-	vkhelper::createMemory(device, physicalDevice, memreq.size, &attachIm->memory,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memreq.memoryTypeBits);
-
-	vkBindImageMemory(device, attachIm->image, attachIm->memory, 0);
-
-	//create attach image view
-
+void _createImageView(VkDevice device, VkImageView* imgView, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+{
 	VkImageViewCreateInfo viewInfo { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	viewInfo.image = attachIm->image;
+	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = attachIm->format;
-	viewInfo.subresourceRange.aspectMask = imgAspect;
+	viewInfo.format = format;
+	viewInfo.subresourceRange.aspectMask = aspectFlags;
 	viewInfo.subresourceRange.layerCount = 1;
 	viewInfo.subresourceRange.levelCount = 1;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 
-	if(vkCreateImageView(device, &viewInfo, nullptr, &attachIm->view) != VK_SUCCESS)
+	if(vkCreateImageView(device, &viewInfo, nullptr, imgView) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create image view for attachment!");
 }
 
@@ -379,19 +426,23 @@ void Swapchain(VkDevice device, SwapChain* swapchain)
 
 void _swapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
 {
-	_destroyAttachmentImageResources(device, swapchainStruct->offscreen);
-	_destroyAttachmentImageResources(device, swapchainStruct->depthBuffer);
-	if(settings::MULTISAMPLING)
-		_destroyAttachmentImageResources(device, swapchainStruct->multisampling);
 
 	for (size_t i = 0; i < swapchainStruct->frameData.size(); i++)
 	{
+		_destroyAttachmentImageResources(device, swapchainStruct->frameData[i].offscreen);
+		_destroyAttachmentImageResources(device, swapchainStruct->frameData[i].depthBuffer);
+		if(settings::MULTISAMPLING)
+			_destroyAttachmentImageResources(device, swapchainStruct->frameData[i].multisampling);
+
 		vkDestroyImageView(device, swapchainStruct->frameData[i].view, nullptr);
 		vkFreeCommandBuffers(device, swapchainStruct->frameData[i].commandPool, 1, &swapchainStruct->frameData[i].commandBuffer);
 		vkDestroyCommandPool(device, swapchainStruct->frameData[i].commandPool, nullptr);
 		vkDestroySemaphore(device, swapchainStruct->frameData[i].presentReadySem, nullptr);
 		vkDestroyFence(device, swapchainStruct->frameData[i].frameFinishedFen, nullptr);
 	}
+
+	vkFreeMemory(device, swapchainStruct->attachmentMemory, nullptr);
+
 	for (size_t i = 0; i < swapchainStruct->imageAquireSem.size(); i++)
 	{
 		vkDestroySemaphore(device, swapchainStruct->imageAquireSem[i], nullptr);
@@ -405,7 +456,6 @@ void _destroyAttachmentImageResources(VkDevice device, AttachmentImage attachmen
 {
 	vkDestroyImageView(device, attachment.view, nullptr);
 	vkDestroyImage(device, attachment.image, nullptr);
-	vkFreeMemory(device, attachment.memory, nullptr);
 }
 
 }

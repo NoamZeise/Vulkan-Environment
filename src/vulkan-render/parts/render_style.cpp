@@ -88,7 +88,7 @@ void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, 
 		//depth attachment
 	VkAttachmentReference depthBufferRef{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 	VkAttachmentDescription depthAttachment {};
-	depthAttachment.format = swapchain.depthBuffer.format;
+	depthAttachment.format = swapchain.frameData[0].depthBuffer.format;
 	depthAttachment.samples = swapchain.maxMsaaSamples;
 	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

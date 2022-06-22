@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 #include <vector>
-#include "parts/descriptor_structs.h"
+#include "descriptor_structs.h"
 
 class Pipeline
 {

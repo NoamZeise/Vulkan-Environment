@@ -1,6 +1,7 @@
 #ifndef VULKAN_RENDER_STRUCTS_H
 #define VULKAN_RENDER_STRUCTS_H
 
+#include "vulkan/vulkan_core.h"
 #ifndef GLFW_INCLUDE_VULKAN
 #define GLFW_INCLUDE_VULKAN
 #endif
@@ -29,23 +30,31 @@ struct Base
     EnabledFeatures features;
 };
 
+
+struct AttachmentImage
+{
+	VkImage image;
+	VkImageView view;
+	VkFormat format;
+	size_t memoryOffset;
+};
+
+
 struct FrameData
 {
 	VkCommandPool commandPool;
 	VkCommandBuffer commandBuffer;
 	VkSemaphore presentReadySem;
 	VkFence frameFinishedFen;
+
 	VkImage image;
 	VkImageView view;
 	VkFramebuffer framebuffer;
-};
 
-struct AttachmentImage
-{
-	VkImage image;
-	VkImageView view;
-	VkDeviceMemory memory;
-	VkFormat format;
+	AttachmentImage multisampling;
+	AttachmentImage depthBuffer;
+	AttachmentImage offscreen;
+	VkFramebuffer offscreenFramebuffer;
 };
 
 
@@ -55,15 +64,10 @@ struct SwapChain
 	VkSurfaceFormatKHR format;
 	VkExtent2D swapchainExtent;
 	VkExtent2D offscreenExtent;
-
-	AttachmentImage depthBuffer;
-	AttachmentImage multisampling;
-	AttachmentImage offscreen;
 	VkSampleCountFlagBits maxMsaaSamples;
-
-	VkFramebuffer offscreenFramebuffer;
 	std::vector<FrameData> frameData;
 	std::vector<VkSemaphore> imageAquireSem;
+	VkDeviceMemory attachmentMemory;
 };
 
 

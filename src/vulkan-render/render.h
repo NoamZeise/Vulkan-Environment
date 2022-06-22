@@ -24,7 +24,7 @@
 #include "parts/swapchain.h"
 #include "parts/render_style.h"
 #include "parts/descriptors.h"
-#include "parts/descriptor_structs.h"
+#include "descriptor_structs.h"
 #include "resources/model/model_render.h"
 #include "pipeline.h"
 #include "render_structs.h"

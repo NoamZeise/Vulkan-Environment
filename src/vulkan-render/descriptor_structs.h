@@ -89,6 +89,7 @@ struct Binding {
   void *pointer;
   VkImageView *imageViews;
   VkSampler *samplers;
+  bool viewsPerSet = false;
 
   void storeSetData(size_t frameIndex, void *data, size_t descriptorIndex, size_t arrayIndex, size_t dynamicOffsetIndex)
   {
@@ -144,6 +145,12 @@ template <typename T> struct BindingAndData
   void setImageViewBufferProps(size_t setCount, VkDescriptorType type,
                       DescriptorSet *set, size_t dataCount, VkImageView *pImgViews) {
     setBufferProps(setCount, type, set, dataCount, 1, pImgViews, nullptr, false);
+  }
+
+    void setPerFrameImageViewBufferProps(size_t setCount, VkDescriptorType type,
+                      DescriptorSet *set, VkImageView *pImgViews) {
+    binding.viewsPerSet = true;
+    setBufferProps(setCount, type, set, 1, 1, pImgViews, nullptr, false);
   }
 
   void setSamplerBufferProps(size_t setCount, VkDescriptorType type,

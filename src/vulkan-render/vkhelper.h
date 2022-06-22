@@ -5,7 +5,7 @@
 #include <string>
 
 #include "render_structs.h"
-#include "parts/descriptor_structs.h"
+#include "descriptor_structs.h"
 #include "pipeline.h"
 #include "vulkan/vulkan_core.h"
 #include "config.h"

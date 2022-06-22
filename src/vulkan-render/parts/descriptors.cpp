@@ -96,11 +96,16 @@ void PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds, VkBuffer* 
 					writes[i].pBufferInfo = buffInfos.data() + (i * ds[descI]->descriptorCount);
 					break;
 				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+
 					for (size_t j = 0; j < ds[descI]->descriptorCount; j++)
 					{
 						size_t imageIndex = (ds[descI]->descriptorCount * i) + j;
 						imageInfos[imageIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-						imageInfos[imageIndex].imageView = *(ds[descI]->imageViews + j);
+						//each set has different image views (eg per frame)
+						if(ds[descI]->viewsPerSet)
+							imageInfos[imageIndex].imageView = *(ds[descI]->imageViews + i);
+						else
+							imageInfos[imageIndex].imageView = *(ds[descI]->imageViews + j);
 					}
 					writes[i].pImageInfo = imageInfos.data() + (i * ds[descI]->descriptorCount);
 					break;
