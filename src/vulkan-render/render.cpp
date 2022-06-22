@@ -57,7 +57,8 @@ Render::~Render()
   
   _destroyFrameResources();
   vkDestroyCommandPool(_base.device, _generalCommandPool, nullptr);
-  part::destroy::Swapchain(_base.device, &_swapchain);
+  _swapchain.destroyResources(_base.device);
+  vkDestroySwapchainKHR(_base.device, _swapchain.swapChain, nullptr);
   vkDestroyDevice(_base.device, nullptr);
   vkDestroySurfaceKHR(_instance, _surface, nullptr);
 #ifndef NDEBUG
@@ -68,15 +69,25 @@ Render::~Render()
 
 void Render::_initFrameResources()
 {
-  part::create::Swapchain(
+  if(_swapchain.swapChain != VK_NULL_HANDLE)
+    _swapchain.destroyResources(_base.device);
+  auto images = part::create::Swapchain(
       _base.device,
       _base.physicalDevice,
       _surface,
-      &_swapchain,
-      _window,
-      _base.queue.graphicsPresentFamilyIndex
+      &_swapchain.swapChain,
+      &_swapchain.format,
+      &_swapchain.swapchainExtent,
+      _window
   );
-  size_t frameCount = _swapchain.frameData.size();
+  size_t frameCount = images.size();
+
+  _swapchain.frameData.resize(frameCount);
+
+  for(size_t i = 0; i < frameCount; i++)
+  {
+    _swapchain.frameData[i].SetPerFramData(_base.device, images[i], _swapchain.format.format, _base.queue.graphicsPresentFamilyIndex);
+  }
 
 	if(settings::USE_TARGET_RESOLUTION)
 		_swapchain.offscreenExtent = { settings::TARGET_WIDTH, settings::TARGET_HEIGHT };

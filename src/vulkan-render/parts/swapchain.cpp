@@ -1,20 +1,11 @@
 #include "swapchain.h"
-#include "vulkan/vulkan_core.h"
 
 namespace part
 {
-namespace destroy
-{
-
-void _swapchain(SwapChain* swapchain, const VkDevice& device, const VkSwapchainKHR& oldSwapChain);
-
-}
 namespace create
 {
 
-void _fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex);
-
-void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SwapChain* swapchain, GLFWwindow* window, uint32_t graphicsQueueIndex)
+std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent, GLFWwindow* window)
 {
 	//get surface formats
 	uint32_t formatCount;
@@ -26,34 +17,36 @@ void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR su
 		throw std::runtime_error("no formats available");
 	else if (formatCount == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
 	{
-		swapchain->format = formats[0];
+		*format = formats[0];
 		if(settings::SRGB)
-			swapchain->format.format = VK_FORMAT_R8G8B8A8_SRGB;
+			format->format = VK_FORMAT_R8G8B8A8_SRGB;
 		else
-			swapchain->format.format = VK_FORMAT_R8G8B8A8_UNORM;
+			format->format = VK_FORMAT_R8G8B8A8_UNORM;
 	}
 	else
 	{
-		swapchain->format.format = VK_FORMAT_UNDEFINED;
+		format->format = VK_FORMAT_UNDEFINED;
 		for (auto& fmt : formats)
 		{
 			switch (fmt.format)
 			{
 			case VK_FORMAT_R8G8B8A8_SRGB:
 				if (settings::SRGB)
-					swapchain->format = fmt;
+					*format = fmt;
 				break;
 			case VK_FORMAT_R8G8B8A8_UNORM:
 			case VK_FORMAT_B8G8R8A8_UNORM:
 			case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
-				if (swapchain->format.format != VK_FORMAT_R8G8B8A8_SRGB)
-					swapchain->format = fmt;
+				if (format->format != VK_FORMAT_R8G8B8A8_SRGB)
+					*format = fmt;
 				break;
+			 default:
+				 continue;
 			}
 		}
-		if (swapchain->format.format == VK_FORMAT_UNDEFINED)
+		if (format->format == VK_FORMAT_UNDEFINED)
 		{
-			swapchain->format = formats[0];
+			*format = formats[0];
 		}
 	}
 
@@ -67,10 +60,10 @@ void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR su
 		imageCount = surfaceCapabilities.maxImageCount;
 
 	//set extent
-	swapchain->swapchainExtent = { 0, 0 };
+	*extent = {10, 0};
 	if (surfaceCapabilities.currentExtent.width != UINT32_MAX)	//cant be modified
 	{
-		swapchain->swapchainExtent = surfaceCapabilities.currentExtent;
+		*extent = surfaceCapabilities.currentExtent;
 	}
 	else
 	{
@@ -78,20 +71,17 @@ void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR su
 		glfwGetFramebufferSize(window, &swidth, &sheight);
 		uint32_t width = static_cast<uint32_t>(swidth);
 		uint32_t height = static_cast<uint32_t>(sheight);
-		swapchain->swapchainExtent = {
-			width,
-			height
-	    };
+		*extent = {width, height};
 		//clamp width
 		if (width > surfaceCapabilities.maxImageExtent.width)
-			swapchain->swapchainExtent.width = surfaceCapabilities.maxImageExtent.width;
+			extent->width = surfaceCapabilities.maxImageExtent.width;
 		else if (width < surfaceCapabilities.minImageExtent.width)
-			swapchain->swapchainExtent.width = surfaceCapabilities.minImageExtent.width;
+			extent->width = surfaceCapabilities.minImageExtent.width;
 		//clamp height
 		if (height > surfaceCapabilities.maxImageExtent.height)
-			swapchain->swapchainExtent.width = surfaceCapabilities.maxImageExtent.height;
+			extent->width = surfaceCapabilities.maxImageExtent.height;
 		else if (height < surfaceCapabilities.minImageExtent.height)
-			swapchain->swapchainExtent.width = surfaceCapabilities.minImageExtent.height;
+			extent->width = surfaceCapabilities.minImageExtent.height;
 	}
 
 	//choose present mode
@@ -151,16 +141,15 @@ void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR su
 		compositeAlpha = VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
 	}
 
-	VkSwapchainKHR oldSwapChain = swapchain->swapChain;
-
+	VkSwapchainKHR oldSwapchain = *swapchain;
 	//create swapchain
 	VkSwapchainCreateInfoKHR createInfo{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
 	createInfo.flags = 0;
 	createInfo.surface = surface;
 	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = swapchain->format.format;
-	createInfo.imageColorSpace = swapchain->format.colorSpace;
-	createInfo.imageExtent = { swapchain->swapchainExtent.width, swapchain->swapchainExtent.height };
+	createInfo.imageFormat = format->format;
+	createInfo.imageColorSpace = format->colorSpace;
+	createInfo.imageExtent = { extent->width, extent->height };
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	if(surfaceCapabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
@@ -175,127 +164,26 @@ void Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR su
 	createInfo.queueFamilyIndexCount = 0;
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
-	createInfo.oldSwapchain = oldSwapChain;
+	createInfo.oldSwapchain = oldSwapchain;
 	createInfo.compositeAlpha = compositeAlpha;
 	createInfo.preTransform = preTransform;
-	if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapchain->swapChain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(device, &createInfo, nullptr, swapchain) != VK_SUCCESS)
 		throw std::runtime_error("failed to create swapchain!");
 
-	if (oldSwapChain != VK_NULL_HANDLE)
+	if (oldSwapchain != VK_NULL_HANDLE)
 	{
-		destroy::_swapchain(swapchain, device, oldSwapChain);
+		vkDestroySwapchainKHR(device, oldSwapchain, nullptr);
 	}
 
-	//get swapchain images
-	if(vkGetSwapchainImagesKHR(device, swapchain->swapChain, &imageCount, nullptr) != VK_SUCCESS)
+	if(vkGetSwapchainImagesKHR(device, *swapchain, &imageCount, nullptr) != VK_SUCCESS)
 		throw std::runtime_error("failed to get swap chain image count!");
 	std::vector<VkImage> scImages(imageCount);
-	if (vkGetSwapchainImagesKHR(device, swapchain->swapChain, &imageCount, scImages.data()) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(device, *swapchain, &imageCount, scImages.data()) != VK_SUCCESS)
 		throw std::runtime_error("failed to get swap chain images!");
-	//create swapchain image views
-	swapchain->frameData.resize(imageCount);
-	for (size_t i = 0; i < imageCount; i++)
-	{
-		swapchain->frameData[i].image = scImages[i];
 
-		VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		viewInfo.image = swapchain->frameData[i].image;
-		viewInfo.format = swapchain->format.format;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-		viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-		viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-		viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-
-		if (vkCreateImageView(device, &viewInfo, nullptr, &swapchain->frameData[i].view) != VK_SUCCESS)
-			throw std::runtime_error("failed to create image view");
-	}
-	//init frame data
-	for (size_t i = 0; i < imageCount; i++)
-	{
-		_fillFrameData(device, &swapchain->frameData[i], graphicsQueueIndex);
-	}
-
-}
-
-void _fillFrameData(VkDevice device, FrameData* frame, uint32_t graphicsQueueIndex)
-{
-	//create command pool
-	VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-	commandPoolInfo.queueFamilyIndex = graphicsQueueIndex;
-	//commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	if (vkCreateCommandPool(device, &commandPoolInfo, nullptr, &frame->commandPool) != VK_SUCCESS)
-		throw std::runtime_error("failed to create command buffer");
-
-	//create command buffer
-	VkCommandBufferAllocateInfo commandBufferInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-	commandBufferInfo.commandPool = frame->commandPool;
-	commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	commandBufferInfo.commandBufferCount = 1;
-	if (vkAllocateCommandBuffers(device, &commandBufferInfo, &frame->commandBuffer))
-		throw std::runtime_error("failed to allocate command buffer");
-
-	//create semaphores
-	VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-	if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &frame->presentReadySem) != VK_SUCCESS)
-		throw std::runtime_error("failed to create present ready semaphore");
-
-	//create fence
-	VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	if (vkCreateFence(device, &fenceInfo, nullptr, &frame->frameFinishedFen) != VK_SUCCESS)
-		throw std::runtime_error("failed to create frame finished fence");
+	return scImages;
 }
 
 }
-namespace destroy
-{
 
-void _destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment);
-
-void Swapchain(VkDevice device, SwapChain* swapchain)
-{
-	_swapchain(swapchain, device, swapchain->swapChain);
-}
-
-void _swapchain(SwapChain* swapchainStruct, const VkDevice& device, const VkSwapchainKHR& swapChain)
-{
-
-	for (size_t i = 0; i < swapchainStruct->frameData.size(); i++)
-	{
-		_destroyAttachmentImageResources(device, swapchainStruct->frameData[i].offscreen);
-		_destroyAttachmentImageResources(device, swapchainStruct->frameData[i].depthBuffer);
-		if(settings::MULTISAMPLING)
-			_destroyAttachmentImageResources(device, swapchainStruct->frameData[i].multisampling);
-
-		vkDestroyImageView(device, swapchainStruct->frameData[i].view, nullptr);
-		vkFreeCommandBuffers(device, swapchainStruct->frameData[i].commandPool, 1, &swapchainStruct->frameData[i].commandBuffer);
-		vkDestroyCommandPool(device, swapchainStruct->frameData[i].commandPool, nullptr);
-		vkDestroySemaphore(device, swapchainStruct->frameData[i].presentReadySem, nullptr);
-		vkDestroyFence(device, swapchainStruct->frameData[i].frameFinishedFen, nullptr);
-	}
-
-	vkFreeMemory(device, swapchainStruct->attachmentMemory, nullptr);
-
-	for (size_t i = 0; i < swapchainStruct->imageAquireSem.size(); i++)
-	{
-		vkDestroySemaphore(device, swapchainStruct->imageAquireSem[i], nullptr);
-	}
-	swapchainStruct->imageAquireSem.clear();
-	swapchainStruct->frameData.clear();
-	vkDestroySwapchainKHR(device, swapChain, nullptr);
-}
-
-void _destroyAttachmentImageResources(VkDevice device, AttachmentImage attachment)
-{
-	vkDestroyImageView(device, attachment.view, nullptr);
-	vkDestroyImage(device, attachment.image, nullptr);
-}
-
-}
 }

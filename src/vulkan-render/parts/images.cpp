@@ -41,11 +41,15 @@ void ImageView(VkDevice device, VkImageView* imgView, VkImage image,
 	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	viewInfo.format = format;
-	viewInfo.subresourceRange.aspectMask = aspectFlags;
-	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.subresourceRange.aspectMask = aspectFlags;
+	viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+	viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+	viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+	viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
 
 	if(vkCreateImageView(device, &viewInfo, nullptr, imgView) != VK_SUCCESS)
 		throw std::runtime_error("Failed to create image view for attachment!");
