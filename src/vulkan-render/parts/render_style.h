@@ -24,7 +24,7 @@ namespace part
                                 VkExtent2D extent, VkCullModeFlags cullMode,
 								std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
 								std::vector<VkVertexInputBindingDescription> vertexBindingDesc
-);
+        );
 
     }
 }

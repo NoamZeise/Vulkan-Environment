@@ -206,14 +206,13 @@ mRender->BeginAnim3DDraw();
     								glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
     								glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
-   /* mRender->DrawQuad(testTex,
+   mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
     									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
-*/
-  //submitDraw =
-  //  std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
-  mRender->EndDraw(finishedDrawSubmit);
-//TODO reenable multithreaded
+
+  submitDraw =
+    std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
+
 
 
 #ifdef TIME_APP_DRAW_UPDATE

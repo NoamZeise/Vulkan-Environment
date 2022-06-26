@@ -13,8 +13,10 @@ namespace part
 {
     namespace create
     {
-        std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
-                                       VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent, GLFWwindow* window);
+        std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice,
+                                       VkSurfaceKHR surface, VkSwapchainKHR *swapchain,
+                                       VkSurfaceFormatKHR *format, VkExtent2D *extent,
+                                       GLFWwindow* window);
     }
 }
 

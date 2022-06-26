@@ -811,9 +811,6 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   _swapchain.imageAquireSem.push_back(_imgAquireSem);
 
-//TODO remove when segfault fixed
-  vkQueueWaitIdle(_base.queue.graphicsPresentQueue);
-
   submit = true;
 }
 
