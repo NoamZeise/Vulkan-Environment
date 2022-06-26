@@ -27,6 +27,7 @@ struct Mesh
     std::vector<Vertex> verticies;
     std::vector<unsigned int> indicies;
     std::vector<std::string> diffuseTextures;
+    glm::vec4 diffuseColour;
 
     glm::mat4 bindTransform;
 };

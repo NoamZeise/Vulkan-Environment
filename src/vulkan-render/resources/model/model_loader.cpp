@@ -3,6 +3,7 @@
 #include "assimp/material.h"
 #include "assimp/matrix4x4.h"
 #include "assimp/scene.h"
+#include "assimp/types.h"
 #include "glm/fwd.hpp"
 
 namespace Resource
@@ -78,14 +79,26 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
     mesh->bindTransform = aiToGLM(transform);
 
     auto material = scene->mMaterials[aimesh->mMaterialIndex];
+
+    aiColor3D diffuseColour;
+    if(material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColour) != AI_SUCCESS)
+    {
+        std::cout << "warning: failed to get diffuse colour\n";
+        mesh->diffuseColour = glm::vec4(1);
+    }
+    else
+    {
+        mesh->diffuseColour = glm::vec4(diffuseColour.r, diffuseColour.g, diffuseColour.b, 1);
+    }
+
     for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
     {
         aiString texPath;
         material->GetTexture(aiTextureType_DIFFUSE, i, &texPath);
         mesh->diffuseTextures.push_back(texPath.C_Str());
-	for(size_t i = 0; i < mesh->diffuseTextures.back().size(); i++)
-	  if(mesh->diffuseTextures.back().at(i) == '\\')
-	    mesh->diffuseTextures[mesh->diffuseTextures.size() - 1][i] = '/';
+        for(size_t i = 0; i < mesh->diffuseTextures.back().size(); i++)
+            if(mesh->diffuseTextures.back().at(i) == '\\')
+                mesh->diffuseTextures[mesh->diffuseTextures.size() - 1][i] = '/';
     }
 
 	//vertcies

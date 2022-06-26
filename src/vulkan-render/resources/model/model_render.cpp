@@ -91,7 +91,7 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 	for(size_t i = 0; i < modelInfo->meshes.size(); i++)
 	{
 		fragPushConstants fps{
-			glm::vec4(1.0f), //colour //TODO have colour set by model
+			modelInfo->meshes[i].diffuseColour,
 			glm::vec4(0, 0, 1, 1), //texOffset
 			modelInfo->meshes[i].texture.ID
 		};
@@ -175,6 +175,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 			if(loadM.meshes[mesh].diffuseTextures.size() > 0)
 				ldMesh->texture = loadTexture(loadM.meshes[mesh].diffuseTextures[0], texLoader);
 
+			ldMesh->diffuseColour = loadM.meshes[mesh].diffuseColour;
 
 			glm::mat4 meshTransform = loadM.meshes[mesh].bindTransform;
 			for(int vert = 0; vert < loadM.meshes[mesh].verticies.size(); vert++)
@@ -205,6 +206,9 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 		// TODO support multiple textures
 			if(mesh.diffuseTextures.size() > 0)
 				ldMesh->texture = loadTexture(mesh.diffuseTextures[0], texLoader);
+
+			ldMesh->diffuseColour = mesh.diffuseColour;
+
 
 			for(int vert = 0; vert < mesh.verticies.size(); vert++)
 			{
@@ -291,7 +295,8 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 					pGroup->models[i].meshes[j]->indicies.size(),
 					model->indexCount,  //as offset
 					model->vertexCount, //as offset
-					pGroup->models[i].meshes[j]->texture);
+					pGroup->models[i].meshes[j]->texture,
+					pGroup->models[i].meshes[j]->diffuseColour);
 			model->vertexCount += pGroup->models[i].meshes[j]->verticies.size();
 			model->indexCount  += pGroup->models[i].meshes[j]->indicies.size();
 			vertexDataSize += sizeof(T_Vert) * pGroup->models[i].meshes[j]->verticies.size();

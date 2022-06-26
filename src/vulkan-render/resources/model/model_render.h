@@ -62,6 +62,7 @@ private:
 		std::vector<T_Vert> verticies;
 		std::vector<unsigned int> indicies;
 		Texture texture;
+		glm::vec4 diffuseColour;
 	};
 
 	template <class T_Vert>
@@ -89,17 +90,19 @@ private:
 	struct MeshInfo
 	{
 		MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
-		MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset, Texture texture)
+		MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset, Texture texture, glm::vec4 diffuseColour)
 		{
 			this->indexCount = indexCount;
 			this->indexOffset = indexOffset;
 			this->vertexOffset = vertexOffset;
 			this->texture = texture;
+			this->diffuseColour = diffuseColour;
 		}
 		size_t indexCount;
 		size_t indexOffset;
 		size_t vertexOffset;
 		Texture texture;
+		glm::vec4 diffuseColour;
 	};
 
 	struct ModelInGPU

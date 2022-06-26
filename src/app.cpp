@@ -56,6 +56,7 @@ App::~App() {
 
 void App::loadAssets() {
   testModel = mRender->LoadModel("models/testScene.fbx");
+  colouredCube = mRender->LoadModel("models/coloured_cube_test.fbx");
   testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
   currentWolfAnim = wolfAnims[0];
   secondWolfAnim = wolfAnims[1];
@@ -153,7 +154,7 @@ mRender->Begin3DDraw();
      glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
 
       mRender->DrawModel(
-     testModel,
+     colouredCube,
      glm::translate(
        glm::scale(
          glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
@@ -197,7 +198,7 @@ mRender->BeginAnim3DDraw();
   );
   
 
-  mRender->Begin2DDraw();
+ /* mRender->Begin2DDraw();
 
   mRender->DrawString(testFont, "Font Render", glm::vec2(0, 100), 100, -0.5,
     										glm::vec4(1), 0.0f);
@@ -209,7 +210,7 @@ mRender->BeginAnim3DDraw();
    mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
     									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
-
+*/
   submitDraw =
     std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
 

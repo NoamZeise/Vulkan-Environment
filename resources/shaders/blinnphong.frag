@@ -34,7 +34,11 @@ void main()
     coord.x += pc.texOffset.x;
     coord.y += pc.texOffset.y;
 
-    vec4 objectColour = texture(sampler2D(textures[pc.texID], texSamp), coord) * pc.colour;
+    vec4 objectColour = vec4(1);
+    if(pc.texID == 0)
+        objectColour = pc.colour;
+    else
+        objectColour = texture(sampler2D(textures[pc.texID], texSamp), coord) * pc.colour;
 
     if(objectColour.w == 0.0)
         discard;

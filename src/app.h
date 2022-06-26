@@ -68,6 +68,7 @@ private:
   std::atomic<bool> finishedDrawSubmit;
 
   Resource::Model testModel;
+  Resource::Model colouredCube;
   Resource::Model testWolf;
   std::vector<Resource::ModelAnimation> wolfAnims;
   Resource::ModelAnimation currentWolfAnim;
