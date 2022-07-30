@@ -182,7 +182,7 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 			{
 				Vertex3D vertex;
 				vertex.Position = meshTransform * glm::vec4(loadM.meshes[mesh].verticies[vert].Position, 1.0f);
-				vertex.Normal = loadM.meshes[mesh].verticies[vert].Normal;
+				vertex.Normal = glm::mat3(glm::inverseTranspose(meshTransform)) * loadM.meshes[mesh].verticies[vert].Normal;
 				vertex.TexCoord = loadM.meshes[mesh].verticies[vert].TexCoord;
 				ldMesh->verticies.push_back(vertex);
 

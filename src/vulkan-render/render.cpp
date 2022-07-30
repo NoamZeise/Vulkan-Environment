@@ -1,4 +1,5 @@
 #include "render.h"
+#include "glm/geometric.hpp"
 #include "vulkan/vulkan_core.h"
 
 Render::Render(GLFWwindow *window)
@@ -510,9 +511,7 @@ void Render::Begin3DDraw()
   _renderState = RenderState::Draw3D;
 
   _VP3D.storeData(_frameI);
-  _lighting.data[0].direction =
-      glm::transpose(glm::inverse(_VP3D.data[0].view)) *
-      glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
+  _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
 
   _pipeline3D.begin(_swapchain.frameData[_frameI].commandBuffer, _frameI);
@@ -548,9 +547,7 @@ void Render::BeginAnim3DDraw()
   _renderState = RenderState::DrawAnim3D;
 
   _VP3D.storeData(_frameI);
-  _lighting.data[0].direction =
-      glm::transpose(glm::inverse(_VP3D.data[0].view)) *
-      glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
+  _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
   _pipelineAnim3D.begin(_swapchain.frameData[_frameI].commandBuffer, _frameI);
 }
@@ -824,9 +821,10 @@ void Render::_updateViewProjectionMatrix() {
       -1; // opengl has inversed y axis, so need to correct
 }
 
-void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov) {
+void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
   _VP3D.data[0].view = view;
   _projectionFov = fov;
+  _lighting.data[0].camPos = camPos;
   _updateViewProjectionMatrix();
 }
 
@@ -834,6 +832,11 @@ void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale)
 {
   _VP2D.data[0].view = view;
   _scale2D = scale;
+}
+
+void Render::setLightDirection(glm::vec4 lightDir)
+{
+  _lightDirection = lightDir;
 }
 
 void Render::FramebufferResize() { _framebufferResized = true; }

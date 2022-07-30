@@ -45,8 +45,9 @@ public:
   static void SetGLFWWindowHints() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   }
-  void set3DViewMatrixAndFov(glm::mat4 view, float fov);
+  void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
   void set2DViewMatrixAndScale(glm::mat4 view, float scale);
+  void setLightDirection(glm::vec4 lightDir);
   void restartResourceLoad();
 
   Resource::Texture LoadTexture(std::string filepath);
@@ -139,6 +140,7 @@ private:
   VkSemaphore _imgAquireSem;
   float _projectionFov = 45.0f;
   float _scale2D = 1.0f;
+  glm::vec4 _lightDirection = glm::vec4(0.3f, 0.3f, -0.5f, 0.0f);
 
   unsigned int _modelRuns = 0;
   unsigned int _current3DInstanceIndex = 0;

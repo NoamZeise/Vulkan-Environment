@@ -49,9 +49,9 @@ void main()
       skin += inWeights[i] * bones.mat[inBoneIDs[i]];
     }
 
-    vec4 fragPos = ubo.view * pid.data[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
+    vec4 fragPos = pid.data[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
     outNormal = (pid.data[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
 
-    gl_Position = ubo.proj * fragPos;
+    gl_Position = ubo.proj * ubo.view * fragPos;
     outFragPos = vec3(fragPos) / fragPos.w;
 }

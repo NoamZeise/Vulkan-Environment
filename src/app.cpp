@@ -56,6 +56,7 @@ App::~App() {
 
 void App::loadAssets() {
   testModel = mRender->LoadModel("models/testScene.fbx");
+  monkeyModel = mRender->LoadModel("models/monkey.obj");
   colouredCube = mRender->LoadModel("models/coloured_cube_test.fbx");
   testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
   currentWolfAnim = wolfAnims[0];
@@ -108,6 +109,36 @@ void App::update() {
   secondWolfAnim.Update(timer);
   thirdWolfAnim.Update(timer);
 
+  const float speed = 0.001f;
+  if(input.Keys[GLFW_KEY_INSERT])
+    {
+      lightDir.x += speed * timer.FrameElapsed();
+    }
+   if(input.Keys[GLFW_KEY_HOME])
+     {
+      lightDir.x -= speed * timer.FrameElapsed();
+    }
+   if(input.Keys[GLFW_KEY_DELETE])
+    {
+      lightDir.z += speed * timer.FrameElapsed();
+    }
+   if(input.Keys[GLFW_KEY_END])
+     {
+      lightDir.z -= speed * timer.FrameElapsed();
+    }
+   if(input.Keys[GLFW_KEY_PAGE_UP])
+    {
+      lightDir.y += speed * timer.FrameElapsed();
+    }
+   if(input.Keys[GLFW_KEY_PAGE_DOWN])
+     {
+      lightDir.y -= speed * timer.FrameElapsed();
+    }
+
+   rotate += timer.FrameElapsed() * 0.001f;
+
+  mRender->setLightDirection(lightDir);
+
   fpcam.update(input, previousInput, timer);
 
   postUpdate();
@@ -125,7 +156,7 @@ void App::postUpdate() {
   previousInput = input;
   input.offset = 0;
   timer.Update();
-  mRender->set3DViewMatrixAndFov(fpcam.getViewMatrix(), fpcam.getZoom());
+  mRender->set3DViewMatrixAndFov(fpcam.getViewMatrix(), fpcam.getZoom(), glm::vec4(fpcam.getPos(), 0.0));
 }
 
 void App::draw() {
@@ -144,59 +175,85 @@ void App::draw() {
 
 mRender->Begin3DDraw();
 
+ auto model = glm::translate(
+       glm::scale(
+         glm::rotate(
+                     glm::rotate(glm::mat4(1.0f),
+                                 rotate, glm::vec3(0, 0, 1)),
+                                 glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+         glm::vec3(1.0f)),
+       glm::vec3(0, 3, 0));
+ 
+   mRender->DrawModel(
+     monkeyModel,
+     model,
+     glm::inverseTranspose(model));
+
+    model = glm::translate(
+       glm::scale(
+         glm::rotate(
+                     glm::rotate(glm::mat4(1.0f),
+                                 rotate, glm::vec3(0, 0, 1)),
+                                 glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+         glm::vec3(0.01f)),
+       glm::vec3(0, 0, 0));
+ 
    mRender->DrawModel(
      testModel,
-     glm::translate(
+     model,
+     glm::inverseTranspose(model));
+   
+   
+model = glm::translate(
        glm::scale(
          glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
          glm::vec3(0.02f)),
-     glm::vec3(0, 0, 0)),
-     glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
-
+       glm::vec3(0, 0, 800));
       mRender->DrawModel(
      colouredCube,
-     glm::translate(
-       glm::scale(
-         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-         glm::vec3(0.02f)),
-     glm::vec3(0, 0, 500)),
-     glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+     model,
+     glm::inverseTranspose(model));
+   
+      
+      mRender->BeginAnim3DDraw();
 
-mRender->BeginAnim3DDraw();
-
-  mRender->DrawAnimModel(
-		testWolf,
-    glm::translate(
+ auto w1model = glm::translate(
        glm::scale(
          glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
           glm::vec3(0.1f)),
-     glm::vec3(-100.0f, 0, 0)),
-		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
+       glm::vec3(-100.0f, 0, 100.0f));
+  mRender->DrawAnimModel(
+		testWolf,
+    w1model,
+		glm::inverseTranspose(w1model),
     &currentWolfAnim
   );
 
-  mRender->DrawAnimModel(
-		testWolf,
-    glm::translate(
+  w1model = glm::translate(
        glm::scale(
          glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
           glm::vec3(0.1f)),
-     glm::vec3(100.0f, 0, 0)),
-		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
+       glm::vec3(100.0f, 0, 100.0f));
+  mRender->DrawAnimModel(
+		testWolf,
+    w1model,
+		glm::inverseTranspose(w1model),
     &secondWolfAnim
   );
-  
-  mRender->DrawAnimModel(
-		testWolf,
-    glm::translate(
+
+  w1model =  glm::translate(
        glm::scale(
          glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
           glm::vec3(0.1f)),
-     glm::vec3(0.0f, 0, 0)),
-		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
+       glm::vec3(0.0f, 0, 100.0f));
+  
+  mRender->DrawAnimModel(
+		testWolf,
+   w1model,
+		glm::inverseTranspose(w1model),
     &thirdWolfAnim
   );
-  
+      
 
  /* mRender->Begin2DDraw();
 

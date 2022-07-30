@@ -9,7 +9,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
 struct Obj3DPerFrame
 {
     mat4 model;
-    mat4 normalMat;
+    mat4 normalMat_M;
 };
 
 layout(std140, set = 1, binding = 0) readonly buffer PerInstanceData
@@ -23,17 +23,17 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec2 outTexCoord;
-layout(location = 1) out vec3 outFragPos;
-layout(location = 2) out vec3 outNormal;
+layout(location = 1) out vec3 outFragPos_world;
+layout(location = 2) out vec3 outNormal_world;
 
 
 
 void main()
 {
     outTexCoord = inTexCoord;
-    vec4 fragPos = ubo.view * pid.data[gl_InstanceIndex].model * vec4(inPos, 1.0);
-    outNormal = mat3(pid.data[gl_InstanceIndex].normalMat) * inNormal;
+    vec4 fragPos = pid.data[gl_InstanceIndex].model * vec4(inPos, 1.0);
+    outNormal_world = vec3(pid.data[gl_InstanceIndex].normalMat_M * vec4(inNormal, 0.0));
 
-    gl_Position = ubo.proj * fragPos;
-    outFragPos = vec3(fragPos) / fragPos.w;
+    gl_Position = ubo.proj * ubo.view * fragPos;
+    outFragPos_world = vec3(fragPos) / fragPos.w;
 }

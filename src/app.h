@@ -67,7 +67,10 @@ private:
   std::thread submitDraw;
   std::atomic<bool> finishedDrawSubmit;
 
+  glm::vec4 lightDir = glm::vec4(0.0f, -0.5f, -1.0f, 0.0f);
+  float rotate = 0.0f;
   Resource::Model testModel;
+  Resource::Model monkeyModel;
   Resource::Model colouredCube;
   Resource::Model testWolf;
   std::vector<Resource::ModelAnimation> wolfAnims;

@@ -6,6 +6,7 @@
 #include <assimp/mesh.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -47,7 +48,8 @@ namespace
         aiProcess_Triangulate |
         aiProcess_FlipUVs |
         aiProcess_JoinIdenticalVertices |
-        aiProcess_GenNormals;
+        aiProcess_GenNormals |
+        aiProcess_LimitBoneWeights;
 
 
     inline glm::mat4 aiToGLM(aiMatrix4x4 mat)

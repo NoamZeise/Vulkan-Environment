@@ -17,6 +17,7 @@ layout(set = 4, binding = 0) uniform LightingUBO
     vec4 diffuse;
     vec4 specular;
     vec4 direction;
+    vec4 camPos;
 } lighting;
 
 layout(location = 0) in vec2 inTexCoord;
@@ -57,7 +58,7 @@ void main()
     float specularIntensity = 0.0;
     if(lambertian > 0.0)
     {
-        vec3 viewDir = normalize(-inFragPos);
+        vec3 viewDir = normalize(lighting.camPos.xyz - inFragPos);
 
         vec3 halfDir = normalize(lightDir + viewDir);
         specularIntensity = pow(max(dot(normal, halfDir), 0.0), lighting.specular.w);

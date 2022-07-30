@@ -27,6 +27,7 @@ namespace Camera
 		FirstPerson(glm::vec3 position);
 		glm::mat4 getViewMatrix();
 		float getZoom();
+      glm::vec3 getPos() { return _position; }
 		void update(Input &input, Input &prevInput, Timer &timer);
 
 
