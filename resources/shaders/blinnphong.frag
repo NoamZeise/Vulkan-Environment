@@ -5,6 +5,7 @@ layout(push_constant) uniform fragconstants
     vec4 colour;
     vec4 texOffset;
     uint texID;
+    uint normalMap;
 } pc;
 
 //maybe add uniform buffer for lighting
@@ -20,8 +21,11 @@ layout(set = 3, binding = 0) uniform LightingUBO
 } lighting;
 
 layout(location = 0) in vec2 inTexCoord;
-layout(location = 1) in vec3 inFragPos;
-layout(location = 2) in vec3 inNormal;
+layout(location = 1) in vec3 inFragPos_world;
+layout(location = 2) in vec3 inLightDir_cam;
+layout(location = 3) in vec3 inEyeDir_cam;
+layout(location = 4) in vec3 inLightDir_tangent;
+layout(location = 5) in vec3 inEyeDir_tangent;
 
 layout(location = 0) out vec4 outColour;
 
@@ -42,24 +46,40 @@ void main()
 
     if(objectColour.w == 0.0)
         discard;
-
-    vec3 normal = normalize(inNormal);
-    vec3 lightDir = normalize(-lighting.direction.xyz);
-
-    vec3 ambient = lighting.ambient.xyz * lighting.ambient.w;
-
-    float lambertian = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = lighting.diffuse.xyz * lighting.diffuse.w * lambertian;
-
-    float specularIntensity = 0.0;
-    if(lambertian > 0.0)
+        
+    vec3 normal = normalize(vec3(0, 0, 0.5));
+    if(pc.normalMap != 0)
     {
-        vec3 viewDir = normalize(-inFragPos);
+        normal =
+               normalize(
+                texture(
+                    sampler2D(
+                        textures[pc.normalMap], texSamp
+                        ), coord).rgb * 2.0 - 1.0);
+    }
 
-        vec3 halfDir = normalize(lightDir + viewDir);
-        specularIntensity = pow(max(dot(normal, halfDir), 0.0), lighting.specular.w);
+    vec3 ambient = objectColour.rgb * lighting.ambient.xyz * lighting.ambient.w;
+
+    vec3 d = lighting.direction.xyz - inFragPos_world;
+    
+    float dist = sqrt(d.x*d.x + d.y*d.y + d.z*d.z);
+    float atten = 1.0 / (1.0f + 0.014f * dist + 0.007f * dist * dist);
+
+    vec3 l = normalize(inLightDir_tangent);
+    vec3 e = normalize(inEyeDir_tangent);
+
+    float lambertian = clamp(dot(l, normal), 0.0, 1.0);
+    vec3 diffuse = objectColour.xyz * lighting.diffuse.xyz * lighting.diffuse.w * lambertian;
+    
+    
+    float specularIntensity = 0.0f;
+    if (lambertian > 0.0f)
+    {
+       vec3 r = reflect(-l, normal);   
+       specularIntensity = pow(clamp(dot(e, r), 0.0, 1.0), lighting.specular.w);
     }
     vec3 specular = lighting.specular.xyz * specularIntensity;
 
-    outColour = vec4(ambient + diffuse + specular, 1.0) * objectColour;
-}
+    outColour = vec4((ambient + diffuse + specular) * atten, objectColour.a);
+    //outColour.xyz = ambient + diffuse;
+ }

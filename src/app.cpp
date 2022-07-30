@@ -1,5 +1,6 @@
 #include "app.h"
 #include "GLFW/glfw3.h"
+#include <vcruntime_typeinfo.h>
 
 App::App() {
 
@@ -55,8 +56,9 @@ App::~App() {
 }
 
 void App::loadAssets() {
-  testModel = mRender->LoadModel("models/testScene.fbx");
-  colouredCube = mRender->LoadModel("models/coloured_cube_test.fbx");
+  testModel = mRender->LoadModel("models/light_test.fbx");
+  testScene = mRender->LoadModel("models/coloured_cube_test.fbx");
+   test2 = mRender->LoadModel("models/testScene.fbx");
   testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
   currentWolfAnim = wolfAnims[0];
   secondWolfAnim = wolfAnims[1];
@@ -64,6 +66,7 @@ void App::loadAssets() {
   testTex = mRender->LoadTexture("textures/error.png");
   testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
   mRender->EndResourceLoad();
+
 }
 
 void App::run() {
@@ -103,12 +106,52 @@ void App::update() {
   if (input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE]) {
     glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
   }
-
   currentWolfAnim.Update(timer);
   secondWolfAnim.Update(timer);
   thirdWolfAnim.Update(timer);
 
   fpcam.update(input, previousInput, timer);
+
+  const float speed = 0.01f;
+  if(input.Keys[GLFW_KEY_7])
+  {
+    lightingDir.x += speed * timer.FrameElapsed();
+  }
+  if(input.Keys[GLFW_KEY_8])
+  {
+    lightingDir.x -= speed * timer.FrameElapsed();
+  }
+  if(input.Keys[GLFW_KEY_4])
+  {
+    lightingDir.y += speed * timer.FrameElapsed();
+  }
+  if(input.Keys[GLFW_KEY_5])
+  {
+    lightingDir.y -= speed * timer.FrameElapsed();
+  }
+  if(input.Keys[GLFW_KEY_1])
+  {
+    lightingDir.z += speed * timer.FrameElapsed();
+  }
+  if(input.Keys[GLFW_KEY_2])
+  {
+    lightingDir.z -= speed * timer.FrameElapsed();
+  }
+
+  if(input.Keys[GLFW_KEY_RIGHT])
+    {
+      spin_time += speed * timer.FrameElapsed();
+    }
+   if(input.Keys[GLFW_KEY_LEFT])
+    {
+      spin_time -= speed * timer.FrameElapsed();
+    }
+
+  std::cout << "X : " << lightingDir.x << std::endl;
+  std::cout << "Y : " << lightingDir.y << std::endl;
+  std::cout << "Z : " << lightingDir.z << std::endl;
+  
+  mRender->setLightingDir(lightingDir);
 
   postUpdate();
 #ifdef TIME_APP_DRAW_UPDATE
@@ -144,16 +187,35 @@ void App::draw() {
 
 mRender->Begin3DDraw();
 
+ auto model = glm::translate(
+       glm::scale(
+                  glm::rotate(glm::mat4(1.0f), spin_time * 1.5f, glm::vec3(0.0f, 0.0f, 1.0f)),
+         glm::vec3(0.02f)),
+       glm::vec3(0, 0, 0));
    mRender->DrawModel(
      testModel,
-     glm::translate(
-       glm::scale(
-         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-         glm::vec3(0.02f)),
-     glm::vec3(0, 0, 0)),
-     glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)));
+     model,
+    fpcam.getViewMatrix() * model);
 
-      mRender->DrawModel(
+   auto model2 = glm::scale(
+                  glm::translate(
+                  glm::mat4(1.0f),
+                  glm::vec3(lightingDir)),
+                  glm::vec3(0.005f));
+   mRender->DrawModel(
+     testScene,
+     model2,
+     fpcam.getViewMatrix() * model2);
+
+   auto mod3 = glm::scale(
+         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+         glm::vec3(0.02f));
+    mRender->DrawModel(
+     test2,
+       mod3,
+    fpcam.getViewMatrix() * mod3);
+
+   /*  mRender->DrawModel(
      colouredCube,
      glm::translate(
        glm::scale(
@@ -196,7 +258,7 @@ mRender->BeginAnim3DDraw();
 		glm::inverseTranspose(fpcam.getViewMatrix() * glm::mat4(1.0f)),
     &thirdWolfAnim
   );
-  
+   */
 
  /* mRender->Begin2DDraw();
 

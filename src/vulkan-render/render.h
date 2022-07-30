@@ -71,6 +71,12 @@ public:
 
   void FramebufferResize();
 
+  void setLightingDir(glm::vec4 dir)
+  {
+    _lightingDir = dir;
+    _VP3D.data[0].lightPos = dir;
+  }
+
 private:
   bool _framebufferResized = false;
 
@@ -139,6 +145,7 @@ private:
   VkSemaphore _imgAquireSem;
   float _projectionFov = 45.0f;
   float _scale2D = 1.0f;
+  glm::vec4 _lightingDir = glm::vec4(0.3f, -0.8f, -1.0f, 0.0f);
 
   unsigned int _modelRuns = 0;
   unsigned int _current3DInstanceIndex = 0;

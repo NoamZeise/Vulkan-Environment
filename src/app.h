@@ -64,11 +64,16 @@ private:
   Timer timer;
   Camera::FirstPerson fpcam;
 
+  float spin_time = 0.0f;
+
+  glm::vec4 lightingDir = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
   std::thread submitDraw;
   std::atomic<bool> finishedDrawSubmit;
 
   Resource::Model testModel;
-  Resource::Model colouredCube;
+  Resource::Model testScene;
+  Resource::Model test2;
   Resource::Model testWolf;
   std::vector<Resource::ModelAnimation> wolfAnims;
   Resource::ModelAnimation currentWolfAnim;

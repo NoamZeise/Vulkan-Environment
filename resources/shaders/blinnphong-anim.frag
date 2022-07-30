@@ -22,7 +22,6 @@ layout(set = 4, binding = 0) uniform LightingUBO
 layout(location = 0) in vec2 inTexCoord;
 layout(location = 1) in vec3 inFragPos;
 layout(location = 2) in vec3 inNormal;
-layout(location = 3) in vec3 inBoneColour;
 
 layout(location = 0) out vec4 outColour;
 

@@ -27,13 +27,14 @@ layout(set = 2, binding = 0) uniform boneView
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
-layout(location = 3) in ivec4 inBoneIDs;
-layout(location = 4) in vec4 inWeights;
+layout(location = 3) in vec3 inTanget;
+layout(location = 4) in vec3 inBitangent;
+layout(location = 5) in ivec4 inBoneIDs;
+layout(location = 6) in vec4 inWeights;
 
 layout(location = 0) out vec2 outTexCoord;
 layout(location = 1) out vec3 outFragPos;
 layout(location = 2) out vec3 outNormal;
-layout(location = 3) out vec3 outBoneColour;
 
 
 

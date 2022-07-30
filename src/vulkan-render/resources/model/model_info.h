@@ -18,6 +18,8 @@ struct Vertex
     glm::vec3 Position;
     glm::vec3 Normal;
     glm::vec2 TexCoord;
+    glm::vec3 Tangent;
+    glm::vec3 Bitangent;
     std::vector<unsigned int> BoneIDs;
     std::vector<float> BoneWeights;
 };
@@ -27,6 +29,7 @@ struct Mesh
     std::vector<Vertex> verticies;
     std::vector<unsigned int> indicies;
     std::vector<std::string> diffuseTextures;
+    std::vector<std::string> normalTextures;
     glm::vec4 diffuseColour;
 
     glm::mat4 bindTransform;

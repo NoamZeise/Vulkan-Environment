@@ -20,7 +20,7 @@ const int TARGET_WIDTH = 1600;
 const int TARGET_HEIGHT = 900;
 
 #ifndef NDEBUG
-const bool ERROR_ONLY = false;
+const bool ERROR_ONLY = true;
 #endif
 }
 

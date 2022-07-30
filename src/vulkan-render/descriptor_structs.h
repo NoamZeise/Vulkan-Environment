@@ -23,6 +23,7 @@ namespace ShaderStructs {
 struct viewProjection {
   alignas(16) glm::mat4 view;
   alignas(16) glm::mat4 proj;
+  glm::vec4 lightPos;
 };
 
 struct PerFrame3D {
@@ -41,9 +42,9 @@ struct Frag2DData {
 struct lighting {
   lighting()
   {
-    ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.6f);
-    diffuse = glm::vec4(1.0f, 1.0f, 1.0f, 0.7f);
-    specular = glm::vec4(0.1f, 0.1f, 0.1f, 5.0f);
+    ambient = glm::vec4(1.0f, 1.0f, 1.0f, 0.24f);
+    diffuse = glm::vec4(1.0f, 1.0f, 1.0f, 2.0f);
+    specular = glm::vec4(1.0f, 1.0f, 1.0f, 8.0f);
     direction = glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
   }
 

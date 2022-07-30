@@ -47,7 +47,8 @@ namespace
         aiProcess_Triangulate |
         aiProcess_FlipUVs |
         aiProcess_JoinIdenticalVertices |
-        aiProcess_GenNormals;
+        aiProcess_GenNormals |
+        aiProcess_LimitBoneWeights;
 
 
     inline glm::mat4 aiToGLM(aiMatrix4x4 mat)

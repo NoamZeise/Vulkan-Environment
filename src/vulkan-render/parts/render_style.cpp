@@ -218,7 +218,7 @@ void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, 
 
 	//config vertex input
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-
+    
     if(vertexAttribDesc.size() == 0 && vertexBindingDesc.size() == 0)
     {
         vertexInputInfo.vertexAttributeDescriptionCount = 0;

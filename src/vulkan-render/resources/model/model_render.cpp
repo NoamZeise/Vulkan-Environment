@@ -93,7 +93,8 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 		fragPushConstants fps{
 			modelInfo->meshes[i].diffuseColour,
 			glm::vec4(0, 0, 1, 1), //texOffset
-			modelInfo->meshes[i].texture.ID
+			modelInfo->meshes[i].texture.ID,
+            modelInfo->meshes[i].normalMap.ID
 		};
 
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -175,6 +176,9 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 			if(loadM.meshes[mesh].diffuseTextures.size() > 0)
 				ldMesh->texture = loadTexture(loadM.meshes[mesh].diffuseTextures[0], texLoader);
 
+            if(loadM.meshes[mesh].normalTextures.size() > 0)
+              ldMesh->normalMap = loadTexture(loadM.meshes[mesh].normalTextures[0], texLoader);
+
 			ldMesh->diffuseColour = loadM.meshes[mesh].diffuseColour;
 
 			glm::mat4 meshTransform = loadM.meshes[mesh].bindTransform;
@@ -184,6 +188,9 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 				vertex.Position = meshTransform * glm::vec4(loadM.meshes[mesh].verticies[vert].Position, 1.0f);
 				vertex.Normal = loadM.meshes[mesh].verticies[vert].Normal;
 				vertex.TexCoord = loadM.meshes[mesh].verticies[vert].TexCoord;
+                vertex.Tangent = loadM.meshes[mesh].verticies[vert].Tangent;
+                vertex.Bitangent = loadM.meshes[mesh].verticies[vert].Bitangent;
+                
 				ldMesh->verticies.push_back(vertex);
 
 			}
@@ -206,6 +213,8 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 		// TODO support multiple textures
 			if(mesh.diffuseTextures.size() > 0)
 				ldMesh->texture = loadTexture(mesh.diffuseTextures[0], texLoader);
+            if(mesh.normalTextures.size() > 0)
+              ldMesh->normalMap = loadTexture(mesh.normalTextures[0], texLoader);
 
 			ldMesh->diffuseColour = mesh.diffuseColour;
 
@@ -216,6 +225,8 @@ Model ModelRender::loadModel(std::string path, TextureLoader* texLoader, std::ve
 				vertex.Position = glm::vec4(mesh.verticies[vert].Position, 1.0f);
 				vertex.Normal = mesh.verticies[vert].Normal;
 				vertex.TexCoord = mesh.verticies[vert].TexCoord;
+                vertex.Tangent = mesh.verticies[vert].Tangent;
+                vertex.Bitangent = mesh.verticies[vert].Bitangent;
 				for(int vecElem = 0; vecElem < 4; vecElem++)
 				{
 					if(mesh.verticies[vert].BoneIDs.size() <= vecElem)
@@ -296,6 +307,7 @@ void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup)
 					model->indexCount,  //as offset
 					model->vertexCount, //as offset
 					pGroup->models[i].meshes[j]->texture,
+                    pGroup->models[i].meshes[j]->normalMap,
 					pGroup->models[i].meshes[j]->diffuseColour);
 			model->vertexCount += pGroup->models[i].meshes[j]->verticies.size();
 			model->indexCount  += pGroup->models[i].meshes[j]->indicies.size();

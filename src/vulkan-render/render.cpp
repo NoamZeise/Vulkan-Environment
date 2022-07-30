@@ -1,4 +1,5 @@
 #include "render.h"
+#include "glm/geometric.hpp"
 #include "vulkan/vulkan_core.h"
 
 Render::Render(GLFWwindow *window)
@@ -282,7 +283,7 @@ void Render::_initFrameResources()
   );
 
   // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
-  
+
   part::create::GraphicsPipeline(
       _base.device, &_pipeline3D, _swapchain, _renderPass,
       {&_VP3Dds, &_perInstance3Dds, &_texturesds, &_lightingds},{
@@ -292,7 +293,7 @@ void Render::_initFrameResources()
       true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent, VK_CULL_MODE_BACK_BIT,
       Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
   );
-
+  
   part::create::GraphicsPipeline(
     _base.device, &_pipelineAnim3D, _swapchain, _renderPass,
     {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
@@ -302,7 +303,7 @@ void Render::_initFrameResources()
     true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent, VK_CULL_MODE_BACK_BIT,
     VertexAnim3D::attributeDescriptions(), VertexAnim3D::bindingDescriptions()
   );
-
+  
   part::create::GraphicsPipeline(
       _base.device, &_pipeline2D, _swapchain, _renderPass,
       {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds},
@@ -510,9 +511,8 @@ void Render::Begin3DDraw()
   _renderState = RenderState::Draw3D;
 
   _VP3D.storeData(_frameI);
-  _lighting.data[0].direction =
-      glm::transpose(glm::inverse(_VP3D.data[0].view)) *
-      glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
+  _lighting.data[0].direction = 
+      _lightingDir;
   _lighting.storeData(_frameI);
 
   _pipeline3D.begin(_swapchain.frameData[_frameI].commandBuffer, _frameI);
@@ -549,8 +549,7 @@ void Render::BeginAnim3DDraw()
 
   _VP3D.storeData(_frameI);
   _lighting.data[0].direction =
-      glm::transpose(glm::inverse(_VP3D.data[0].view)) *
-      glm::vec4(0.3f, -0.3f, -0.5f, 0.0f);
+      _lightingDir;
   _lighting.storeData(_frameI);
   _pipelineAnim3D.begin(_swapchain.frameData[_frameI].commandBuffer, _frameI);
 }

@@ -90,7 +90,7 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
     {
         mesh->diffuseColour = glm::vec4(diffuseColour.r, diffuseColour.g, diffuseColour.b, 1);
     }
-
+    
     for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++)
     {
         aiString texPath;
@@ -99,6 +99,16 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
         for(size_t i = 0; i < mesh->diffuseTextures.back().size(); i++)
             if(mesh->diffuseTextures.back().at(i) == '\\')
                 mesh->diffuseTextures[mesh->diffuseTextures.size() - 1][i] = '/';
+    }
+    
+    for(unsigned int i = 0; i < material->GetTextureCount(aiTextureType_NORMALS); i++)
+    {
+        aiString texPath;
+        material->GetTexture(aiTextureType_NORMALS, i, &texPath);
+        mesh->normalTextures.push_back(texPath.C_Str());
+        for(size_t i = 0; i < mesh->normalTextures.back().size(); i++)
+            if(mesh->normalTextures.back().at(i) == '\\')
+                mesh->normalTextures[mesh->normalTextures.size() - 1][i] = '/';
     }
 
 	//vertcies
@@ -123,6 +133,21 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
 		}
 		else
 			vertex.TexCoord = glm::vec2(0);
+        if(aimesh->HasTangentsAndBitangents())
+        {
+          vertex.Tangent.x = aimesh->mTangents[i].x;
+          vertex.Tangent.y = aimesh->mTangents[i].y;
+          vertex.Tangent.z = aimesh->mTangents[i].z;
+
+          vertex.Bitangent.x = aimesh->mBitangents[i].x;
+          vertex.Bitangent.y = aimesh->mBitangents[i].y;
+          vertex.Bitangent.z = aimesh->mBitangents[i].z;
+        }
+        else
+        {
+          vertex.Tangent = glm::vec3(0);
+          vertex.Bitangent = glm::vec3(0);
+        }
 
 		mesh->verticies.push_back(vertex);
 	}
