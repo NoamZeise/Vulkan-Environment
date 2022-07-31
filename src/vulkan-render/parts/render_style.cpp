@@ -80,7 +80,9 @@ void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, 
 		colourAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 	}
 	colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    if(settings::MULTISAMPLING)
+      colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -271,10 +273,11 @@ void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, 
 
 	//config multisampler
 	VkPipelineMultisampleStateCreateInfo multisampleInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
+    
     if(useMultisampling)
     {
         multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
-        if(settings::SAMPLE_SHADING && settings::MULTISAMPLING)
+        if(settings::SAMPLE_SHADING)
         {
             multisampleInfo.minSampleShading = 1.0f;
             multisampleInfo.sampleShadingEnable = VK_TRUE;
