@@ -1,7 +1,7 @@
 #ifndef DESCRIPTOR_STRUCTS_H
 #define DESCRIPTOR_STRUCTS_H
 
-#include <volk.h>
+#include "volk.h"
 
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

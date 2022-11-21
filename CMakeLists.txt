@@ -47,11 +47,13 @@ if(UNIX)
                                          ${FREETYPE_LIBRARIES}
                                          assimp)
     #add assimp
+    target_compile_definitions(${ProjectName} PUBLIC VK_USE_PLATFORM_XLIB_KHR)
 else()
     target_include_directories(${ProjectName} PUBLIC ${Include})
     target_link_libraries(${ProjectName} ${Lib}glfw3.lib
                                          ${Lib}freetype.lib
                                          ${Lib}vulkan-1.lib
                                          ${Lib}assimp-vc140-mt.lib
-                                        bufferoverflowU.lib)
+                                         bufferoverflowU.lib)
+    target_compile_definitions(${ProjectName} PUBLIC VK_USE_PLATFORM_WIN32_KHR)
 endif()
