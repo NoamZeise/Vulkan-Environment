@@ -57,7 +57,7 @@ App::~App() {
 void App::loadAssets() {
   testModel = mRender->LoadModel("models/testScene.fbx");
   monkeyModel = mRender->LoadModel("models/monkey.obj");
-  colouredCube = mRender->LoadModel("models/coloured_cube_test.fbx");
+  colouredCube = mRender->LoadModel("models/ROOM.fbx");
   testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
   currentWolfAnim = wolfAnims[0];
   secondWolfAnim = wolfAnims[1];
@@ -204,11 +204,16 @@ mRender->Begin3DDraw();
      glm::inverseTranspose(model));
    
    
-model = glm::translate(
+model = 
        glm::scale(
-         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-         glm::vec3(0.02f)),
-       glm::vec3(0, 0, 800));
+         glm::rotate(
+		     glm::translate(
+				    glm::mat4(1.0f),
+				    glm::vec3(0.0f, -30.0f, -15.0f))
+
+
+		     , glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+         glm::vec3(4.0f));
       mRender->DrawModel(
      colouredCube,
      model,

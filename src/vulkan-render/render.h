@@ -1,9 +1,8 @@
 #ifndef RENDER_H
 #define RENDER_H
 
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
+#define VOLK_IMPLIMENTATION
+#include <volk.h>
 #include <GLFW/glfw3.h>
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -44,6 +43,11 @@ public:
   ~Render();
   static void SetGLFWWindowHints() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if(volkInitialize() != VK_SUCCESS) {
+	throw std::runtime_error("failed to initilize volk\n");
+    } else {
+	std::cout << "volk initialized successfully\n";
+    }
   }
   void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
   void set2DViewMatrixAndScale(glm::mat4 view, float scale);

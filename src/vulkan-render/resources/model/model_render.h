@@ -1,9 +1,6 @@
 #ifndef MODEL_RENDER_H
 #define MODEL_RENDER_H
 
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>

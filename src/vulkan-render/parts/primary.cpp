@@ -78,6 +78,7 @@ void Instance(VkInstance* instance)
 	{
 		throw std::runtime_error("failed to create instance!");
 	}
+	volkLoadInstance(*instance);
 }
 
 void Device(VkInstance instance, Base* base, VkSurfaceKHR surface)

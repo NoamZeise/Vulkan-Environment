@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <array>
 #include <set>
+#include <cstring>
 #include <iostream>
 
 

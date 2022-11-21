@@ -1,7 +1,7 @@
 #ifndef PARTS_IMAGES_H
 #define PARTS_IMAGES_H
 
-#include "vulkan/vulkan_core.h"
+#include <volk.h>
 #include <stdexcept>
 
 namespace part

@@ -1,10 +1,7 @@
 #ifndef VULKAN_RENDER_STRUCTS_H
 #define VULKAN_RENDER_STRUCTS_H
 
-#include "vulkan/vulkan_core.h"
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
+#include <volk.h>
 #include <GLFW/glfw3.h>
 
 #include <stdint.h>

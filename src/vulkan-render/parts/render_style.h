@@ -4,7 +4,7 @@
 #include "../render_structs.h"
 #include "../pipeline.h"
 #include "../config.h"
-#include "vulkan/vulkan_core.h"
+#include <volk.h>
 
 #include <string>
 #include <vector>

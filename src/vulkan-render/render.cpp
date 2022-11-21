@@ -113,27 +113,27 @@ void Render::_initFrameResources()
 	for(size_t i = 0; i < _swapchain.frameData.size(); i++)
 	{
     VkMemoryRequirements memReq;
-		if(settings::MULTISAMPLING)
-		{
-			_swapchain.frameData[i].multisampling.format = _swapchain.format.format;
-			_swapchain.frameData[i].multisampling.memoryOffset = totalMemory;
-			memReq = part::create::Image(
+    if(settings::MULTISAMPLING)
+      {
+        _swapchain.frameData[i].multisampling.format = _swapchain.format.format;
+        _swapchain.frameData[i].multisampling.memoryOffset = totalMemory;
+        memReq = part::create::Image(
 				                     _base.device, _base.physicalDevice,
-                             &_swapchain.frameData[i].multisampling.image,
-                            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-									          _swapchain.offscreenExtent, _swapchain.frameData[i].multisampling.format,
-									          _swapchain.maxMsaaSamples);
+                                     &_swapchain.frameData[i].multisampling.image,
+                                     VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                     _swapchain.offscreenExtent, _swapchain.frameData[i].multisampling.format,
+                                     _swapchain.maxMsaaSamples);
       totalMemory += memReq.size;
       memoryFlagBits |= memReq.memoryTypeBits;
-		}
-
-		_swapchain.frameData[i].depthBuffer.format = depthBufferFormat;
-		_swapchain.frameData[i].depthBuffer.memoryOffset = totalMemory;
-		memReq = part::create::Image(
-				                     _base.device, _base.physicalDevice, &_swapchain.frameData[i].depthBuffer.image,
-                                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-									 _swapchain.offscreenExtent, _swapchain.frameData[i].depthBuffer.format,
-									 _swapchain.maxMsaaSamples);
+      }
+    
+    _swapchain.frameData[i].depthBuffer.format = depthBufferFormat;
+    _swapchain.frameData[i].depthBuffer.memoryOffset = totalMemory;
+    memReq = part::create::Image(
+                                 _base.device, _base.physicalDevice, &_swapchain.frameData[i].depthBuffer.image,
+                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                 _swapchain.offscreenExtent, _swapchain.frameData[i].depthBuffer.format,
+                                 _swapchain.maxMsaaSamples);
     totalMemory += memReq.size;
     memoryFlagBits |= memReq.memoryTypeBits;
 

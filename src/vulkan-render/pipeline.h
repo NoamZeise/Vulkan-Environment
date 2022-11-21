@@ -1,10 +1,7 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-#include "vulkan/vulkan_core.h"
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
+#include <volk.h>
 #include <GLFW/glfw3.h>
 
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE

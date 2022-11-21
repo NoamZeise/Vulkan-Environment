@@ -1,7 +1,7 @@
 #ifndef PARTS_SWAPCHAIN_H
 #define PARTS_SWAPCHAIN_H
 
-#include <vulkan/vulkan_core.h>
+#include <volk.h>
 #include <GLFW/glfw3.h>
 
 #include "../config.h"

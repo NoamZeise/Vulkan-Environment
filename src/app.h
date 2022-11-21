@@ -5,9 +5,10 @@
 #include <iostream>
 #include <thread>
 
-#ifndef GLFW_INCLUDE_VULKAN
-#define GLFW_INCLUDE_VULKAN
-#endif
+#include "vulkan-render/render.h"
+#include "vulkan-render/resources/resources.h"
+#include "vulkan-render/config.h"
+
 #include <GLFW/glfw3.h>
 #ifndef GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -18,10 +19,6 @@
 #include <input.h>
 #include <timer.h>
 #include <glmhelper.h>
-
-#include "vulkan-render/render.h"
-#include "vulkan-render/resources/resources.h"
-#include "vulkan-render/config.h"
 
 #include "camera.h"
 
