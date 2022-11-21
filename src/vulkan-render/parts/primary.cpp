@@ -222,6 +222,7 @@ void Device(VkInstance instance, Base* base, VkSurfaceKHR surface)
 
 	if (vkCreateDevice(base->physicalDevice, &deviceInfo, nullptr, &base->device) != VK_SUCCESS)
 		throw std::runtime_error("failed to create logical device");
+	volkLoadDevice(base->device);
 
 	//get queue handles for graphics and present
 	vkGetDeviceQueue(base->device, base->queue.graphicsPresentFamilyIndex, 0, &base->queue.graphicsPresentQueue);
