@@ -336,7 +336,7 @@ void TextureLoader::endLoading()
 			throw std::runtime_error("Failed to create image view from texture at: " + texToLoad[i].path);
 	}
     
-    textureSampler = vkhelper::createTextureSampler(base.device, base.physicalDevice, static_cast<float>(minMips), base.features.samplerAnisotropy);
+	textureSampler = vkhelper::createTextureSampler(base.device, base.physicalDevice, static_cast<float>(minMips), base.features.samplerAnisotropy, VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
 	vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
 

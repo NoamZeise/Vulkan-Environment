@@ -41,14 +41,7 @@ public:
   Render(GLFWwindow *window);
   Render(GLFWwindow *window, glm::vec2 target);
   ~Render();
-  static void SetGLFWWindowHints() {
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    if(volkInitialize() != VK_SUCCESS) {
-	throw std::runtime_error("failed to initilize volk\n");
-    } else {
-	std::cout << "volk initialized successfully\n";
-    }
-  }
+  static bool SetGLFWWindowHintsAndLoadVulkan();
   void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
   void set2DViewMatrixAndScale(glm::mat4 view, float scale);
   void setLightDirection(glm::vec4 lightDir);
@@ -111,6 +104,7 @@ private:
   DS::DescriptorSet _lightingds;
   DS::DescriptorSet _texturesds;
   DS::DescriptorSet _per2Dfragds;
+  DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
 
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP3D;
@@ -122,6 +116,7 @@ private:
   DS::BindingAndData<bool> _textureSampler;
   DS::BindingAndData<DS::ShaderStructs::Frag2DData> _per2Dfrag;
   DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
+  DS::BindingAndData<glm::mat4> _offscreenTransform;
   DS::BindingAndData<bool> _offscreenSampler;
   DS::BindingAndData<bool> _offscreenView;
   VkSampler _offscreenTextureSampler;

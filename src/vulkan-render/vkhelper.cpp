@@ -54,14 +54,15 @@ VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
 	return desiredSize;
 }
 
-VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice, float maxLod, bool enableAnisotrophy)
+    VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice, float maxLod, bool enableAnisotrophy,
+				   VkSamplerAddressMode addressMode)
 {
   VkSampler sampler;
   
   VkPhysicalDeviceProperties deviceProps{};
   vkGetPhysicalDeviceProperties(physicalDevice, &deviceProps);
   VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeU = addressMode;
   samplerInfo.addressModeV = samplerInfo.addressModeU;
   samplerInfo.addressModeW = samplerInfo.addressModeU;
   if (settings::PIXELATED)

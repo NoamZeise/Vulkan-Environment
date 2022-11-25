@@ -2,11 +2,23 @@
 #include "glm/geometric.hpp"
 #include "vulkan/vulkan_core.h"
 
+
+bool Render::SetGLFWWindowHintsAndLoadVulkan()
+{
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    if(volkInitialize() != VK_SUCCESS) {
+      std::cout << "failed to initilize volk\n";
+      return false;
+    }
+    std::cout << "volk initialized successfully\n";
+    return true;
+}
+
 Render::Render(GLFWwindow *window)
 {
   _initRender(window);
   _targetResolution = glm::vec2(_swapchain.swapchainExtent.width,
-                               _swapchain.swapchainExtent.height);
+                                _swapchain.swapchainExtent.height);
 }
 
 Render::Render(GLFWwindow *window, glm::vec2 target)
@@ -14,7 +26,6 @@ Render::Render(GLFWwindow *window, glm::vec2 target)
   _initRender(window);
   _targetResolution = target;
 }
-
 void Render::_initRender(GLFWwindow *window)
 {
   _window = window;
@@ -22,24 +33,29 @@ void Render::_initRender(GLFWwindow *window)
 #ifndef NDEBUG
   part::create::DebugMessenger(_instance, &_debugMessenger);
 #endif
-  
-  if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) != VK_SUCCESS)
+
+  if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) !=
+      VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
-  
+
   part::create::Device(_instance, &_base, _surface);
-  
+
   // create general command pool
-  VkCommandPoolCreateInfo commandPoolInfo {VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
+  VkCommandPoolCreateInfo commandPoolInfo{
+      VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
   commandPoolInfo.queueFamilyIndex = _base.queue.graphicsPresentFamilyIndex;
-  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr, &_generalCommandPool) != VK_SUCCESS)
+  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr,
+                          &_generalCommandPool) != VK_SUCCESS)
     throw std::runtime_error("failed to create command pool");
 
   // create transfer command buffer
-  VkCommandBufferAllocateInfo commandBufferInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+  VkCommandBufferAllocateInfo commandBufferInfo{
+      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   commandBufferInfo.commandPool = _generalCommandPool;
   commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   commandBufferInfo.commandBufferCount = 1;
-  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo, &_transferCommandBuffer))
+  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo,
+                               &_transferCommandBuffer))
     throw std::runtime_error("failed to allocate command buffer");
 
   _modelLoader = new Resource::ModelRender(_base, _generalCommandPool);
@@ -51,11 +67,11 @@ void Render::_initRender(GLFWwindow *window)
 Render::~Render()
 {
   vkQueueWaitIdle(_base.queue.graphicsPresentQueue);
-  
+
   delete _textureLoader;
   delete _modelLoader;
   delete _fontLoader;
-  
+
   _destroyFrameResources();
   vkDestroyCommandPool(_base.device, _generalCommandPool, nullptr);
   _swapchain.destroyResources(_base.device);
@@ -63,281 +79,282 @@ Render::~Render()
   vkDestroyDevice(_base.device, nullptr);
   vkDestroySurfaceKHR(_instance, _surface, nullptr);
 #ifndef NDEBUG
-  part::destroy::DebugMessenger(_instance, _debugMessenger,nullptr);
+  part::destroy::DebugMessenger(_instance, _debugMessenger, nullptr);
 #endif
   vkDestroyInstance(_instance, nullptr);
 }
 
 void Render::_initFrameResources()
 {
-  if(_swapchain.swapChain != VK_NULL_HANDLE)
+  if (_swapchain.swapChain != VK_NULL_HANDLE)
     _swapchain.destroyResources(_base.device);
   auto images = part::create::Swapchain(
-      _base.device,
-      _base.physicalDevice,
-      _surface,
-      &_swapchain.swapChain,
-      &_swapchain.format,
-      &_swapchain.swapchainExtent,
-      _window
-  );
+      _base.device, _base.physicalDevice, _surface, &_swapchain.swapChain,
+      &_swapchain.format, &_swapchain.swapchainExtent, _window);
   size_t frameCount = images.size();
 
   _swapchain.frameData.resize(frameCount);
 
-  for(size_t i = 0; i < frameCount; i++)
-  {
-    _swapchain.frameData[i].SetPerFramData(_base.device, images[i], _swapchain.format.format, _base.queue.graphicsPresentFamilyIndex);
+  for (size_t i = 0; i < frameCount; i++) {
+    _swapchain.frameData[i].SetPerFramData(
+        _base.device, images[i], _swapchain.format.format,
+        _base.queue.graphicsPresentFamilyIndex);
   }
 
-	if(settings::USE_TARGET_RESOLUTION)
-		_swapchain.offscreenExtent = { settings::TARGET_WIDTH, settings::TARGET_HEIGHT };
-	else
-		_swapchain.offscreenExtent = _swapchain.swapchainExtent;
+  if (settings::USE_TARGET_RESOLUTION)
+    _swapchain.offscreenExtent = {settings::TARGET_WIDTH,
+                                  settings::TARGET_HEIGHT};
+  else
+    _swapchain.offscreenExtent = _swapchain.swapchainExtent;
 
-	//create attachment resources
-	//
-	VkFormat depthBufferFormat = vkhelper::findSupportedFormat(_base.physicalDevice,
-        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
+  // create attachment resources
+  //
+  VkFormat depthBufferFormat = vkhelper::findSupportedFormat(
+      _base.physicalDevice,
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+       VK_FORMAT_D24_UNORM_S8_UINT},
+      VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
-	if(settings::MULTISAMPLING)
-		_swapchain.maxMsaaSamples = vkhelper::getMaxSupportedMsaaSamples(_base.device, _base.physicalDevice);
-	else
-		_swapchain.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
+  if (settings::MULTISAMPLING)
+    _swapchain.maxMsaaSamples = vkhelper::getMaxSupportedMsaaSamples(
+        _base.device, _base.physicalDevice);
+  else
+    _swapchain.maxMsaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	VkDeviceSize totalMemory = 0;
-	uint32_t memoryFlagBits = 0;
-	for(size_t i = 0; i < _swapchain.frameData.size(); i++)
-	{
+  VkDeviceSize totalMemory = 0;
+  uint32_t memoryFlagBits = 0;
+  for (size_t i = 0; i < _swapchain.frameData.size(); i++) {
     VkMemoryRequirements memReq;
-    if(settings::MULTISAMPLING)
-      {
-        _swapchain.frameData[i].multisampling.format = _swapchain.format.format;
-        _swapchain.frameData[i].multisampling.memoryOffset = totalMemory;
-        memReq = part::create::Image(
-				                     _base.device, _base.physicalDevice,
-                                     &_swapchain.frameData[i].multisampling.image,
-                                     VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                     _swapchain.offscreenExtent, _swapchain.frameData[i].multisampling.format,
-                                     _swapchain.maxMsaaSamples);
+    if (settings::MULTISAMPLING) {
+      _swapchain.frameData[i].multisampling.format = _swapchain.format.format;
+      _swapchain.frameData[i].multisampling.memoryOffset = totalMemory;
+      memReq = part::create::Image(_base.device, _base.physicalDevice,
+                                   &_swapchain.frameData[i].multisampling.image,
+                                   VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                   _swapchain.offscreenExtent,
+                                   _swapchain.frameData[i].multisampling.format,
+                                   _swapchain.maxMsaaSamples);
       totalMemory += memReq.size;
       memoryFlagBits |= memReq.memoryTypeBits;
-      }
-    
+    }
+
     _swapchain.frameData[i].depthBuffer.format = depthBufferFormat;
     _swapchain.frameData[i].depthBuffer.memoryOffset = totalMemory;
     memReq = part::create::Image(
-                                 _base.device, _base.physicalDevice, &_swapchain.frameData[i].depthBuffer.image,
-                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                 _swapchain.offscreenExtent, _swapchain.frameData[i].depthBuffer.format,
-                                 _swapchain.maxMsaaSamples);
+        _base.device, _base.physicalDevice,
+        &_swapchain.frameData[i].depthBuffer.image,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _swapchain.offscreenExtent,
+        _swapchain.frameData[i].depthBuffer.format, _swapchain.maxMsaaSamples);
     totalMemory += memReq.size;
     memoryFlagBits |= memReq.memoryTypeBits;
 
-
-		_swapchain.frameData[i].offscreen.format = _swapchain.format.format;
-		_swapchain.frameData[i].offscreen.memoryOffset = totalMemory;
-		memReq = part::create::Image(
-				                     _base.device, _base.physicalDevice, &_swapchain.frameData[i].offscreen.image,
-                                     VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-									 _swapchain.offscreenExtent, _swapchain.frameData[i].offscreen.format,
-									 VK_SAMPLE_COUNT_1_BIT);
+    _swapchain.frameData[i].offscreen.format = _swapchain.format.format;
+    _swapchain.frameData[i].offscreen.memoryOffset = totalMemory;
+    memReq = part::create::Image(
+        _base.device, _base.physicalDevice,
+        &_swapchain.frameData[i].offscreen.image,
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        _swapchain.offscreenExtent, _swapchain.frameData[i].offscreen.format,
+        VK_SAMPLE_COUNT_1_BIT);
     totalMemory += memReq.size;
     memoryFlagBits |= memReq.memoryTypeBits;
-	}
-
-	vkhelper::createMemory(_base.device, _base.physicalDevice, totalMemory, &_swapchain.attachmentMemory,
-		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryFlagBits);
-
-	for(size_t i = 0; i < _swapchain.frameData.size(); i++)
-	{
-		if(settings::MULTISAMPLING)
-		{
-			vkBindImageMemory(_base.device, _swapchain.frameData[i].multisampling.image, _swapchain.attachmentMemory, _swapchain.frameData[i].multisampling.memoryOffset);
-			part::create::ImageView(_base.device, &_swapchain.frameData[i].multisampling.view, _swapchain.frameData[i].multisampling.image,
-							 _swapchain.frameData[i].multisampling.format, VK_IMAGE_ASPECT_COLOR_BIT);
-		}
-
-		vkBindImageMemory(_base.device, _swapchain.frameData[i].depthBuffer.image, _swapchain.attachmentMemory, _swapchain.frameData[i].depthBuffer.memoryOffset);
-		part::create::ImageView(_base.device, &_swapchain.frameData[i].depthBuffer.view, _swapchain.frameData[i].depthBuffer.image,
-		_swapchain.frameData[i].depthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-		vkBindImageMemory(_base.device, _swapchain.frameData[i].offscreen.image, _swapchain.attachmentMemory, _swapchain.frameData[i].offscreen.memoryOffset);
-		part::create::ImageView(_base.device, &_swapchain.frameData[i].offscreen.view, _swapchain.frameData[i].offscreen.image,
-		_swapchain.frameData[i].offscreen.format, VK_IMAGE_ASPECT_COLOR_BIT);
-	}
-
-  part::create::RenderPass( _base.device, &_renderPass,  _swapchain, false);
-  for(size_t i = 0; i < _swapchain.frameData.size(); i++)
-  {
-      std::vector<VkImageView> offscreenAttachments;
-  if(settings::MULTISAMPLING)
-    offscreenAttachments = { _swapchain.frameData[i].multisampling.view,
-    _swapchain.frameData[i].depthBuffer.view, _swapchain.frameData[i].offscreen.view };
-  else
-    offscreenAttachments = {
-    _swapchain.frameData[i].offscreen.view, _swapchain.frameData[i].depthBuffer.view };
-   part::create::Framebuffer(_base.device,  _renderPass, &_swapchain.frameData[i].offscreenFramebuffer, offscreenAttachments, _swapchain.offscreenExtent.width, _swapchain.offscreenExtent.height);
   }
-  part::create::RenderPass(  _base.device, &_finalRenderPass,  _swapchain, true);
-  for(size_t i = 0; i < _swapchain.frameData.size(); i++)
-    part::create::Framebuffer(_base.device,  _finalRenderPass, &_swapchain.frameData[i].framebuffer, {_swapchain.frameData[i].view}, _swapchain.swapchainExtent.width, _swapchain.swapchainExtent.height);
 
-  ///set shader  descripor sets
+  vkhelper::createMemory(_base.device, _base.physicalDevice, totalMemory,
+                         &_swapchain.attachmentMemory,
+                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryFlagBits);
 
-  ///vertex descripor sets
-  
+  for (size_t i = 0; i < _swapchain.frameData.size(); i++) {
+    if (settings::MULTISAMPLING) {
+      vkBindImageMemory(_base.device,
+                        _swapchain.frameData[i].multisampling.image,
+                        _swapchain.attachmentMemory,
+                        _swapchain.frameData[i].multisampling.memoryOffset);
+      part::create::ImageView(_base.device,
+                              &_swapchain.frameData[i].multisampling.view,
+                              _swapchain.frameData[i].multisampling.image,
+                              _swapchain.frameData[i].multisampling.format,
+                              VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+
+    vkBindImageMemory(_base.device, _swapchain.frameData[i].depthBuffer.image,
+                      _swapchain.attachmentMemory,
+                      _swapchain.frameData[i].depthBuffer.memoryOffset);
+    part::create::ImageView(
+        _base.device, &_swapchain.frameData[i].depthBuffer.view,
+        _swapchain.frameData[i].depthBuffer.image,
+        _swapchain.frameData[i].depthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    vkBindImageMemory(_base.device, _swapchain.frameData[i].offscreen.image,
+                      _swapchain.attachmentMemory,
+                      _swapchain.frameData[i].offscreen.memoryOffset);
+    part::create::ImageView(
+        _base.device, &_swapchain.frameData[i].offscreen.view,
+        _swapchain.frameData[i].offscreen.image,
+        _swapchain.frameData[i].offscreen.format, VK_IMAGE_ASPECT_COLOR_BIT);
+  }
+
+  part::create::RenderPass(_base.device, &_renderPass, _swapchain, false);
+  for (size_t i = 0; i < _swapchain.frameData.size(); i++) {
+    std::vector<VkImageView> offscreenAttachments;
+    if (settings::MULTISAMPLING)
+      offscreenAttachments = {_swapchain.frameData[i].multisampling.view,
+                              _swapchain.frameData[i].depthBuffer.view,
+                              _swapchain.frameData[i].offscreen.view};
+    else
+      offscreenAttachments = {_swapchain.frameData[i].offscreen.view,
+                              _swapchain.frameData[i].depthBuffer.view};
+    part::create::Framebuffer(
+        _base.device, _renderPass,
+        &_swapchain.frameData[i].offscreenFramebuffer, offscreenAttachments,
+        _swapchain.offscreenExtent.width, _swapchain.offscreenExtent.height);
+  }
+  part::create::RenderPass(_base.device, &_finalRenderPass, _swapchain, true);
+  for (size_t i = 0; i < _swapchain.frameData.size(); i++)
+    part::create::Framebuffer(
+        _base.device, _finalRenderPass, &_swapchain.frameData[i].framebuffer,
+        {_swapchain.frameData[i].view}, _swapchain.swapchainExtent.width,
+        _swapchain.swapchainExtent.height);
+
+  /// set shader  descripor sets
+
+  /// vertex descripor sets
+
   _VP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP3Dds);
-  part::create::DescriptorSetLayout(_base.device, &_VP3Dds, {&_VP3D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
+  part::create::DescriptorSetLayout(_base.device, &_VP3Dds, {&_VP3D.binding},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
 
   _VP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP2Dds);
-  part::create::DescriptorSetLayout(_base.device, &_VP2Dds, {&_VP2D.binding}, VK_SHADER_STAGE_VERTEX_BIT);
+  part::create::DescriptorSetLayout(_base.device, &_VP2Dds, {&_VP2D.binding},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
 
-  _perInstance.setSingleStructArrayBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                              &_perInstance3Dds, MAX_3D_INSTANCE);
-  part::create::DescriptorSetLayout(_base.device, &_perInstance3Dds, {&_perInstance.binding}, VK_SHADER_STAGE_VERTEX_BIT);
+  _perInstance.setSingleStructArrayBufferProps(
+      frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &_perInstance3Dds,
+      MAX_3D_INSTANCE);
+  part::create::DescriptorSetLayout(_base.device, &_perInstance3Dds,
+                                    {&_perInstance.binding},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
 
-  _bones.setDynamicBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, &_bonesds, 1, MAX_ANIMATIONS_PER_FRAME);
-  part::create::DescriptorSetLayout(_base.device, &_bonesds, { &_bones.binding }, VK_SHADER_STAGE_VERTEX_BIT);
+  _bones.setDynamicBufferProps(frameCount,
+                               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                               &_bonesds, 1, MAX_ANIMATIONS_PER_FRAME);
+  part::create::DescriptorSetLayout(_base.device, &_bonesds, {&_bones.binding},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
 
+  _per2Dvert.setSingleStructArrayBufferProps(frameCount,
+                                             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                             &_per2DVertds, MAX_2D_INSTANCE);
+  part::create::DescriptorSetLayout(_base.device, &_per2DVertds,
+                                    {&_per2Dvert.binding},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
 
-  _per2Dvert.setSingleStructArrayBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            &_per2DVertds, MAX_2D_INSTANCE);
-  part::create::DescriptorSetLayout(_base.device, &_per2DVertds, {&_per2Dvert.binding}, VK_SHADER_STAGE_VERTEX_BIT);
+  _offscreenTransform.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_offscreenTransformds);
+  part::create::DescriptorSetLayout(_base.device, &_offscreenTransformds, {&_offscreenTransform.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
   // fragment descriptor sets
-  
-  _lighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_lightingds);
-  part::create::DescriptorSetLayout(_base.device, &_lightingds, {&_lighting.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
+
+  _lighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                           &_lightingds);
+  part::create::DescriptorSetLayout(_base.device, &_lightingds,
+                                    {&_lighting.binding},
+                                    VK_SHADER_STAGE_FRAGMENT_BIT);
 
   _textureSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
-                                 &_texturesds, 1,
-                                 _textureLoader->getSamplerP());
-  _textureViews.setImageViewBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                               &_texturesds, Resource::MAX_TEXTURES_SUPPORTED,
-                               _textureLoader->getImageViewsP());
-  part::create::DescriptorSetLayout(_base.device, &_texturesds, {&_textureSampler.binding, &_textureViews.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
+                                        &_texturesds, 1,
+                                        _textureLoader->getSamplerP());
+  _textureViews.setImageViewBufferProps(
+      frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &_texturesds,
+      Resource::MAX_TEXTURES_SUPPORTED, _textureLoader->getImageViewsP());
+  part::create::DescriptorSetLayout(
+      _base.device, &_texturesds,
+      {&_textureSampler.binding, &_textureViews.binding},
+      VK_SHADER_STAGE_FRAGMENT_BIT);
 
+  _per2Dfrag.setSingleStructArrayBufferProps(frameCount,
+                                             VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                             &_per2Dfragds, MAX_2D_INSTANCE);
+  part::create::DescriptorSetLayout(_base.device, &_per2Dfragds,
+                                    {&_per2Dfrag.binding},
+                                    VK_SHADER_STAGE_FRAGMENT_BIT);
 
-  _per2Dfrag.setSingleStructArrayBufferProps(frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                            &_per2Dfragds, MAX_2D_INSTANCE);
-  part::create::DescriptorSetLayout(_base.device, &_per2Dfragds, {&_per2Dfrag.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
   
-  // render offscreen to tex, then  appy  to quad in final shader
-  _offscreenTextureSampler = vkhelper::createTextureSampler(_base.device, _base.physicalDevice, 1.0f, false);
+  _offscreenTextureSampler = vkhelper::createTextureSampler(_base.device, _base.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
 
   _offscreenSampler.setSamplerBufferProps(
-       frameCount,
-       VK_DESCRIPTOR_TYPE_SAMPLER,
-       &_offscreends, 1,
-       &_offscreenTextureSampler
-  );
+      frameCount, VK_DESCRIPTOR_TYPE_SAMPLER, &_offscreends, 1,
+      &_offscreenTextureSampler);
   std::vector<VkImageView> offscreenViews;
-  for(size_t i = 0; i < _swapchain.frameData.size(); i++)
-     offscreenViews.push_back(_swapchain.frameData[i].offscreen.view);
+  for (size_t i = 0; i < _swapchain.frameData.size(); i++)
+    offscreenViews.push_back(_swapchain.frameData[i].offscreen.view);
 
   _offscreenView.setPerFrameImageViewBufferProps(
-       frameCount,
-       VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-       &_offscreends,
-       offscreenViews.data()
-  );
-  part::create::DescriptorSetLayout(_base.device, &_offscreends, {&_offscreenSampler.binding, &_offscreenView.binding}, VK_SHADER_STAGE_FRAGMENT_BIT);
+      frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &_offscreends,
+      offscreenViews.data());
+  part::create::DescriptorSetLayout(
+      _base.device, &_offscreends,
+      {&_offscreenSampler.binding, &_offscreenView.binding},
+      VK_SHADER_STAGE_FRAGMENT_BIT);
 
-  //create descripor pool
+  // create descripor pool
 
-  part::create::DescriptorPoolAndSet(_base.device, &_descPool,
-                             {
-                               &_VP3Dds,
-                               &_VP2Dds,
-                               &_perInstance3Dds,
-                               &_bonesds,
-                               &_per2DVertds,
-                               &_lightingds,
-                               &_texturesds,
-                               &_per2Dfragds,
-                               &_offscreends
-                             }
-                             , static_cast<uint32_t>(frameCount));
+  part::create::DescriptorPoolAndSet(
+      _base.device, &_descPool,
+      {&_VP3Dds, &_VP2Dds, &_perInstance3Dds, &_bonesds, &_per2DVertds, &_offscreenTransformds, &_lightingds, &_texturesds, &_per2Dfragds, &_offscreends},
+      static_cast<uint32_t>(frameCount));
 
   // create memory mapped buffer for all descriptor set bindings
   part::create::PrepareShaderBufferSets(
       _base,
-      {
-        &_VP3D.binding,
-        &_VP2D.binding,
-        &_perInstance.binding,
-        &_bones.binding,
-        &_per2Dvert.binding,
-        &_lighting.binding,
-        &_textureSampler.binding,
-        &_textureViews.binding,
-        &_per2Dfrag.binding,
-        &_offscreenSampler.binding,
-        &_offscreenView.binding
-      },
-      &_shaderBuffer, &_shaderMemory
-  );
+      {&_VP3D.binding, &_VP2D.binding, &_perInstance.binding, &_bones.binding,
+       &_per2Dvert.binding, &_lighting.binding,
+       &_offscreenTransform.binding,
+       &_textureSampler.binding, &_textureViews.binding,
+       &_per2Dfrag.binding,
+       &_offscreenSampler.binding, &_offscreenView.binding},
+      &_shaderBuffer, &_shaderMemory);
 
   // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
-  
-  part::create::GraphicsPipeline(
-      _base.device, &_pipeline3D, _swapchain, _renderPass,
-      {&_VP3Dds, &_perInstance3Dds, &_texturesds, &_lightingds},{
-       {VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-        sizeof(fragPushConstants)}},
-      "shaders/3D-lighting.vert.spv", "shaders/blinnphong.frag.spv",
-      true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent, VK_CULL_MODE_BACK_BIT,
-      Vertex3D::attributeDescriptions(), Vertex3D::bindingDescriptions()
-  );
 
   part::create::GraphicsPipeline(
-    _base.device, &_pipelineAnim3D, _swapchain, _renderPass,
-    {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
-    {
-      {VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-    "shaders/3D-lighting-anim.vert.spv", "shaders/blinnphong-anim.frag.spv",
-    true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent, VK_CULL_MODE_BACK_BIT,
-    VertexAnim3D::attributeDescriptions(), VertexAnim3D::bindingDescriptions()
-  );
+      _base.device, &_pipeline3D, _swapchain, _renderPass,
+      {&_VP3Dds, &_perInstance3Dds, &_texturesds, &_lightingds},
+      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
+      "shaders/3D-lighting.vert.spv", "shaders/blinnphong.frag.spv", true,
+      settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
+      VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
+      Vertex3D::bindingDescriptions());
+
+  part::create::GraphicsPipeline(
+      _base.device, &_pipelineAnim3D, _swapchain, _renderPass,
+      {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
+      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
+      "shaders/3D-lighting-anim.vert.spv", "shaders/blinnphong-anim.frag.spv",
+      true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
+      VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
+      VertexAnim3D::bindingDescriptions());
 
   part::create::GraphicsPipeline(
       _base.device, &_pipeline2D, _swapchain, _renderPass,
-      {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds},
-      {},
-      "shaders/flat.vert.spv", "shaders/flat.frag.spv",
-      true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent, VK_CULL_MODE_BACK_BIT,
-      Vertex2D::attributeDescriptions(), Vertex2D::bindingDescriptions()
-  );
+      {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
+      "shaders/flat.vert.spv", "shaders/flat.frag.spv", true,
+      settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
+      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
+      Vertex2D::bindingDescriptions());
 
-  part::create::GraphicsPipeline(_base.device, &_pipelineFinal, _swapchain,
-                               _finalRenderPass, {&_offscreends}, {},
-                               "shaders/final.vert.spv", "shaders/final.frag.spv",
-                               false, false, false, _swapchain.swapchainExtent, VK_CULL_MODE_NONE,
-                              {}, {}
-  );
+  part::create::GraphicsPipeline(
+      _base.device, &_pipelineFinal, _swapchain, _finalRenderPass,
+      {&_offscreenTransformds, &_offscreends}, {}, "shaders/final.vert.spv", "shaders/final.frag.spv",
+      false, false, false, _swapchain.swapchainExtent, VK_CULL_MODE_NONE, {},
+      {});
 
 
-  _updateViewProjectionMatrix();
-
-  //set initial data
-  _VP2D.data[0].view = glm::mat4(1.0f);
-  for (size_t i = 0; i < MAX_3D_INSTANCE; i++) {
-    _perInstance.data[i].model = glm::mat4(1.0f);
-    _perInstance.data[i].normalMat = glm::mat4(1.0f);
-  }
-  for (size_t i = 0; i < MAX_2D_INSTANCE; i++) {
-    _per2Dvert.data[i] = glm::mat4(1.0f);
-    _per2Dfrag.data[i].colour = glm::vec4(1.0f);
-    _per2Dfrag.data[i].texOffset = glm::vec4(0, 0, 1, 1);
-    _per2Dfrag.data[i].texID = 0;
-  }
+  float ratio = ((float)_swapchain.offscreenExtent.width / (float)_swapchain.offscreenExtent.height) * ((float)_swapchain.swapchainExtent.height / (float)_swapchain.swapchainExtent.width);
+   _offscreenTransform.data[0] = glm::scale(glm::mat4(1.0f), glm::vec3(ratio < 1.0f ? ratio: 1.0f, ratio > 1.0f ? 1.0f / ratio : 1.0f, 1.0f));
 }
 
-void Render::_destroyFrameResources() {
+void Render::_destroyFrameResources()
+{
   vkDestroyBuffer(_base.device, _shaderBuffer, nullptr);
   vkFreeMemory(_base.device, _shaderMemory, nullptr);
 
@@ -348,6 +365,7 @@ void Render::_destroyFrameResources() {
   _perInstance3Dds.destroySet(_base.device);
   _per2DVertds.destroySet(_base.device);
   _bonesds.destroySet(_base.device);
+  _offscreenTransformds.destroySet(_base.device);
   _lightingds.destroySet(_base.device);
   _texturesds.destroySet(_base.device);
   _per2Dfragds.destroySet(_base.device);
@@ -358,7 +376,8 @@ void Render::_destroyFrameResources() {
   for (size_t i = 0; i < _swapchain.frameData.size(); i++) {
     vkDestroyFramebuffer(_base.device, _swapchain.frameData[i].framebuffer,
                          nullptr);
-    vkDestroyFramebuffer(_base.device, _swapchain.frameData[i].offscreenFramebuffer, nullptr);
+    vkDestroyFramebuffer(_base.device,
+                         _swapchain.frameData[i].offscreenFramebuffer, nullptr);
   }
   _pipeline3D.destroy(_base.device);
   _pipelineAnim3D.destroy(_base.device);
@@ -387,9 +406,11 @@ Resource::Font Render::LoadFont(std::string filepath) {
   }
 }
 
-Resource::Model Render::LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations)
+Resource::Model Render::LoadAnimatedModel(
+    std::string filepath,
+    std::vector<Resource::ModelAnimation> *pGetAnimations)
 {
-   if (_finishedLoadingResources)
+  if (_finishedLoadingResources)
     throw std::runtime_error("resource loading has finished already");
   return _modelLoader->loadModel(filepath, _textureLoader, pGetAnimations);
 }
@@ -663,10 +684,8 @@ float Render::MeasureString(Resource::Font font, std::string text, float size)
 
 void Render::_drawBatch()
 {
-
   switch(_renderState)
   {
-
        case RenderState::DrawAnim3D:
        case RenderState::Draw3D:
          _modelLoader->drawModel(_swapchain.frameData[_frameI].commandBuffer,
@@ -717,13 +736,11 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   }
   _current2DInstanceIndex = 0;
 
-
-
   // end last offscreen render pass
   vkCmdEndRenderPass(_swapchain.frameData[_frameI].commandBuffer);
 
   // final, onscreen render pass
-
+  
   // fill render pass begin struct
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -739,6 +756,8 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   clearColours[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
   renderPassInfo.clearValueCount = static_cast<uint32_t>(clearColours.size());
   renderPassInfo.pClearValues = clearColours.data();
+
+  _offscreenTransform.storeData(_frameI);
 
   vkCmdBeginRenderPass(_swapchain.frameData[_frameI].commandBuffer,
                        &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -757,7 +776,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   _pipelineFinal.begin(_swapchain.frameData[_frameI].commandBuffer, _frameI);
 
-  vkCmdDraw(_swapchain.frameData[_frameI].commandBuffer, 3, 1, 0, 0);
+  vkCmdDraw(_swapchain.frameData[_frameI].commandBuffer, 6, 1, 0, 0);
 
   vkCmdEndRenderPass(_swapchain.frameData[_frameI].commandBuffer);
 

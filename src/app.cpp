@@ -1,5 +1,6 @@
 #include "app.h"
 #include "GLFW/glfw3.h"
+#include <stdexcept>
 
 App::App() {
 
@@ -10,7 +11,8 @@ App::App() {
   if (!glfwInit())
     throw std::runtime_error("failed to initialise glfw!");
 
-  Render::SetGLFWWindowHints();
+  if(!Render::SetGLFWWindowHintsAndLoadVulkan())
+      throw std::runtime_error("failed to load Vulkan! May not be supported by this device.");
   
   mWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "Vulkan App", nullptr, nullptr);
   if (!mWindow)
@@ -90,56 +92,11 @@ void App::update() {
 #endif
   glfwPollEvents();
 
-  if (input.Keys[GLFW_KEY_F] && !previousInput.Keys[GLFW_KEY_F]) {
-    if (glfwGetWindowMonitor(mWindow) == nullptr) {
-      const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-      glfwSetWindowMonitor(mWindow, glfwGetPrimaryMonitor(), 0, 0, mode->width,
-                           mode->height, mode->refreshRate);
-    } else {
-      const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-      glfwSetWindowMonitor(mWindow, NULL, 0, 0, mWindowWidth, mWindowHeight,
-                           mode->refreshRate);
-    }
-  }
-  if (input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE]) {
-    glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
-  }
-
   currentWolfAnim.Update(timer);
   secondWolfAnim.Update(timer);
   thirdWolfAnim.Update(timer);
 
-  const float speed = 0.001f;
-  if(input.Keys[GLFW_KEY_INSERT])
-    {
-      lightDir.x += speed * timer.FrameElapsed();
-    }
-   if(input.Keys[GLFW_KEY_HOME])
-     {
-      lightDir.x -= speed * timer.FrameElapsed();
-    }
-   if(input.Keys[GLFW_KEY_DELETE])
-    {
-      lightDir.z += speed * timer.FrameElapsed();
-    }
-   if(input.Keys[GLFW_KEY_END])
-     {
-      lightDir.z -= speed * timer.FrameElapsed();
-    }
-   if(input.Keys[GLFW_KEY_PAGE_UP])
-    {
-      lightDir.y += speed * timer.FrameElapsed();
-    }
-   if(input.Keys[GLFW_KEY_PAGE_DOWN])
-     {
-      lightDir.y -= speed * timer.FrameElapsed();
-    }
-
-   rotate += timer.FrameElapsed() * 0.001f;
-
-  mRender->setLightDirection(lightDir);
-
-  fpcam.update(input, previousInput, timer);
+  controls();
 
   postUpdate();
 #ifdef TIME_APP_DRAW_UPDATE
@@ -152,11 +109,55 @@ void App::update() {
 #endif
 }
 
+void App::controls()
+{
+    if (input.Keys[GLFW_KEY_F] && !previousInput.Keys[GLFW_KEY_F]) {
+	if (glfwGetWindowMonitor(mWindow) == nullptr) {
+	    const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	    glfwSetWindowMonitor(mWindow, glfwGetPrimaryMonitor(), 0, 0, mode->width,
+				 mode->height, mode->refreshRate);
+	} else {
+	    const GLFWvidmode *mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	    glfwSetWindowMonitor(mWindow, NULL, 0, 0, mWindowWidth, mWindowHeight,
+				 mode->refreshRate);
+	}
+    }
+    if (input.Keys[GLFW_KEY_ESCAPE] && !previousInput.Keys[GLFW_KEY_ESCAPE]) {
+	glfwSetWindowShouldClose(mWindow, GLFW_TRUE);
+    }
+  const float speed = 0.001f;
+  if (input.Keys[GLFW_KEY_INSERT]) {
+    lightDir.x += speed * timer.FrameElapsed();
+  }
+  if (input.Keys[GLFW_KEY_HOME]) {
+    lightDir.x -= speed * timer.FrameElapsed();
+  }
+  if (input.Keys[GLFW_KEY_DELETE]) {
+    lightDir.z += speed * timer.FrameElapsed();
+  }
+  if (input.Keys[GLFW_KEY_END]) {
+    lightDir.z -= speed * timer.FrameElapsed();
+  }
+  if (input.Keys[GLFW_KEY_PAGE_UP]) {
+    lightDir.y += speed * timer.FrameElapsed();
+  }
+  if (input.Keys[GLFW_KEY_PAGE_DOWN]) {
+    lightDir.y -= speed * timer.FrameElapsed();
+  }
+
+  rotate += timer.FrameElapsed() * 0.001f;
+
+  mRender->setLightDirection(lightDir);
+
+  fpcam.update(input, previousInput, timer);
+}
+
 void App::postUpdate() {
   previousInput = input;
   input.offset = 0;
   timer.Update();
-  mRender->set3DViewMatrixAndFov(fpcam.getViewMatrix(), fpcam.getZoom(), glm::vec4(fpcam.getPos(), 0.0));
+  mRender->set3DViewMatrixAndFov(fpcam.getViewMatrix(), fpcam.getZoom(),
+                                 glm::vec4(fpcam.getPos(), 0.0));
 }
 
 void App::draw() {
@@ -172,61 +173,42 @@ void App::draw() {
   if (submitDraw.joinable())
     submitDraw.join();
 
+  mRender->Begin3DDraw();
 
-mRender->Begin3DDraw();
+  auto model = glm::translate(
+      glm::scale(
+          glm::rotate(glm::rotate(glm::mat4(1.0f), rotate, glm::vec3(0, 0, 1)),
+                      glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(1.0f)),
+      glm::vec3(0, 3, 0));
 
- auto model = glm::translate(
-       glm::scale(
-         glm::rotate(
-                     glm::rotate(glm::mat4(1.0f),
-                                 rotate, glm::vec3(0, 0, 1)),
-                                 glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-         glm::vec3(1.0f)),
-       glm::vec3(0, 3, 0));
- 
-   mRender->DrawModel(
-     monkeyModel,
-     model,
-     glm::inverseTranspose(model));
+  mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
 
-    model = glm::translate(
-       glm::scale(
-         glm::rotate(
-                     glm::rotate(glm::mat4(1.0f),
-                                 rotate, glm::vec3(0, 0, 1)),
-                                 glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-         glm::vec3(0.01f)),
-       glm::vec3(0, 0, 0));
- 
-   mRender->DrawModel(
-     testModel,
-     model,
-     glm::inverseTranspose(model));
-   
-   
-model = 
-       glm::scale(
-         glm::rotate(
-		     glm::translate(
-				    glm::mat4(1.0f),
-				    glm::vec3(0.0f, -30.0f, -15.0f))
+  model = glm::translate(
+      glm::scale(
+          glm::rotate(glm::rotate(glm::mat4(1.0f), rotate, glm::vec3(0, 0, 1)),
+                      glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(0.01f)),
+      glm::vec3(0, 0, 0));
 
+  mRender->DrawModel(testModel, model, glm::inverseTranspose(model));
 
-		     , glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-         glm::vec3(4.0f));
-      mRender->DrawModel(
-     colouredCube,
-     model,
-     glm::inverseTranspose(model));
-   
-      
-      mRender->BeginAnim3DDraw();
+  model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
+                                                glm::vec3(0.0f, -30.0f, -15.0f))
 
- auto w1model = glm::translate(
-       glm::scale(
-         glm::rotate(glm::mat4(1.0f), glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
-          glm::vec3(0.1f)),
-       glm::vec3(-100.0f, 0, 100.0f));
+                                     ,
+                                 glm::radians(270.0f),
+                                 glm::vec3(-1.0f, 0.0f, 0.0f)),
+                     glm::vec3(4.0f));
+  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+
+  mRender->BeginAnim3DDraw();
+
+  auto w1model = glm::translate(
+      glm::scale(glm::rotate(glm::mat4(1.0f), glm::radians(270.0f),
+                             glm::vec3(-1.0f, 0.0f, 0.0f)),
+                 glm::vec3(0.1f)),
+      glm::vec3(-100.0f, 0, 100.0f));
   mRender->DrawAnimModel(
 		testWolf,
     w1model,
@@ -260,7 +242,7 @@ model =
   );
       
 
- /* mRender->Begin2DDraw();
+  mRender->Begin2DDraw();
 
   mRender->DrawString(testFont, "Font Render", glm::vec2(0, 100), 100, -0.5,
     										glm::vec4(1), 0.0f);
@@ -272,7 +254,7 @@ model =
    mRender->DrawQuad(testTex,
     									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
     									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
-*/
+
   submitDraw =
     std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
 

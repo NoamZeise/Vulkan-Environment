@@ -45,6 +45,7 @@ public:
 private:
   void loadAssets();
   void update();
+  void controls();
   void postUpdate();
   void draw();
 
@@ -52,7 +53,7 @@ private:
   glm::vec2 correctedMouse();
 
   const int INITIAL_WINDOW_WIDTH = 1000;
-  const int INITIAL_WINDOW_HEIGHT = 700;
+  const int INITIAL_WINDOW_HEIGHT = 500;
 
   GLFWwindow *mWindow;
   Render *mRender;
