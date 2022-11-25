@@ -10,6 +10,7 @@ A 2D and 3D renderer for vulkan, ideal for small projects, just add rendering an
 * Import and Draw fonts
 
 ## Projects using this framework:
+* [Robyn Hood](https://github.com/NoamZeise/Robyn-Hood) -> 2D On-rails Stealth Game
 * [Trials of The Pharaoh](https://github.com/NoamZeise/TrailsOfThePharaoh) -> 2D Light Ray Puzzle Game
 * [The Last Dodo](https://github.com/NoamZeise/DodoDash) -> 2D Platforming Game
 * [Get Back Jaxx](https://github.com/NoamZeise/GGJ22) -> 2D Adventure Game
@@ -33,11 +34,10 @@ optimisations:
 * check if animation is faster with array of shader buffers instead
 * resizable descriptor struct
 * update all changed DS data in one memcpy might be faster?
-* 
 
 ## External libraries and their uses:
 
-* [Vulkan lunarG](https://vulkan.lunarg.com/) for vulkan function loader, debugging, validation layers, spriv compilers
+* [volk](https://github.com/zeux/volk) dynamically loads pointers to vulkan functions from driver  
 * [GLFW](https://www.glfw.org/) handles windowing and input
 * [GLM](https://github.com/g-truc/glm) handles glsl datatypes and linear algebra
 * [stb_image.h](https://github.com/nothings/stb) handles image loading
@@ -50,8 +50,9 @@ optimisations:
 
 ### windows
 
+* ensure your graphics drivers support vulkan 
 
-* download the [vulkan sdk](https://vulkan.lunarg.com/), run installer and put the necessary files in your lib and include directories
+* download [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/) for compiling shaders into spirv
 
 * download [glfw3](https://www.glfw.org/), compile and put in your lib and include directories
 
