@@ -140,6 +140,13 @@ void App::controls()
     lightDir.y -= speed * timer.FrameElapsed();
   }
 
+  if (input.Keys[GLFW_KEY_G]) {
+      mRender->setTargetResolution(glm::vec2(1000, 100));
+  }
+  if (input.Keys[GLFW_KEY_H]) {
+      mRender->setForceTargetRes(false);
+  }
+
   rotate += timer.FrameElapsed() * 0.001f;
 
   mRender->setLightDirection(lightDir);

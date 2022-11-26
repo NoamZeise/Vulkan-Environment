@@ -45,7 +45,6 @@ public:
   void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
   void set2DViewMatrixAndScale(glm::mat4 view, float scale);
   void setLightDirection(glm::vec4 lightDir);
-  void setTargetResoltion(bool force, glm::vec2 resolution);
   void restartResourceLoad();
 
   Resource::Texture LoadTexture(std::string filepath);

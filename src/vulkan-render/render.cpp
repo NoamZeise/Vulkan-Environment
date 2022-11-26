@@ -863,7 +863,12 @@ void Render::setLightDirection(glm::vec4 lightDir)
 
 void Render::FramebufferResize() { _framebufferResized = true; }
 
-void Render::setForceTargetRes(bool force) { _forceTargetResolution = force; }
+void Render::setForceTargetRes(bool force) {
+    if(_forceTargetResolution != force) {
+	_forceTargetResolution = force;
+	FramebufferResize();
+    }
+}
 bool Render::isTargetResForced() { return _forceTargetResolution; }
 void Render::setTargetResolution(glm::vec2 resolution) {
     _targetResolution = resolution;
