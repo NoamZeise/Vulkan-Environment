@@ -282,7 +282,7 @@ void Render::_initFrameResources()
                                     VK_SHADER_STAGE_FRAGMENT_BIT);
 
   
-  _offscreenTextureSampler = vkhelper::createTextureSampler(_base.device, _base.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE);
+  _offscreenTextureSampler = vkhelper::createTextureSampler(_base.device, _base.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
   _offscreenSampler.setSamplerBufferProps(
       frameCount, VK_DESCRIPTOR_TYPE_SAMPLER, &_offscreends, 1,
@@ -779,7 +779,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   _pipelineFinal.begin(_swapchain.frameData[_frameI].commandBuffer, _frameI);
 
-  vkCmdDraw(_swapchain.frameData[_frameI].commandBuffer, 6, 1, 0, 0);
+  vkCmdDraw(_swapchain.frameData[_frameI].commandBuffer, 3, 1, 0, 0);
 
   vkCmdEndRenderPass(_swapchain.frameData[_frameI].commandBuffer);
 

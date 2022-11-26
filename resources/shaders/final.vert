@@ -7,26 +7,9 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
 	mat4 screenTransform;
 } ubo;
 
-const vec2 pos[6] = {
-{-1.0f, -1.0f},
-{1.0f, -1.0f},
-{1.0f,1.0f},
-{1.0f, 1.0f},
-{-1.0f, 1.0f},
-{-1.0f, -1.0f},
-};
-const vec2 uv[6] = {
-{0.0f, 0.0f},
-{1.0f, 0.0f},
-{1.0f,1.0f},
-{1.0f, 1.0f},
-{0.0f, 1.0f},
-{0.0f, 0.0f},
-};
-
 void main() 
 {
-	gl_Position = ubo.screenTransform * vec4(pos[gl_VertexIndex], 0.0f, 1.0f);
-
-	outUV = uv[gl_VertexIndex];
+//this method from https://github.com/SaschaWillems/Vulkan/blob/master/data/shaders/glsl/offscreen/quad.vert
+	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	gl_Position = ubo.screenTransform * vec4(outUV * 2.0f - 1.0f, 0.0f, 1.0f);
 }
