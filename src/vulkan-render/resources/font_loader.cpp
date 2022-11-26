@@ -7,10 +7,7 @@ namespace Resource
 
 	FontLoader::~FontLoader()
 	{
-		for(unsigned int i = 0; i < fonts.size(); i++)
-		{
-			delete fonts[i];
-		}
+	    UnloadFonts();
 	}
 
 	Font FontLoader::LoadFont(std::string file, TextureLoader* texLoader)
@@ -18,6 +15,14 @@ namespace Resource
 		fonts.push_back(new LoadedFont(file, texLoader));
 		return Font(static_cast<unsigned int>(fonts.size() - 1));
 	}
+
+        void FontLoader::UnloadFonts() {
+	    for(unsigned int i = 0; i < fonts.size(); i++)
+	    {
+		delete fonts[i];
+	    }
+	    fonts.clear();
+        }
 
 	std::vector<QuadDraw> FontLoader::DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
 	{

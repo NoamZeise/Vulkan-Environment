@@ -15,20 +15,36 @@ ModelRender::ModelRender(Base base, VkCommandPool pool)
 
 ModelRender::~ModelRender()
 {
+    unloadAllModelData();
+}
+
+void ModelRender::unloadAllModelData() {
 	if(models.size() <= 0)
 		return;
+	models.clear();
 	for (auto& model : loaded2D.models)
 			for (size_t i = 0; i < model.meshes.size(); i++)
 				delete model.meshes[i];
+	loaded2D.models.clear();
 	for (auto& model : loaded3D.models)
 			for (size_t i = 0; i < model.meshes.size(); i++)
 				delete model.meshes[i];
+	loaded3D.models.clear();
 	for (auto& model : loadedAnim3D.models)
 			for (size_t i = 0; i < model.meshes.size(); i++)
 				delete model.meshes[i];
-
+	loadedAnim3D.models.clear();
+	alreadyLoaded.clear();
+	vertexDataSize = 0;
+	indexDataSize = 0;
+	currentIndex = 0;
 	vkDestroyBuffer(base.device, buffer, nullptr);
 	vkFreeMemory(base.device, memory, nullptr);
+}
+
+void ModelRender::UnloadModels() {
+    unloadAllModelData();
+    loadQuad();
 }
 
 void ModelRender::bindBuffers(VkCommandBuffer cmdBuff)

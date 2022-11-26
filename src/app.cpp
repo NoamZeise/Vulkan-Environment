@@ -52,16 +52,10 @@ App::~App() {
 }
 
 void App::loadAssets() {
-  testModel = mRender->LoadModel("models/testScene.fbx");
-  monkeyModel = mRender->LoadModel("models/monkey.obj");
-  colouredCube = mRender->LoadModel("models/ROOM.fbx");
-  testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
-  currentWolfAnim = wolfAnims[0];
-  secondWolfAnim = wolfAnims[1];
-  thirdWolfAnim = wolfAnims[4];
-  testTex = mRender->LoadTexture("textures/error.png");
-  testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-  mRender->EndResourceLoad();
+    if(current == Scene::Test1)
+	loadTestScene1();
+    if(current == Scene::Test2)
+	loadTestScene2();
 }
 
 void App::run() {
@@ -92,6 +86,9 @@ void App::update() {
   thirdWolfAnim.Update(timer);
 
   controls();
+
+  rotate += timer.FrameElapsed() * 0.001f;
+  fpcam.update(input, previousInput, timer);
 
   postUpdate();
 #ifdef TIME_APP_DRAW_UPDATE
@@ -153,11 +150,23 @@ void App::controls()
        mRender->setVsync(false);
   }
 
-  rotate += timer.FrameElapsed() * 0.001f;
+   if (input.Keys[GLFW_KEY_1]) {
+       if(current != Scene::Test1) {
+	   current = Scene::Test1;
+	   mRender->UnloadResources();
+	   this->loadAssets();
+       }
+  }
+
+   if (input.Keys[GLFW_KEY_2]) {
+       if(current != Scene::Test2) {
+	   current = Scene::Test2;
+	   mRender->UnloadResources();
+	   this->loadAssets();
+       }
+  }
 
   mRender->setLightDirection(lightDir);
-
-  fpcam.update(input, previousInput, timer);
 }
 
 void App::postUpdate() {
@@ -180,6 +189,56 @@ void App::draw() {
 #endif
   if (submitDraw.joinable())
     submitDraw.join();
+
+  if(current==Scene::Test1)
+      drawTestScene1();
+  if(current==Scene::Test2)
+      drawTestScene2();
+  
+  submitDraw =
+    std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
+
+
+
+#ifdef TIME_APP_DRAW_UPDATE
+  auto stop = std::chrono::high_resolution_clock::now();
+  std::cout << "draw: "
+            << std::chrono::duration_cast<std::chrono::microseconds>(stop -
+                                                                     start)
+                   .count()
+            << " microseconds" << std::endl;
+#endif
+}
+
+glm::vec2 App::correctedPos(glm::vec2 pos)
+{
+  if (mRender->isTargetResForced())
+      return glm::vec2(
+	pos.x * (mRender->getTargetResolution().x / (float)mWindowWidth),
+	pos.y * (mRender->getTargetResolution().y / (float)mWindowHeight));
+
+  return glm::vec2(pos.x, pos.y);
+}
+
+glm::vec2 App::correctedMouse()
+{
+  return correctedPos(glm::vec2(input.X, input.Y));
+}
+
+void App::loadTestScene1() {
+  testModel = mRender->LoadModel("models/testScene.fbx");
+  monkeyModel = mRender->LoadModel("models/monkey.obj");
+  colouredCube = mRender->LoadModel("models/ROOM.fbx");
+  testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
+  currentWolfAnim = wolfAnims[0];
+  secondWolfAnim = wolfAnims[1];
+  thirdWolfAnim = wolfAnims[4];
+  testTex = mRender->LoadTexture("textures/error.png");
+  testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
+  mRender->EndResourceLoad();
+}
+
+void App::drawTestScene1() {
 
   mRender->Begin3DDraw();
 
@@ -252,46 +311,100 @@ void App::draw() {
 
   mRender->Begin2DDraw();
 
-  mRender->DrawString(testFont, "Font Render", glm::vec2(0, 100), 100, -0.5,
-    										glm::vec4(1), 0.0f);
+  mRender->DrawQuad(
+      testTex, glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
+      glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
   mRender->DrawQuad(testTex,
-    								glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
-    								glm::vec4(1), glm::vec4(0, 0, 1, 1));
+                    glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
+                    glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
 
-   mRender->DrawQuad(testTex,
-    									glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
-    									glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
+       mRender->DrawString(testFont, "Scene 1", glm::vec2(10, 100), 40, 1.0f, glm::vec4(1), 0.0f);
 
-  submitDraw =
-    std::thread(&Render::EndDraw, mRender, std::ref(finishedDrawSubmit));
-
-
-
-#ifdef TIME_APP_DRAW_UPDATE
-  auto stop = std::chrono::high_resolution_clock::now();
-  std::cout << "draw: "
-            << std::chrono::duration_cast<std::chrono::microseconds>(stop -
-                                                                     start)
-                   .count()
-            << " microseconds" << std::endl;
-#endif
 }
 
-glm::vec2 App::correctedPos(glm::vec2 pos)
-{
-  if (mRender->isTargetResForced())
-      return glm::vec2(
-	pos.x * (mRender->getTargetResolution().x / (float)mWindowWidth),
-	pos.y * (mRender->getTargetResolution().y / (float)mWindowHeight));
-
-  return glm::vec2(pos.x, pos.y);
+void App::loadTestScene2() {
+  monkeyModel = mRender->LoadModel("models/monkey.obj");
+  colouredCube = mRender->LoadModel("models/ROOM.fbx");
+  testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
+  currentWolfAnim = wolfAnims[0];
+  testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
+  mRender->EndResourceLoad();
 }
 
-glm::vec2 App::correctedMouse()
-{
-  return correctedPos(glm::vec2(input.X, input.Y));
+void App::drawTestScene2() {
+    mRender->Begin3DDraw();
+  auto model = glm::translate(
+      glm::scale(
+          glm::rotate(glm::rotate(glm::mat4(1.0f), rotate, glm::vec3(0, 0, 1)),
+                      glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(1.0f)),
+      glm::vec3(0, 2, 0));
+
+  mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+  model = glm::translate(
+      glm::scale(
+          glm::rotate(glm::rotate(glm::mat4(1.0f), rotate * 0.5f, glm::vec3(0, 0, 1)),
+                      glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(1.0f)),
+      glm::vec3(1, 2, 0));
+    mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+    model = glm::translate(
+      glm::scale(
+          glm::rotate(glm::rotate(glm::mat4(1.0f), rotate * 2.0f, glm::vec3(0, 0, 1)),
+                      glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
+          glm::vec3(1.0f)),
+      glm::vec3(2, 2, 0));
+    mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+
+      model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
+                                                glm::vec3(0.0f, -30.0f, -15.0f))
+
+                                     ,
+                                 glm::radians(270.0f),
+                                 glm::vec3(-1.0f, 0.0f, 0.0f)),
+                     glm::vec3(1.0f));
+      
+  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+        model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
+                                                glm::vec3(0.0f, -30.0f, -15.0f))
+
+                                     ,
+                                 glm::radians(270.0f),
+                                 glm::vec3(-1.0f, 0.0f, 0.0f)),
+                     glm::vec3(1.0f));
+	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	
+  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+        model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
+                                                glm::vec3(0.0f, -30.0f, -15.0f))
+
+                                     ,
+                                 glm::radians(270.0f),
+                                 glm::vec3(-1.0f, 0.0f, 0.0f)),
+                     glm::vec3(1.0f));
+  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+
+    mRender->BeginAnim3DDraw();
+
+  auto w1model = glm::translate(
+      glm::scale(glm::rotate(glm::mat4(1.0f), glm::radians(270.0f),
+                             glm::vec3(-1.0f, 0.0f, 0.0f)),
+                 glm::vec3(0.1f)),
+      glm::vec3(-50.0f, 0, 100.0f));
+  mRender->DrawAnimModel(
+		testWolf,
+    w1model,
+		glm::inverseTranspose(w1model),
+    &currentWolfAnim
+  );
+
+  mRender->Begin2DDraw();
+
+    mRender->DrawString(testFont, "Scene 2", glm::vec2(10, 100), 40, -0.4f, glm::vec4(1), 0.0f);
 }
+
+
 
 /*
  *       GLFW CALLBACKS

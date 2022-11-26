@@ -35,6 +35,7 @@ public:
 	Model loadModel(std::string path, TextureLoader* texLoader);
 	Model loadModel(std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
 	void endLoading(VkCommandBuffer transferBuff);
+        void UnloadModels();
 
 	void bindBuffers(VkCommandBuffer cmdBuff);
 	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
@@ -128,6 +129,8 @@ private:
 					   size_t &vertexDataOffset, size_t &indexDataOffset);
 
 	void bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type);
+
+    void unloadAllModelData();
 
 	ModelLoader modelLoader;
 

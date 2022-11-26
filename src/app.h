@@ -51,6 +51,17 @@ private:
   void postUpdate();
   void draw();
 
+  void loadTestScene1();
+  void drawTestScene1();
+  void loadTestScene2();
+  void drawTestScene2();
+
+    enum class Scene {
+	Test1,
+	Test2,
+    };
+    Scene current = Scene::Test1;
+
   glm::vec2 correctedPos(glm::vec2 pos);
   glm::vec2 correctedMouse();
 

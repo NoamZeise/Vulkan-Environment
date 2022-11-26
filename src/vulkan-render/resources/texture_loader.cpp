@@ -32,8 +32,8 @@ void TextureLoader::UnloadTextures()
 	}
 	vkDestroySampler(base.device, textureSampler, nullptr);
 	vkFreeMemory(base.device, memory, nullptr);
-
 	textures.clear();
+	texToLoad.clear();
 }
 
 Texture TextureLoader::LoadTexture(std::string path)
@@ -63,7 +63,7 @@ Texture TextureLoader::LoadTexture(std::string path)
 		tex->format = VK_FORMAT_R8G8B8A8_SRGB;
 	else
 		tex->format = VK_FORMAT_R8G8B8A8_UNORM;
-
+	std::cout << "loaded at ID: " << (unsigned int)(texToLoad.size() - 1) << std::endl;
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 

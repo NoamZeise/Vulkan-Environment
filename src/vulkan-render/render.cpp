@@ -390,7 +390,18 @@ void Render::_destroyFrameResources()
   vkDestroyRenderPass(_base.device, _finalRenderPass, nullptr);
 }
 
-void Render::restartResourceLoad() { _textureLoader->UnloadTextures(); }
+void Render::UnloadResources() {
+    #ifndef NDEBUG
+    std::cout << "unloading resources" << std::endl;
+    #endif
+    vkDeviceWaitIdle(_base.device);
+    _destroyFrameResources();
+    _finishedLoadingResources = false;
+    _fontLoader->UnloadFonts();
+    _textureLoader->UnloadTextures();
+    _modelLoader->UnloadModels();
+    _textureLoader->LoadTexture("textures/error.png");
+}
 
 Resource::Texture Render::LoadTexture(std::string filepath) {
   if (_finishedLoadingResources)
@@ -820,7 +831,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   VkResult result =
       vkQueuePresentKHR(_base.queue.graphicsPresentQueue, &presentInfo);
-
+vkDeviceWaitIdle(_base.device);
   if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR ||
       _framebufferResized) {
     _framebufferResized = false;
@@ -843,6 +854,9 @@ void Render::_updateViewProjectionMatrix() {
       -1; // opengl has inversed y axis, so need to correct
 }
 
+//recreates frame resources, so any state change for rendering will be updated on next draw if this is called
+void Render::FramebufferResize() { _framebufferResized = true; }
+
 void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
   _VP3D.data[0].view = view;
   _projectionFov = fov;
@@ -859,11 +873,6 @@ void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale)
 void Render::setLightDirection(glm::vec4 lightDir)
 {
   _lightDirection = lightDir;
-}
-
-//recreates frame resources, so any state change for rendering will be updated on next draw if this is called
-void Render::FramebufferResize() {
-    _framebufferResized = true;
 }
 
 void Render::setForceTargetRes(bool force) {

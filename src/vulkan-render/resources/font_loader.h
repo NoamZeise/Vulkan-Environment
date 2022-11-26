@@ -30,6 +30,7 @@ public:
 	Font LoadFont(std::string file, TextureLoader* texLoader);
 	std::vector<QuadDraw> DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
 	float MeasureString(Font font, std::string text, float size);
+    void UnloadFonts();
 
 private:
     struct Character

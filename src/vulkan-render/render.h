@@ -42,17 +42,13 @@ public:
   Render(GLFWwindow *window, glm::vec2 target);
   ~Render();
   static bool SetGLFWWindowHintsAndLoadVulkan();
-  void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
-  void set2DViewMatrixAndScale(glm::mat4 view, float scale);
-  void setLightDirection(glm::vec4 lightDir);
-  void restartResourceLoad();
 
   Resource::Texture LoadTexture(std::string filepath);
   Resource::Font LoadFont(std::string filepath);
   Resource::Model LoadModel(std::string filepath);
   Resource::Model LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations);
-
   void EndResourceLoad();
+  void UnloadResources();
 
   void Begin3DDraw();
   void BeginAnim3DDraw();
@@ -68,7 +64,10 @@ public:
   void EndDraw(std::atomic<bool> &submit);
 
   void FramebufferResize();
-
+    
+  void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
+  void set2DViewMatrixAndScale(glm::mat4 view, float scale);
+  void setLightDirection(glm::vec4 lightDir);
   void setForceTargetRes(bool force);
   bool isTargetResForced();
   void setTargetResolution(glm::vec2 resolution);
