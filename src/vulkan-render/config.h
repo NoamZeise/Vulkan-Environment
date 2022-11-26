@@ -14,11 +14,6 @@ const bool VSYNC = true;
 const bool MULTISAMPLING = true;
 const bool SAMPLE_SHADING = true;
 
-const bool FIXED_RATIO = false;
-const bool USE_TARGET_RESOLUTION = true;
- const int TARGET_WIDTH = 800;
-const int TARGET_HEIGHT = 600;
-
 #ifndef NDEBUG
 const bool ERROR_ONLY = true;
 #endif

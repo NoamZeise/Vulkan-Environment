@@ -45,6 +45,7 @@ public:
   void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
   void set2DViewMatrixAndScale(glm::mat4 view, float scale);
   void setLightDirection(glm::vec4 lightDir);
+  void setTargetResoltion(bool force, glm::vec2 resolution);
   void restartResourceLoad();
 
   Resource::Texture LoadTexture(std::string filepath);
@@ -69,11 +70,20 @@ public:
 
   void FramebufferResize();
 
+  void setForceTargetRes(bool force);
+  bool isTargetResForced();
+  void setTargetResolution(glm::vec2 resolution);
+  glm::vec2 getTargetResolution();
+    
 private:
   bool _framebufferResized = false;
 
-  GLFWwindow *_window;
+    //render settings
+  bool _forceTargetResolution = false;
   glm::vec2 _targetResolution;
+
+    
+  GLFWwindow *_window;
   VkInstance _instance;
   VkSurfaceKHR _surface;
   Base _base;

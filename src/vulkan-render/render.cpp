@@ -1,6 +1,7 @@
 #include "render.h"
 #include "glm/geometric.hpp"
 #include "vulkan/vulkan_core.h"
+#include <stdint.h>
 
 
 bool Render::SetGLFWWindowHintsAndLoadVulkan()
@@ -17,6 +18,7 @@ bool Render::SetGLFWWindowHintsAndLoadVulkan()
 Render::Render(GLFWwindow *window)
 {
   _initRender(window);
+  _forceTargetResolution = false;
   _targetResolution = glm::vec2(_swapchain.swapchainExtent.width,
                                 _swapchain.swapchainExtent.height);
 }
@@ -24,6 +26,7 @@ Render::Render(GLFWwindow *window)
 Render::Render(GLFWwindow *window, glm::vec2 target)
 {
   _initRender(window);
+  _forceTargetResolution = true;
   _targetResolution = target;
 }
 void Render::_initRender(GLFWwindow *window)
@@ -101,9 +104,9 @@ void Render::_initFrameResources()
         _base.queue.graphicsPresentFamilyIndex);
   }
 
-  if (settings::USE_TARGET_RESOLUTION)
-    _swapchain.offscreenExtent = {settings::TARGET_WIDTH,
-                                  settings::TARGET_HEIGHT};
+  if (_forceTargetResolution)
+      _swapchain.offscreenExtent = {(uint32_t)_targetResolution.x,
+				    (uint32_t)_targetResolution.y};
   else
     _swapchain.offscreenExtent = _swapchain.swapchainExtent;
 
@@ -859,3 +862,14 @@ void Render::setLightDirection(glm::vec4 lightDir)
 }
 
 void Render::FramebufferResize() { _framebufferResized = true; }
+
+void Render::setForceTargetRes(bool force) { _forceTargetResolution = force; }
+bool Render::isTargetResForced() { return _forceTargetResolution; }
+void Render::setTargetResolution(glm::vec2 resolution) {
+    _targetResolution = resolution;
+    _forceTargetResolution = true;
+    FramebufferResize();
+}
+glm::vec2 Render::getTargetResolution() {
+    return _targetResolution;
+}

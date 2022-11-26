@@ -25,6 +25,8 @@
 //#define TIME_APP_DRAW_UPDATE
 //#define MULTI_UPDATE_ON_SLOW_DRAW
 
+const bool FIXED_WINDOW_RATIO = false;
+
 class App {
 public:
   App();

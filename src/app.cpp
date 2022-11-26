@@ -32,15 +32,10 @@ App::App() {
 
   int width = mWindowWidth;
   int height = mWindowHeight;
-  if (settings::USE_TARGET_RESOLUTION)
-  {
-    width = settings::TARGET_WIDTH;
-    height = settings::TARGET_HEIGHT;
-  }
 
   mRender = new Render(mWindow, glm::vec2(width, height));
 
-  if (settings::FIXED_RATIO)
+  if (FIXED_WINDOW_RATIO)
     glfwSetWindowAspectRatio(mWindow, width, height);
 
   loadAssets();
@@ -272,10 +267,10 @@ void App::draw() {
 
 glm::vec2 App::correctedPos(glm::vec2 pos)
 {
-  if (settings::USE_TARGET_RESOLUTION)
-    return glm::vec2(
-        pos.x * ((float)settings::TARGET_WIDTH / (float)mWindowWidth),
-        pos.y * ((float)settings::TARGET_HEIGHT / (float)mWindowHeight));
+  if (mRender->isTargetResForced())
+      return glm::vec2(
+	pos.x * (mRender->getTargetResolution().x / (float)mWindowWidth),
+	pos.y * (mRender->getTargetResolution().y / (float)mWindowHeight));
 
   return glm::vec2(pos.x, pos.y);
 }
