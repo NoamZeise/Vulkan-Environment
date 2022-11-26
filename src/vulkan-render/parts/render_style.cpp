@@ -9,7 +9,7 @@ namespace create
 VkShaderModule _loadShaderModule(VkDevice device, std::string file);
 
 
-void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, bool presentOnly)
+    void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, bool presentOnly)
 {
 	if(presentOnly)
 	{

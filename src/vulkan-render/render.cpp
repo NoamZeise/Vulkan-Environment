@@ -93,7 +93,7 @@ void Render::_initFrameResources()
     _swapchain.destroyResources(_base.device);
   auto images = part::create::Swapchain(
       _base.device, _base.physicalDevice, _surface, &_swapchain.swapChain,
-      &_swapchain.format, &_swapchain.swapchainExtent, _window);
+      &_swapchain.format, &_swapchain.swapchainExtent, _window, vsync);
   size_t frameCount = images.size();
 
   _swapchain.frameData.resize(frameCount);
@@ -861,7 +861,10 @@ void Render::setLightDirection(glm::vec4 lightDir)
   _lightDirection = lightDir;
 }
 
-void Render::FramebufferResize() { _framebufferResized = true; }
+//recreates frame resources, so any state change for rendering will be updated on next draw if this is called
+void Render::FramebufferResize() {
+    _framebufferResized = true;
+}
 
 void Render::setForceTargetRes(bool force) {
     if(_forceTargetResolution != force) {
@@ -877,4 +880,8 @@ void Render::setTargetResolution(glm::vec2 resolution) {
 }
 glm::vec2 Render::getTargetResolution() {
     return _targetResolution;
+}
+void Render::setVsync(bool vsync) {
+    this->vsync = vsync;
+    FramebufferResize();
 }

@@ -5,7 +5,7 @@ namespace part
 namespace create
 {
 
-std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent, GLFWwindow* window)
+    std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent, GLFWwindow* window, bool vsync)
 {
 	//get surface formats
 	uint32_t formatCount;
@@ -94,7 +94,7 @@ std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice,
 		throw std::runtime_error("failed to get physical device surface present modes!");
 	bool modeChosen = false;
 
-	if(!settings::VSYNC)
+	if(!vsync)
 	{
 		for (const auto& mode : presentModes)
 		{

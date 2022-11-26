@@ -73,13 +73,15 @@ public:
   bool isTargetResForced();
   void setTargetResolution(glm::vec2 resolution);
   glm::vec2 getTargetResolution();
+  void setVsync(bool vsync);
     
 private:
   bool _framebufferResized = false;
 
-    //render settings
+  //render settings
   bool _forceTargetResolution = false;
   glm::vec2 _targetResolution;
+  bool vsync = true;
 
     
   GLFWwindow *_window;

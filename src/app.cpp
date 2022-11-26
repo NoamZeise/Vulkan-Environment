@@ -146,6 +146,12 @@ void App::controls()
   if (input.Keys[GLFW_KEY_H]) {
       mRender->setForceTargetRes(false);
   }
+  if (input.Keys[GLFW_KEY_V]) {
+      mRender->setVsync(true);
+  }
+   if (input.Keys[GLFW_KEY_B]) {
+       mRender->setVsync(false);
+  }
 
   rotate += timer.FrameElapsed() * 0.001f;
 
