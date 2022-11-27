@@ -153,7 +153,6 @@ void App::controls()
    if (input.Keys[GLFW_KEY_1]) {
        if(current != Scene::Test1) {
 	   current = Scene::Test1;
-	   mRender->UnloadResources();
 	   this->loadAssets();
        }
   }
@@ -161,7 +160,6 @@ void App::controls()
    if (input.Keys[GLFW_KEY_2]) {
        if(current != Scene::Test2) {
 	   current = Scene::Test2;
-	   mRender->UnloadResources();
 	   this->loadAssets();
        }
   }

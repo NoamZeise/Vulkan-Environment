@@ -15,7 +15,7 @@ const bool MULTISAMPLING = true;
 const bool SAMPLE_SHADING = true;
 
 #ifndef NDEBUG
-const bool ERROR_ONLY = true;
+const bool ERROR_ONLY = false;
 #endif
 }
 

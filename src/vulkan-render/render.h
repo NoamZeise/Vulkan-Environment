@@ -48,7 +48,6 @@ public:
   Resource::Model LoadModel(std::string filepath);
   Resource::Model LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations);
   void EndResourceLoad();
-  void UnloadResources();
 
   void Begin3DDraw();
   void BeginAnim3DDraw();
@@ -131,9 +130,13 @@ private:
   DS::BindingAndData<bool> _offscreenView;
   VkSampler _offscreenTextureSampler;
 
-  Resource::TextureLoader *_textureLoader;
-  Resource::ModelRender *_modelLoader;
-  Resource::FontLoader *_fontLoader;
+  Resource::TextureLoader *_stagingTextureLoader;
+  Resource::ModelRender *_stagingModelLoader;
+  Resource::FontLoader *_stagingFontLoader;
+    
+  Resource::TextureLoader *_textureLoader = nullptr;
+  Resource::ModelRender *_modelLoader = nullptr;
+  Resource::FontLoader *_fontLoader = nullptr;
 
   enum class RenderState
   {
@@ -143,7 +146,6 @@ private:
   };
 
   bool _begunDraw = false;
-  bool _finishedLoadingResources = false;
   RenderState _renderState;
   uint32_t _frameI;
   VkSemaphore _imgAquireSem;
@@ -162,6 +164,7 @@ private:
   unsigned int _current2DInstanceIndex = 0;
 
   void _initRender(GLFWwindow *window);
+  void _initStagingResourceManagers();
   void _initFrameResources();
   void _destroyFrameResources();
   void _startDraw();

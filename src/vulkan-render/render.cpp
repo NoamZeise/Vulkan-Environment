@@ -61,10 +61,14 @@ void Render::_initRender(GLFWwindow *window)
                                &_transferCommandBuffer))
     throw std::runtime_error("failed to allocate command buffer");
 
-  _modelLoader = new Resource::ModelRender(_base, _generalCommandPool);
-  _textureLoader = new Resource::TextureLoader(_base, _generalCommandPool);
-  _fontLoader = new Resource::FontLoader();
-  _textureLoader->LoadTexture("textures/error.png");
+  _initStagingResourceManagers();
+}
+
+void Render::_initStagingResourceManagers() {
+  _stagingModelLoader = new Resource::ModelRender(_base, _generalCommandPool);
+  _stagingTextureLoader = new Resource::TextureLoader(_base, _generalCommandPool);
+  _stagingFontLoader = new Resource::FontLoader();
+  _stagingTextureLoader->LoadTexture("textures/error.png");
 }
 
 Render::~Render()
@@ -72,8 +76,12 @@ Render::~Render()
   vkQueueWaitIdle(_base.queue.graphicsPresentQueue);
 
   delete _textureLoader;
+  delete _stagingTextureLoader;
   delete _modelLoader;
+  delete _stagingModelLoader;
   delete _fontLoader;
+  delete _stagingFontLoader;
+  std::cout << "here" << std::endl;
 
   _destroyFrameResources();
   vkDestroyCommandPool(_base.device, _generalCommandPool, nullptr);
@@ -390,30 +398,13 @@ void Render::_destroyFrameResources()
   vkDestroyRenderPass(_base.device, _finalRenderPass, nullptr);
 }
 
-void Render::UnloadResources() {
-    #ifndef NDEBUG
-    std::cout << "unloading resources" << std::endl;
-    #endif
-    vkDeviceWaitIdle(_base.device);
-    _destroyFrameResources();
-    _finishedLoadingResources = false;
-    _fontLoader->UnloadFonts();
-    _textureLoader->UnloadTextures();
-    _modelLoader->UnloadModels();
-    _textureLoader->LoadTexture("textures/error.png");
-}
-
 Resource::Texture Render::LoadTexture(std::string filepath) {
-  if (_finishedLoadingResources)
-    throw std::runtime_error("resource loading has finished already");
-  return _textureLoader->LoadTexture(filepath);
+  return _stagingTextureLoader->LoadTexture(filepath);
 }
 
 Resource::Font Render::LoadFont(std::string filepath) {
-  if (_finishedLoadingResources)
-    throw std::runtime_error("resource loading has finished already");
   try {
-    return _fontLoader->LoadFont(filepath, _textureLoader);
+    return _stagingFontLoader->LoadFont(filepath, _stagingTextureLoader);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
     return Resource::Font();
@@ -424,23 +415,31 @@ Resource::Model Render::LoadAnimatedModel(
     std::string filepath,
     std::vector<Resource::ModelAnimation> *pGetAnimations)
 {
-  if (_finishedLoadingResources)
-    throw std::runtime_error("resource loading has finished already");
-  return _modelLoader->loadModel(filepath, _textureLoader, pGetAnimations);
+  return _stagingModelLoader->loadModel(filepath, _stagingTextureLoader, pGetAnimations);
 }
 
 Resource::Model Render::LoadModel(std::string filepath)
 {
-  if (_finishedLoadingResources)
-    throw std::runtime_error("resource loading has finished already");
-  return _modelLoader->loadModel(filepath, _textureLoader);
+  return _stagingModelLoader->loadModel(filepath, _stagingTextureLoader);
 }
 
 void Render::EndResourceLoad()
 {
-  _finishedLoadingResources = true;
+  vkDeviceWaitIdle(_base.device);
+  if(_textureLoader != nullptr)
+      _destroyFrameResources();
+  delete _textureLoader;
+  _textureLoader = _stagingTextureLoader;
   _textureLoader->endLoading();
+  _stagingTextureLoader = nullptr;
+  delete _modelLoader;
+  _modelLoader = _stagingModelLoader;
   _modelLoader->endLoading(_transferCommandBuffer);
+  _stagingModelLoader = nullptr;
+  delete _fontLoader;
+  _fontLoader = _stagingFontLoader;
+  _stagingFontLoader = nullptr;
+  _initStagingResourceManagers();
   _initFrameResources();
 }
 
@@ -457,7 +456,7 @@ void Render::_resize()
 
 void Render::_startDraw()
 {
-  if (!_finishedLoadingResources)
+  if (_textureLoader == nullptr)
     throw std::runtime_error(
         "resource loading must be finished before drawing to screen!");
   _begunDraw = true;

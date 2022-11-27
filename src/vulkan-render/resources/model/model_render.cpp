@@ -42,11 +42,6 @@ void ModelRender::unloadAllModelData() {
 	vkFreeMemory(base.device, memory, nullptr);
 }
 
-void ModelRender::UnloadModels() {
-    unloadAllModelData();
-    loadQuad();
-}
-
 void ModelRender::bindBuffers(VkCommandBuffer cmdBuff)
 {
 	if(currentIndex == 0)
