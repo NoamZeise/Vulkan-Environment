@@ -19,8 +19,6 @@
 namespace Resource
 {
 
-const uint32_t MAX_TEXTURES_SUPPORTED = 20;//match in shader
-
 class TextureLoader
 {
 public:

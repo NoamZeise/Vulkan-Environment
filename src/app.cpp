@@ -53,9 +53,11 @@ App::~App() {
 
 void App::loadAssets() {
     if(current == Scene::Test1)
-	loadTestScene1();
+	loadTestScene1(assetsLoaded);
     if(current == Scene::Test2)
-	loadTestScene2();
+	loadTestScene2(assetsLoaded);
+    mRender->LoadResourcesToGPU();
+    mRender->UseLoadedResources();
 }
 
 void App::run() {
@@ -81,11 +83,25 @@ void App::update() {
 #endif
   glfwPollEvents();
 
-  currentWolfAnim.Update(timer);
-  secondWolfAnim.Update(timer);
-  thirdWolfAnim.Update(timer);
+  if(current == Scene::Test1) {
+    currentWolfAnim1.Update(timer);
+     secondWolfAnim1.Update(timer);
+     thirdWolfAnim1.Update(timer);
+  }
+  if(current == Scene::Test2) {
+      currentWolfAnim2.Update(timer);
+  }
 
   controls();
+
+  if(sceneChangeInProgress && assetsLoaded) {
+      assetLoadThread.join();
+      std::cout << "loading done\n";
+      mRender->LoadResourcesToGPU();
+      mRender->UseLoadedResources();
+      sceneChangeInProgress = false;
+      current = current == Scene::Test1 ? Scene::Test2 : Scene::Test1;
+  }
 
   rotate += timer.FrameElapsed() * 0.001f;
   fpcam.update(input, previousInput, timer);
@@ -149,20 +165,27 @@ void App::controls()
    if (input.Keys[GLFW_KEY_B]) {
        mRender->setVsync(false);
   }
-
+   if(!sceneChangeInProgress) {
    if (input.Keys[GLFW_KEY_1]) {
        if(current != Scene::Test1) {
-	   current = Scene::Test1;
-	   this->loadAssets();
+	   assetsLoaded = false;
+	   assetLoadThread =
+	   	 std::thread(&App::loadTestScene1, this, std::ref(assetsLoaded));
+	   //loadTestScene1(assetsLoaded);
+	     sceneChangeInProgress = true;
        }
   }
 
    if (input.Keys[GLFW_KEY_2]) {
        if(current != Scene::Test2) {
-	   current = Scene::Test2;
-	   this->loadAssets();
+	   assetsLoaded = false;
+	     assetLoadThread =
+	   	 std::thread(&App::loadTestScene2, this, std::ref(assetsLoaded));
+	     //loadTestScene2(assetsLoaded);
+	   sceneChangeInProgress = true;
        }
   }
+   }
 
   mRender->setLightDirection(lightDir);
 }
@@ -223,17 +246,17 @@ glm::vec2 App::correctedMouse()
   return correctedPos(glm::vec2(input.X, input.Y));
 }
 
-void App::loadTestScene1() {
-  testModel = mRender->LoadModel("models/testScene.fbx");
-  monkeyModel = mRender->LoadModel("models/monkey.obj");
-  colouredCube = mRender->LoadModel("models/ROOM.fbx");
-  testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
-  currentWolfAnim = wolfAnims[0];
-  secondWolfAnim = wolfAnims[1];
-  thirdWolfAnim = wolfAnims[4];
-  testTex = mRender->LoadTexture("textures/error.png");
-  testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-  mRender->EndResourceLoad();
+void App::loadTestScene1(std::atomic<bool> &loaded) {
+  testModel1 = mRender->LoadModel("models/testScene.fbx");
+  monkeyModel1 = mRender->LoadModel("models/monkey.obj");
+  colouredCube1 = mRender->LoadModel("models/ROOM.fbx");
+  testWolf1 =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims1);
+  currentWolfAnim1 = wolfAnims1[0];
+  secondWolfAnim1 = wolfAnims1[1];
+  thirdWolfAnim1 = wolfAnims1[4];
+  testTex1 = mRender->LoadTexture("textures/error.png");
+  testFont1 = mRender->LoadFont("textures/Roboto-Black.ttf");
+  loaded = true;
 }
 
 void App::drawTestScene1() {
@@ -247,7 +270,7 @@ void App::drawTestScene1() {
           glm::vec3(1.0f)),
       glm::vec3(0, 3, 0));
 
-  mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+  mRender->DrawModel(monkeyModel1, model, glm::inverseTranspose(model));
 
   model = glm::translate(
       glm::scale(
@@ -256,7 +279,7 @@ void App::drawTestScene1() {
           glm::vec3(0.01f)),
       glm::vec3(0, 0, 0));
 
-  mRender->DrawModel(testModel, model, glm::inverseTranspose(model));
+  mRender->DrawModel(testModel1, model, glm::inverseTranspose(model));
 
   model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
                                                 glm::vec3(0.0f, -30.0f, -15.0f))
@@ -265,7 +288,7 @@ void App::drawTestScene1() {
                                  glm::radians(270.0f),
                                  glm::vec3(-1.0f, 0.0f, 0.0f)),
                      glm::vec3(4.0f));
-  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+  mRender->DrawModel(colouredCube1, model, glm::inverseTranspose(model));
 
   mRender->BeginAnim3DDraw();
 
@@ -275,10 +298,10 @@ void App::drawTestScene1() {
                  glm::vec3(0.1f)),
       glm::vec3(-100.0f, 0, 100.0f));
   mRender->DrawAnimModel(
-		testWolf,
+		testWolf1,
     w1model,
 		glm::inverseTranspose(w1model),
-    &currentWolfAnim
+    &currentWolfAnim1
   );
 
   w1model = glm::translate(
@@ -287,10 +310,10 @@ void App::drawTestScene1() {
           glm::vec3(0.1f)),
        glm::vec3(100.0f, 0, 100.0f));
   mRender->DrawAnimModel(
-		testWolf,
+		testWolf1,
     w1model,
 		glm::inverseTranspose(w1model),
-    &secondWolfAnim
+    &secondWolfAnim1
   );
 
   w1model =  glm::translate(
@@ -300,34 +323,37 @@ void App::drawTestScene1() {
        glm::vec3(0.0f, 0, 100.0f));
   
   mRender->DrawAnimModel(
-		testWolf,
+		testWolf1,
    w1model,
 		glm::inverseTranspose(w1model),
-    &thirdWolfAnim
+    &thirdWolfAnim1
   );
       
 
   mRender->Begin2DDraw();
 
   mRender->DrawQuad(
-      testTex, glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
+      testTex1, glmhelper::getModelMatrix(glm::vec4(400, 100, 100, 100), 0, -1),
       glm::vec4(1), glm::vec4(0, 0, 1, 1));
 
-  mRender->DrawQuad(testTex,
+  mRender->DrawQuad(testTex1,
                     glmhelper::getModelMatrix(glm::vec4(0, 0, 400, 400), 0, 0),
                     glm::vec4(1, 0, 1, 0.3), glm::vec4(0, 0, 1, 1));
 
-       mRender->DrawString(testFont, "Scene 1", glm::vec2(10, 100), 40, 1.0f, glm::vec4(1), 0.0f);
-
+       mRender->DrawString(testFont1, "Scene 1", glm::vec2(10, 100), 40, 1.0f, glm::vec4(1), 0.0f);
+       if(sceneChangeInProgress) {
+	    mRender->DrawString(testFont1, "Loading", glm::vec2(200, 400), 40, 1.0f, glm::vec4(1), 0.0f);
+       }
 }
 
-void App::loadTestScene2() {
-  monkeyModel = mRender->LoadModel("models/monkey.obj");
-  colouredCube = mRender->LoadModel("models/ROOM.fbx");
-  testWolf =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims);
-  currentWolfAnim = wolfAnims[0];
-  testFont = mRender->LoadFont("textures/Roboto-Black.ttf");
-  mRender->EndResourceLoad();
+void App::loadTestScene2(std::atomic<bool> &loaded) {
+  monkeyModel2 = mRender->LoadModel("models/monkey.obj");
+  colouredCube2 = mRender->LoadModel("models/ROOM.fbx");
+  testWolf2 =  mRender->LoadAnimatedModel("models/wolf.fbx", &wolfAnims2);
+  currentWolfAnim2 = wolfAnims2[0];
+  testFont2 = mRender->LoadFont("textures/Roboto-Black.ttf");
+  // mRender->LoadResourcesToGPU();
+  loaded = true;
 }
 
 void App::drawTestScene2() {
@@ -339,21 +365,21 @@ void App::drawTestScene2() {
           glm::vec3(1.0f)),
       glm::vec3(0, 2, 0));
 
-  mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+  mRender->DrawModel(monkeyModel2, model, glm::inverseTranspose(model));
   model = glm::translate(
       glm::scale(
           glm::rotate(glm::rotate(glm::mat4(1.0f), rotate * 0.5f, glm::vec3(0, 0, 1)),
                       glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
           glm::vec3(1.0f)),
       glm::vec3(1, 2, 0));
-    mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+    mRender->DrawModel(monkeyModel2, model, glm::inverseTranspose(model));
     model = glm::translate(
       glm::scale(
           glm::rotate(glm::rotate(glm::mat4(1.0f), rotate * 2.0f, glm::vec3(0, 0, 1)),
                       glm::radians(270.0f), glm::vec3(-1.0f, 0.0f, 0.0f)),
           glm::vec3(1.0f)),
       glm::vec3(2, 2, 0));
-    mRender->DrawModel(monkeyModel, model, glm::inverseTranspose(model));
+    mRender->DrawModel(monkeyModel2, model, glm::inverseTranspose(model));
 
       model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
                                                 glm::vec3(0.0f, -30.0f, -15.0f))
@@ -363,7 +389,7 @@ void App::drawTestScene2() {
                                  glm::vec3(-1.0f, 0.0f, 0.0f)),
                      glm::vec3(1.0f));
       
-  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+  mRender->DrawModel(colouredCube2, model, glm::inverseTranspose(model));
         model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
                                                 glm::vec3(0.0f, -30.0f, -15.0f))
 
@@ -373,7 +399,7 @@ void App::drawTestScene2() {
                      glm::vec3(1.0f));
 	model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	
-  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+  mRender->DrawModel(colouredCube2, model, glm::inverseTranspose(model));
         model = glm::scale(glm::rotate(glm::translate(glm::mat4(1.0f),
                                                 glm::vec3(0.0f, -30.0f, -15.0f))
 
@@ -381,7 +407,7 @@ void App::drawTestScene2() {
                                  glm::radians(270.0f),
                                  glm::vec3(-1.0f, 0.0f, 0.0f)),
                      glm::vec3(1.0f));
-  mRender->DrawModel(colouredCube, model, glm::inverseTranspose(model));
+  mRender->DrawModel(colouredCube2, model, glm::inverseTranspose(model));
 
     mRender->BeginAnim3DDraw();
 
@@ -391,15 +417,19 @@ void App::drawTestScene2() {
                  glm::vec3(0.1f)),
       glm::vec3(-50.0f, 0, 100.0f));
   mRender->DrawAnimModel(
-		testWolf,
+		testWolf2,
     w1model,
 		glm::inverseTranspose(w1model),
-    &currentWolfAnim
+    &currentWolfAnim2
   );
 
   mRender->Begin2DDraw();
 
-    mRender->DrawString(testFont, "Scene 2", glm::vec2(10, 100), 40, -0.4f, glm::vec4(1), 0.0f);
+  mRender->DrawString(testFont2, "Scene 2", glm::vec2(10, 100), 40, -0.4f, glm::vec4(1), 0.0f);
+
+  if(sceneChangeInProgress) {
+	    mRender->DrawString(testFont2, "Loading", glm::vec2(200, 400), 40, 1.0f, glm::vec4(1), 0.0f);
+  }
 }
 
 

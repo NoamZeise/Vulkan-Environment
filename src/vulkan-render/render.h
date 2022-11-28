@@ -47,7 +47,8 @@ public:
   Resource::Font LoadFont(std::string filepath);
   Resource::Model LoadModel(std::string filepath);
   Resource::Model LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations);
-  void EndResourceLoad();
+  void LoadResourcesToGPU();
+  void UseLoadedResources();
 
   void Begin3DDraw();
   void BeginAnim3DDraw();
@@ -132,8 +133,7 @@ private:
 
   Resource::TextureLoader *_stagingTextureLoader;
   Resource::ModelRender *_stagingModelLoader;
-  Resource::FontLoader *_stagingFontLoader;
-    
+  Resource::FontLoader *_stagingFontLoader;    
   Resource::TextureLoader *_textureLoader = nullptr;
   Resource::ModelRender *_modelLoader = nullptr;
   Resource::FontLoader *_fontLoader = nullptr;

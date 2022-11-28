@@ -51,9 +51,9 @@ private:
   void postUpdate();
   void draw();
 
-  void loadTestScene1();
+  void loadTestScene1(std::atomic<bool> &loaded);
   void drawTestScene1();
-  void loadTestScene2();
+  void loadTestScene2(std::atomic<bool> &loaded);
   void drawTestScene2();
 
     enum class Scene {
@@ -80,16 +80,33 @@ private:
 
   glm::vec4 lightDir = glm::vec4(0.0f, -0.5f, -1.0f, 0.0f);
   float rotate = 0.0f;
-  Resource::Model testModel;
-  Resource::Model monkeyModel;
-  Resource::Model colouredCube;
-  Resource::Model testWolf;
-  std::vector<Resource::ModelAnimation> wolfAnims;
-  Resource::ModelAnimation currentWolfAnim;
-  Resource::ModelAnimation secondWolfAnim;
-  Resource::ModelAnimation thirdWolfAnim;
-  Resource::Texture testTex;
-  Resource::Font testFont;
+
+  std::thread assetLoadThread;
+  std::atomic<bool> assetsLoaded;
+
+    bool sceneChangeInProgress = false;
+    
+  Resource::Model testModel1;
+  Resource::Model monkeyModel1;
+  Resource::Model colouredCube1;
+  Resource::Model testWolf1;
+  std::vector<Resource::ModelAnimation> wolfAnims1;
+  Resource::ModelAnimation currentWolfAnim1;
+  Resource::ModelAnimation secondWolfAnim1;
+  Resource::ModelAnimation thirdWolfAnim1;
+  Resource::Texture testTex1;
+  Resource::Font testFont1;
+
+    Resource::Model testModel2;
+  Resource::Model monkeyModel2;
+  Resource::Model colouredCube2;
+  Resource::Model testWolf2;
+  std::vector<Resource::ModelAnimation> wolfAnims2;
+  Resource::ModelAnimation currentWolfAnim2;
+  Resource::ModelAnimation secondWolfAnim2;
+  Resource::ModelAnimation thirdWolfAnim2;
+  Resource::Texture testTex2;
+  Resource::Font testFont2;
 };
 
 #endif

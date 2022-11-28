@@ -423,22 +423,23 @@ Resource::Model Render::LoadModel(std::string filepath)
   return _stagingModelLoader->loadModel(filepath, _stagingTextureLoader);
 }
 
-void Render::EndResourceLoad()
+void Render::LoadResourcesToGPU() {
+  _stagingTextureLoader->endLoading();
+  _stagingModelLoader->endLoading(_transferCommandBuffer);
+}
+
+void Render::UseLoadedResources()
 {
   vkDeviceWaitIdle(_base.device);
   if(_textureLoader != nullptr)
       _destroyFrameResources();
   delete _textureLoader;
   _textureLoader = _stagingTextureLoader;
-  _textureLoader->endLoading();
-  _stagingTextureLoader = nullptr;
   delete _modelLoader;
   _modelLoader = _stagingModelLoader;
-  _modelLoader->endLoading(_transferCommandBuffer);
-  _stagingModelLoader = nullptr;
   delete _fontLoader;
   _fontLoader = _stagingFontLoader;
-  _stagingFontLoader = nullptr;
+  
   _initStagingResourceManagers();
   _initFrameResources();
 }
