@@ -11,11 +11,8 @@ project(${ProjectName} VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 14)
 
-#packages
-#find_package(Vulkan REQUIRED)
-
 if (UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -Wl,--no-as-needed -ldl")
     find_package(X11 REQUIRED)
     link_libraries(${X11_LIBRARIES})
     add_definitions(-DVK_USE_PLATFORM_XLIB_KHR)
@@ -43,7 +40,6 @@ if(UNIX)
                                                  PUBLIC ${FREETYPE_INCLUDE_DIRS}
                                                  PUBLIC ${PROJECT_BINARY_DIR})
     target_link_libraries(${ProjectName} glfw
-                                         Vulkan::Vulkan
                                          ${FREETYPE_LIBRARIES}
                                          assimp)
     #add assimp
