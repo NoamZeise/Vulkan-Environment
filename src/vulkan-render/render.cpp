@@ -81,7 +81,6 @@ Render::~Render()
   delete _stagingModelLoader;
   delete _fontLoader;
   delete _stagingFontLoader;
-  std::cout << "here" << std::endl;
 
   _destroyFrameResources();
   vkDestroyCommandPool(_base.device, _generalCommandPool, nullptr);
