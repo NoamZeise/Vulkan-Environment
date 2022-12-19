@@ -5,5 +5,3 @@ set(Vulkan-Environment-Proj "Vulkan-Environment")
 project(${Vulkan-Environment-Proj} VERSION 1.0)
 
 add_subdirectory(src)
-
-
