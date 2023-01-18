@@ -1,4 +1,5 @@
 #include "model_render.h"
+#include <stdint.h>
 
 namespace Resource
 {
@@ -73,18 +74,18 @@ void ModelRender::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type)
 	vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
 }
 
-int ModelRender::getAnimationIndex(Model model, std::string animation)
+size_t ModelRender::getAnimationIndex(Model model, std::string animation)
 {
-	if(models[model.ID].animationMap.find(animation) == models[model.ID].animationMap.end())
-		throw std::runtime_error("the animation " + animation + " could not be found on model");
-	return models[model.ID].animationMap[animation];
+    if(models[model.ID].animationMap.find(animation) == models[model.ID].animationMap.end())
+	throw std::runtime_error("the animation " + animation + " could not be found on model");
+    return models[model.ID].animationMap[animation];
 }
 
 ModelAnimation* ModelRender::getpAnimation(Model model, int animationIndex)
 {
-	if(animationIndex >= models[model.ID].animations.size())
-		throw std::runtime_error("the animation index was out of range");
-	return &models[model.ID].animations[animationIndex];
+    if(animationIndex >= models[model.ID].animations.size())
+	throw std::runtime_error("the animation index was out of range");
+    return &models[model.ID].animations[animationIndex];
 }
 
 void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset)
@@ -99,10 +100,10 @@ void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Mo
 	bindGroupVertexBuffer(cmdBuff, modelInfo->type);
 	for(size_t i = 0; i < modelInfo->meshes.size(); i++)
 	{
-		fragPushConstants fps{
+		fragPushConstants fps {
 			modelInfo->meshes[i].diffuseColour,
 			glm::vec4(0, 0, 1, 1), //texOffset
-			modelInfo->meshes[i].texture.ID
+			static_cast<uint32_t>(modelInfo->meshes[i].texture.ID)
 		};
 
 		vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,

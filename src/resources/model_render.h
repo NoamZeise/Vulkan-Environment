@@ -39,7 +39,7 @@ public:
 	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
 	void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
 
-	int getAnimationIndex(Model model, std::string animationName);
+	size_t getAnimationIndex(Model model, std::string animationName);
 	ModelAnimation* getpAnimation(Model model, int animationIndex);
 
 private:
@@ -138,7 +138,7 @@ private:
 	ModelGroup<Vertex3D> loaded3D;
 	ModelGroup<VertexAnim3D> loadedAnim3D;
 	std::vector<Texture> alreadyLoaded;
-	std::map<int, ModelInGPU> models;
+	std::map<size_t, ModelInGPU> models;
 	VkBuffer buffer;
 	VkDeviceMemory memory;
 

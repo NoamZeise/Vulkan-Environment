@@ -3,6 +3,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <stdint.h>
 #include <string>
 
 #include <glmhelper.h>
@@ -661,9 +662,8 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
 
   _per2Dvert.data[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
   _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].colour = colour;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texOffset =
-      texOffset;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texID = texture.ID;
+  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
+  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texID = (uint32_t)texture.ID;
   _instance2Druns++;
 
   if (_current2DInstanceIndex + _instance2Druns == MAX_2D_INSTANCE)
