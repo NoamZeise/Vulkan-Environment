@@ -6,22 +6,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#ifndef NO_ASSIMP
-#include "model_loader.h"
-#endif
 #include <vector>
-#include <array>
+#include <map>
 #include <string>
-#include <stdexcept>
-#include <cmath>
-#include <cstring>
-#include <iostream>
 
 #include <resources/resources.h>
+#ifndef NO_ASSIMP
+#include <resources/model_loader.h>
+#endif
 #include "texture_loader.h"
 #include "../render_structs.h"
 #include "../pipeline.h"
-#include "../vkhelper.h"
 
 namespace Resource
 {

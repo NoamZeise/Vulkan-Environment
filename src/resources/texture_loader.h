@@ -5,12 +5,7 @@
 
 #include <vector>
 #include <string>
-#include <stdexcept>
-#include <cmath>
-#include <cstring>
-#include <iostream>
 
-#include <config.h>
 #include "../render_structs.h"
 #include "../vkhelper.h"
 #include <resources/resources.h>
