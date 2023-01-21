@@ -1,8 +1,0 @@
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/CMakeFiles/rebuild_cache.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/CMakeFiles/edit_cache.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/src/CMakeFiles/rebuild_cache.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/src/CMakeFiles/edit_cache.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/src/CMakeFiles/ResourceLoader.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/demo/CMakeFiles/rebuild_cache.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/demo/CMakeFiles/edit_cache.dir
-/home/noam/repos/Graphics-Environment/libs/ResourceLoader/build/demo/CMakeFiles/ResourceLoaderDemo.dir
