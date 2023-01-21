@@ -7,9 +7,9 @@ layout(push_constant) uniform fragconstants
     uint texID;
 } pc;
 
-layout(set = 2, binding = 0) uniform sampler texSamp;
-layout(set = 2, binding = 1) uniform texture2D textures[20];
-layout(set = 3, binding = 0) uniform LightingUBO
+layout(set = 3, binding = 0) uniform sampler texSamp;
+layout(set = 3, binding = 1) uniform texture2D textures[20];
+layout(set = 4, binding = 0) uniform LightingUBO
 {
     vec4 ambient;
     vec4 diffuse;

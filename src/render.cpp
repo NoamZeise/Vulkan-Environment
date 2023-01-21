@@ -1,10 +1,12 @@
 #include "render.h"
+#include "descriptor_structs.h"
 
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
+#include <vector>
 
 #include <glmhelper.h>
 
@@ -42,8 +44,7 @@ void Render::_initRender(GLFWwindow *window)
   part::create::DebugMessenger(_instance, &_debugMessenger);
 #endif
 
-  if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) !=
-      VK_SUCCESS)
+  if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
 
   part::create::Device(_instance, &_base, _surface);
@@ -52,8 +53,7 @@ void Render::_initRender(GLFWwindow *window)
   VkCommandPoolCreateInfo commandPoolInfo{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
   commandPoolInfo.queueFamilyIndex = _base.queue.graphicsPresentFamilyIndex;
-  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr,
-                          &_generalCommandPool) != VK_SUCCESS)
+  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr, &_generalCommandPool) != VK_SUCCESS)
     throw std::runtime_error("failed to create command pool");
 
   // create transfer command buffer
@@ -62,8 +62,7 @@ void Render::_initRender(GLFWwindow *window)
   commandBufferInfo.commandPool = _generalCommandPool;
   commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   commandBufferInfo.commandBufferCount = 1;
-  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo,
-                               &_transferCommandBuffer))
+  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo, &_transferCommandBuffer))
     throw std::runtime_error("failed to allocate command buffer");
 
   _initStagingResourceManagers();
@@ -293,6 +292,10 @@ void Render::_initFrameResources()
                                     {&_per2Dfrag.binding},
                                     VK_SHADER_STAGE_FRAGMENT_BIT);
 
+  part::create::DescriptorSetLayout(_base.device, &_emptyds,
+				    {},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
+
   
   _offscreenTextureSampler = vkhelper::createTextureSampler(_base.device, _base.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
@@ -332,7 +335,7 @@ void Render::_initFrameResources()
   // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
   part::create::GraphicsPipeline(
       _base.device, &_pipeline3D, _swapchain, _renderPass,
-      {&_VP3Dds, &_perInstance3Dds, &_texturesds, &_lightingds},
+      {&_VP3Dds, &_perInstance3Dds, &_emptyds, &_texturesds, &_lightingds},
       {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
       "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
       settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
@@ -343,7 +346,7 @@ void Render::_initFrameResources()
       _base.device, &_pipelineAnim3D, _swapchain, _renderPass,
       {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
       {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong-anim.frag.spv",
+      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
       true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
       VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
       VertexAnim3D::bindingDescriptions());
@@ -384,6 +387,7 @@ void Render::_destroyFrameResources()
   _texturesds.destroySet(_base.device);
   _per2Dfragds.destroySet(_base.device);
   _offscreends.destroySet(_base.device);
+  _emptyds.destroySet(_base.device);
 
   vkDestroyDescriptorPool(_base.device, _descPool, nullptr);
 

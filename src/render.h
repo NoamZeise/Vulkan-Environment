@@ -112,16 +112,17 @@ private:
   DS::DescriptorSet _per2Dfragds;
   DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
+  DS::DescriptorSet _emptyds;
 
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP3D;
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP2D;
   DS::BindingAndData<DS::ShaderStructs::PerFrame3D> _perInstance;
   DS::BindingAndData<DS::ShaderStructs::Bones> _bones;
   DS::BindingAndData<glm::mat4> _per2Dvert;
+  DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<bool> _textureViews;
   DS::BindingAndData<bool> _textureSampler;
   DS::BindingAndData<DS::ShaderStructs::Frag2DData> _per2Dfrag;
-  DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<glm::mat4> _offscreenTransform;
   DS::BindingAndData<bool> _offscreenSampler;
   DS::BindingAndData<bool> _offscreenView;
