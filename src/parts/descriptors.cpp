@@ -1,5 +1,7 @@
 #include "descriptors.h"
 
+#include "../vkhelper.h"
+
 namespace part
 {
 namespace create

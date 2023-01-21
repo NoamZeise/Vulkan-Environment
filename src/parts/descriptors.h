@@ -5,9 +5,9 @@
 
 #include <vector>
 
-#include "../vkhelper.h"
 #include "../descriptor_structs.h"
-#include "../render_structs.h"
+//#include "../render_structs.h"
+struct Base;
 
 namespace part
 {

@@ -1,5 +1,16 @@
 #include "render.h"
+
+#include "render_structs.h"
 #include "descriptor_structs.h"
+#include "parts/render_style.h"
+#include "resources/model_render.h"
+#include "resources/font_loader.h"
+#include "resources/texture_loader.h"
+#include "parts/primary.h"
+#include "parts/swapchain.h"
+#include "parts/descriptors.h"
+#include "pipeline.h"
+
 
 #include <cstring>
 #include <iostream>

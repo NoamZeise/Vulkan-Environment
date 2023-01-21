@@ -10,19 +10,15 @@
 #include <glm/glm.hpp>
 
 #include <resources/resources.h>
-#include "parts/primary.h"
-#include "parts/swapchain.h"
-#include "parts/render_style.h"
-#include "parts/descriptors.h"
-#include "parts/images.h"
-#include "descriptor_structs.h"
-#include "resources/model_render.h"
-#include "pipeline.h"
-#include "render_structs.h"
-#include "resources/font_loader.h"
-#include "resources/texture_loader.h"
-#include "vkhelper.h"
 
+namespace Resource {
+    class ModelRender;
+    class FontLoader;
+    class TextureLoader;
+} // namespace Resource
+    
+#include "render_structs.h"
+#include "pipeline.h"
 
 #include <atomic>
 

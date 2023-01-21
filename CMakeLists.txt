@@ -13,3 +13,8 @@ add_subdirectory(src)
 if(BUILD_TESTS)
   add_subdirectory(test)
 endif()
+
+if(BUILD_DEMO)
+  add_subdirectory(demo)
+endif()
+
