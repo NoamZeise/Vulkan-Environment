@@ -1,0 +1,5 @@
+# ninja log v5
+309	338	1674151275593831509	demo/Debug/ResourceLoaderDemo	dd11f6bf4c5d6200
+0	309	1674151275565831373	demo/CMakeFiles/ResourceLoaderDemo.dir/Debug/demo.cpp.o	68bcbd826652aa37
+0	675	1674151021492921723	src/CMakeFiles/ResourceLoader.dir/Debug/stb_image_impl.cpp.o	b669f21f9bdf7e9a
+675	709	1674151021528921788	src/Debug/libResourceLoader.a	aab058ef35a4f679

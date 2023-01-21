@@ -7,6 +7,7 @@ if(UNIX)
   find_package(Freetype REQUIRED)
 endif()
 
+add_subdirectory(libs)
 add_subdirectory(src)
 
 if(BUILD_TESTS)
