@@ -11,6 +11,8 @@
 #include "parts/descriptors.h"
 #include "pipeline.h"
 
+
+#include <GLFW/glfw3.h>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
@@ -32,8 +34,15 @@ bool Render::LoadVulkan()
     return true;
 }
 
+void checkVolk() {
+	if(volkGetInstanceVersion() == 0) {
+	    throw std::runtime_error("Vulkan has not been loaded! make sure Render::LoadVulkan has been called and checked before creating an instance of Render");
+	}
+ }
+
 Render::Render(GLFWwindow *window)
 {
+    checkVolk();
   _initRender(window);
   _forceTargetResolution = false;
   _targetResolution = glm::vec2(_swapchain.swapchainExtent.width,
@@ -42,6 +51,7 @@ Render::Render(GLFWwindow *window)
 
 Render::Render(GLFWwindow *window, glm::vec2 target)
 {
+    checkVolk();
   _initRender(window);
   _forceTargetResolution = true;
   _targetResolution = target;
@@ -55,8 +65,9 @@ void Render::_initRender(GLFWwindow *window)
 #endif
 
   if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) != VK_SUCCESS)
-    throw std::runtime_error("failed to create window surface!");
-
+  {
+      throw std::runtime_error("failed to create window surface!");
+  }
   part::create::Device(_instance, &_base, _surface);
 
   // create general command pool

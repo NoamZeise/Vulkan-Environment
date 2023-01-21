@@ -1,5 +1,6 @@
 #include "render_style.h"
 
+#include <config.h>
 #include <stdexcept>
 #include <iostream>
 

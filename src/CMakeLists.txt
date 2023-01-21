@@ -12,7 +12,7 @@ target_include_directories(${Vulkan-Render-Lib} PRIVATE
 )
 
 add_dependencies(${Vulkan-Render-Lib} ResourceLoader OutfacingGraphics)
-target_link_libraries(${Vulkan-Render-Lib} PUBLIC ResourceLoader)
+target_link_libraries(${Vulkan-Render-Lib} PRIVATE ResourceLoader)
 target_link_libraries(${Vulkan-Render-Lib} PUBLIC OutfacingGraphics)
 
 if(UNIX)
