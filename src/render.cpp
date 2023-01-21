@@ -11,7 +11,6 @@
 #include "parts/descriptors.h"
 #include "pipeline.h"
 
-
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
