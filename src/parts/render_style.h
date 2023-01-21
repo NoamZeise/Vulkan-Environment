@@ -3,7 +3,7 @@
 
 #include "../render_structs.h"
 #include "../pipeline.h"
-#include "../config.h"
+#include <config.h>
 #include "../volk.h"
 
 #include <string>

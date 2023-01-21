@@ -25,7 +25,7 @@ public:
 	{
 		//bind non dynamic descriptor sets
 		for (size_t i = 0; i < descriptorSets.size(); i++)
-			if(!descriptorSets[i]->dynamicBuffer)
+		    if(!descriptorSets[i]->dynamicBuffer && descriptorSets[i]->sets.size() != 0)
 				vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
 									 static_cast<uint32_t>(i), 1,
 									&descriptorSets[i]->sets[frameIndex],

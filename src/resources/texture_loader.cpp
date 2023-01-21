@@ -1,5 +1,13 @@
 #include "texture_loader.h"
 
+#include <stdexcept>
+#include <cmath>
+#include <cstring>
+#include <iostream>
+
+#include <resources/stb_image.h>
+#include <config.h>
+
 namespace Resource
 {
 
@@ -47,7 +55,7 @@ Texture TextureLoader::LoadTexture(std::string path)
 	}
 
 #ifndef NDEBUG
-	std::cout << "loading texture: " << path << std::endl;
+	std::cout << "loading texture: " << path;
 #endif
 	texToLoad.push_back({ std::string(path.c_str()) });
 	TempTexture* tex = &texToLoad.back();
@@ -63,7 +71,7 @@ Texture TextureLoader::LoadTexture(std::string path)
 		tex->format = VK_FORMAT_R8G8B8A8_SRGB;
 	else
 		tex->format = VK_FORMAT_R8G8B8A8_UNORM;
-	std::cout << "loaded at ID: " << (unsigned int)(texToLoad.size() - 1) << std::endl;
+	std::cout << "  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1) << std::endl;
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 

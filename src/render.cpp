@@ -1,17 +1,24 @@
 #include "render.h"
-#include "glm/geometric.hpp"
-#include "vulkan/vulkan_core.h"
+#include "descriptor_structs.h"
+
+#include <cstring>
+#include <iostream>
+#include <stdexcept>
 #include <stdint.h>
+#include <string>
+#include <vector>
+
+#include <glmhelper.h>
+
+namespace vkenv {
 
 
-bool Render::SetGLFWWindowHintsAndLoadVulkan()
+bool Render::LoadVulkan()
 {
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     if(volkInitialize() != VK_SUCCESS) {
-      std::cout << "failed to initilize volk\n";
       return false;
     }
-    std::cout << "volk initialized successfully\n";
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     return true;
 }
 
@@ -37,8 +44,7 @@ void Render::_initRender(GLFWwindow *window)
   part::create::DebugMessenger(_instance, &_debugMessenger);
 #endif
 
-  if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) !=
-      VK_SUCCESS)
+  if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
 
   part::create::Device(_instance, &_base, _surface);
@@ -47,8 +53,7 @@ void Render::_initRender(GLFWwindow *window)
   VkCommandPoolCreateInfo commandPoolInfo{
       VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
   commandPoolInfo.queueFamilyIndex = _base.queue.graphicsPresentFamilyIndex;
-  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr,
-                          &_generalCommandPool) != VK_SUCCESS)
+  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr, &_generalCommandPool) != VK_SUCCESS)
     throw std::runtime_error("failed to create command pool");
 
   // create transfer command buffer
@@ -57,8 +62,7 @@ void Render::_initRender(GLFWwindow *window)
   commandBufferInfo.commandPool = _generalCommandPool;
   commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   commandBufferInfo.commandBufferCount = 1;
-  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo,
-                               &_transferCommandBuffer))
+  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo, &_transferCommandBuffer))
     throw std::runtime_error("failed to allocate command buffer");
 
   _initStagingResourceManagers();
@@ -81,7 +85,6 @@ Render::~Render()
   delete _stagingModelLoader;
   delete _fontLoader;
   delete _stagingFontLoader;
-  std::cout << "here" << std::endl;
 
   _destroyFrameResources();
   vkDestroyCommandPool(_base.device, _generalCommandPool, nullptr);
@@ -289,6 +292,10 @@ void Render::_initFrameResources()
                                     {&_per2Dfrag.binding},
                                     VK_SHADER_STAGE_FRAGMENT_BIT);
 
+  part::create::DescriptorSetLayout(_base.device, &_emptyds,
+				    {},
+                                    VK_SHADER_STAGE_VERTEX_BIT);
+
   
   _offscreenTextureSampler = vkhelper::createTextureSampler(_base.device, _base.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
@@ -326,12 +333,11 @@ void Render::_initFrameResources()
       &_shaderBuffer, &_shaderMemory);
 
   // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
-
   part::create::GraphicsPipeline(
       _base.device, &_pipeline3D, _swapchain, _renderPass,
-      {&_VP3Dds, &_perInstance3Dds, &_texturesds, &_lightingds},
+      {&_VP3Dds, &_perInstance3Dds, &_emptyds, &_texturesds, &_lightingds},
       {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-      "shaders/3D-lighting.vert.spv", "shaders/blinnphong.frag.spv", true,
+      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
       settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
       VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
       Vertex3D::bindingDescriptions());
@@ -340,7 +346,7 @@ void Render::_initFrameResources()
       _base.device, &_pipelineAnim3D, _swapchain, _renderPass,
       {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
       {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-      "shaders/3D-lighting-anim.vert.spv", "shaders/blinnphong-anim.frag.spv",
+      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
       true, settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
       VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
       VertexAnim3D::bindingDescriptions());
@@ -348,14 +354,14 @@ void Render::_initFrameResources()
   part::create::GraphicsPipeline(
       _base.device, &_pipeline2D, _swapchain, _renderPass,
       {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
-      "shaders/flat.vert.spv", "shaders/flat.frag.spv", true,
+      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
       settings::MULTISAMPLING, true, _swapchain.offscreenExtent,
       VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
       Vertex2D::bindingDescriptions());
 
   part::create::GraphicsPipeline(
       _base.device, &_pipelineFinal, _swapchain, _finalRenderPass,
-      {&_offscreenTransformds, &_offscreends}, {}, "shaders/final.vert.spv", "shaders/final.frag.spv",
+      {&_offscreenTransformds, &_offscreends}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
       false, false, false, _swapchain.swapchainExtent, VK_CULL_MODE_NONE, {},
       {});
 
@@ -381,6 +387,7 @@ void Render::_destroyFrameResources()
   _texturesds.destroySet(_base.device);
   _per2Dfragds.destroySet(_base.device);
   _offscreends.destroySet(_base.device);
+  _emptyds.destroySet(_base.device);
 
   vkDestroyDescriptorPool(_base.device, _descPool, nullptr);
 
@@ -439,7 +446,6 @@ void Render::UseLoadedResources()
   _modelLoader = _stagingModelLoader;
   delete _fontLoader;
   _fontLoader = _stagingFontLoader;
-  
   _initStagingResourceManagers();
   _initFrameResources();
 }
@@ -660,9 +666,8 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
 
   _per2Dvert.data[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
   _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].colour = colour;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texOffset =
-      texOffset;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texID = texture.ID;
+  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
+  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texID = (uint32_t)texture.ID;
   _instance2Druns++;
 
   if (_current2DInstanceIndex + _instance2Druns == MAX_2D_INSTANCE)
@@ -894,3 +899,5 @@ void Render::setVsync(bool vsync) {
     this->vsync = vsync;
     FramebufferResize();
 }
+
+}//namespace

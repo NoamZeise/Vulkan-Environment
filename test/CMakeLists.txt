@@ -1,0 +1,3 @@
+add_executable(VulkanEnvironmentTest test.cpp)
+add_dependencies(VulkanEnvironmentTest VulkanEnvironment)
+target_link_libraries(VulkanEnvironmentTest VulkanEnvironment)

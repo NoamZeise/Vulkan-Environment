@@ -5,16 +5,10 @@
 
 #include <vector>
 #include <string>
-#include <stdexcept>
-#include <cmath>
-#include <cstring>
-#include <iostream>
 
-#include "stb_image.h"
-#include "../config.h"
 #include "../render_structs.h"
 #include "../vkhelper.h"
-#include "resources.h"
+#include <resources/resources.h>
 
 namespace Resource
 {

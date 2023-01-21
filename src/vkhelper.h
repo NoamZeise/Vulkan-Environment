@@ -8,7 +8,7 @@
 #include "descriptor_structs.h"
 #include "pipeline.h"
 #include "volk.h"
-#include "config.h"
+#include <config.h>
 #include "vulkan/vulkan_core.h"
 
 namespace vkhelper

@@ -6,23 +6,17 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#ifndef NO_ASSIMP
-#include "model_loader.h"
-#endif
 #include <vector>
-#include <array>
+#include <map>
 #include <string>
-#include <stdexcept>
-#include <cmath>
-#include <cstring>
-#include <iostream>
 
-#include "model_animation.h"
-#include "../texture_loader.h"
-#include "../../render_structs.h"
-#include "../../pipeline.h"
-#include "../../vkhelper.h"
-#include "../resources.h"
+#include <resources/resources.h>
+#ifndef NO_ASSIMP
+#include <resources/model_loader.h>
+#endif
+#include "texture_loader.h"
+#include "../render_structs.h"
+#include "../pipeline.h"
 
 namespace Resource
 {
@@ -40,7 +34,7 @@ public:
 	void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model, size_t count, size_t instanceOffset);
 	void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID, size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
 
-	int getAnimationIndex(Model model, std::string animationName);
+	size_t getAnimationIndex(Model model, std::string animationName);
 	ModelAnimation* getpAnimation(Model model, int animationIndex);
 
 private:
@@ -139,7 +133,7 @@ private:
 	ModelGroup<Vertex3D> loaded3D;
 	ModelGroup<VertexAnim3D> loadedAnim3D;
 	std::vector<Texture> alreadyLoaded;
-	std::map<int, ModelInGPU> models;
+	std::map<size_t, ModelInGPU> models;
 	VkBuffer buffer;
 	VkDeviceMemory memory;
 

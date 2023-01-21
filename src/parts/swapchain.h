@@ -4,8 +4,7 @@
 #include "../volk.h"
 #include <GLFW/glfw3.h>
 
-#include "../config.h"
-
+#include <config.h>
 #include <stdexcept>
 #include <vector>
 

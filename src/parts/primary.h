@@ -2,7 +2,7 @@
 #define PARTS_PRIMARY_H
 
 #include "../render_structs.h"
-#include "../config.h"
+#include <config.h>
 
 #include <stdexcept>
 #include <array>

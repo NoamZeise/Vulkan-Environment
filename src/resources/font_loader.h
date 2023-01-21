@@ -17,7 +17,7 @@
 #include <glmhelper.h>
 
 #include "texture_loader.h"
-#include "resources.h"
+#include <resources/resources.h>
 
 namespace Resource
 {

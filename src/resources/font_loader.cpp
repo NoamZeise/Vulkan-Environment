@@ -1,6 +1,4 @@
 #include "font_loader.h"
-#include "glmhelper.h"
-#include "resources.h"
 
 namespace Resource
 {

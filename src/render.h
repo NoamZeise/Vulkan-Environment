@@ -8,29 +8,25 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
-#include <atomic>
-#include <cstring>
-#include <iostream>
-#include <stdexcept>
-#include <string>
-
-#include <glmhelper.h>
-
+#include <resources/resources.h>
 #include "parts/primary.h"
 #include "parts/swapchain.h"
 #include "parts/render_style.h"
 #include "parts/descriptors.h"
 #include "parts/images.h"
 #include "descriptor_structs.h"
-#include "resources/model/model_render.h"
+#include "resources/model_render.h"
 #include "pipeline.h"
 #include "render_structs.h"
 #include "resources/font_loader.h"
 #include "resources/texture_loader.h"
 #include "vkhelper.h"
+
+
+#include <atomic>
+
+namespace vkenv {
 
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
 const int MAX_3D_INSTANCE = 20;
@@ -41,7 +37,7 @@ public:
   Render(GLFWwindow *window);
   Render(GLFWwindow *window, glm::vec2 target);
   ~Render();
-  static bool SetGLFWWindowHintsAndLoadVulkan();
+  static bool LoadVulkan();
 
   Resource::Texture LoadTexture(std::string filepath);
   Resource::Font LoadFont(std::string filepath);
@@ -116,16 +112,17 @@ private:
   DS::DescriptorSet _per2Dfragds;
   DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
+  DS::DescriptorSet _emptyds;
 
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP3D;
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP2D;
   DS::BindingAndData<DS::ShaderStructs::PerFrame3D> _perInstance;
   DS::BindingAndData<DS::ShaderStructs::Bones> _bones;
   DS::BindingAndData<glm::mat4> _per2Dvert;
+  DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<bool> _textureViews;
   DS::BindingAndData<bool> _textureSampler;
   DS::BindingAndData<DS::ShaderStructs::Frag2DData> _per2Dfrag;
-  DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<glm::mat4> _offscreenTransform;
   DS::BindingAndData<bool> _offscreenSampler;
   DS::BindingAndData<bool> _offscreenView;
@@ -176,5 +173,7 @@ private:
   VkDebugUtilsMessengerEXT _debugMessenger;
 #endif
 };
+
+} //namespace
 
 #endif
