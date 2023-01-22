@@ -71,7 +71,9 @@ Texture TextureLoader::LoadTexture(std::string path)
 		tex->format = VK_FORMAT_R8G8B8A8_SRGB;
 	else
 		tex->format = VK_FORMAT_R8G8B8A8_UNORM;
+ #ifndef NDEBUG
 	std::cout << "  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1) << std::endl;
+ #endif
 	return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
 }
 

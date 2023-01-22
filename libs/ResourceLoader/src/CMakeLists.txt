@@ -9,8 +9,6 @@ else()
   )
 endif()
 
-
-
 add_dependencies(ResourceLoader OutfacingGraphics)
 target_link_libraries(ResourceLoader PUBLIC OutfacingGraphics glm)
 

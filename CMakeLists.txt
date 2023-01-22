@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(Vulkan-Environment)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(NO_ASSIMP)
   add_compile_definitions(NO_ASSIMP)
 endif()
