@@ -1,2 +1,7 @@
 add_subdirectory(OutfacingGraphics)
 add_subdirectory(ResourceLoader)
+add_subdirectory(glfw)
+add_subdirectory(glm)
+add_subdirectory(freetype)
+add_subdirectory(volk)
+add_subdirectory(assimp)
