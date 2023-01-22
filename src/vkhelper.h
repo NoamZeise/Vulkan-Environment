@@ -7,7 +7,7 @@
 #include "render_structs.h"
 #include "descriptor_structs.h"
 #include "pipeline.h"
-#include "volk.h"
+#include <volk.h>
 #include <config.h>
 #include "vulkan/vulkan_core.h"
 

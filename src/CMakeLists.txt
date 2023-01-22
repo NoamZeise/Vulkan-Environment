@@ -6,14 +6,33 @@ file(GLOB VK_RENDER_SOURCES
 
 set(Vulkan-Render-Lib "VulkanEnvironment")
 
+if(NOT NO_FREETYPE)
+  find_package(Freetype REQUIRED)
+endif()
+
 add_library(${Vulkan-Render-Lib} ${VK_RENDER_SOURCES})
+
+add_dependencies(${Vulkan-Render-Lib} ResourceLoader OutfacingGraphics glfw volk)
+
+target_link_libraries(${Vulkan-Render-Lib} PRIVATE 
+  ResourceLoader )
+
+if(NOT NO_FREETYPE)
+  target_link_libraries(${Vulkan-Render-Lib} PRIVATE ${FREETYPE_LIBRARIES})
+endif()
+
+target_link_libraries(${Vulkan-Render-Lib} PUBLIC 
+OutfacingGraphics 
+glfw 
+glm
+volk)
+
 target_include_directories(${Vulkan-Render-Lib} PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../include/
+  ${CMAKE_CURRENT_SOURCE_DIR}/../include/ 
 )
 
-add_dependencies(${Vulkan-Render-Lib} ResourceLoader OutfacingGraphics glfw)
-target_link_libraries(${Vulkan-Render-Lib} PRIVATE ResourceLoader volk freetype)
-target_link_libraries(${Vulkan-Render-Lib} PUBLIC OutfacingGraphics glfw glm)
-
+if(NOT NO_FREETYPE)
+  target_include_directories(${Vulkan-Render-Lib} PRIVATE ${FREETYPE_INCLUDE_DIRS})
+endif()
 
 target_include_directories(${Vulkan-Render-Lib} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}../include)

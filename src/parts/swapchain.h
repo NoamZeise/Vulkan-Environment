@@ -1,7 +1,7 @@
 #ifndef PARTS_SWAPCHAIN_H
 #define PARTS_SWAPCHAIN_H
 
-#include "../volk.h"
+#include <volk.h>
 #include <GLFW/glfw3.h>
 
 #include <config.h>

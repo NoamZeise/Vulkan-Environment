@@ -1,7 +1,55 @@
 #include "font_loader.h"
 
+#ifndef NO_FREETYPE
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include <map>
+#include <iostream>
+
 namespace Resource
 {
+    
+    struct Character
+    {
+	Character(){}
+	Character(unsigned char* buffer, size_t buffW, size_t buffH, glm::vec2 size, glm::vec2 bearing, float advance)
+	{
+	    this->buffer = buffer;
+	    this->buffW = buffW;
+	    this->buffH = buffH;
+	    this->size = size;
+	    this->bearing = bearing;
+	    this->advance = advance;
+	}
+	
+	Resource::Texture texture;
+	glm::vec4 textureOffset;
+	unsigned char* buffer = nullptr;
+	size_t buffW;
+	size_t buffH;
+	glm::vec2 size;
+	glm::vec2 bearing;
+	float advance;
+    };
+
+
+    class LoadedFont
+    {
+    public:
+	LoadedFont(std::string file, TextureLoader* texLoader);
+	Character* getChar(char c);
+	float MeasureString(std::string text, float size);
+    private:
+	Character blankChar(const FT_Face &face);
+	Character makeChar(unsigned char* texture, const FT_Face &face);
+	
+	std::map<char, Character> _chars;
+	bool loadCharacter(TextureLoader* textureLoader, FT_Face f, char c);
+	const int SIZE = 100;
+    };
+    
 
 	FontLoader::~FontLoader()
 	{
@@ -30,7 +78,7 @@ namespace Resource
 			std::cout << "font is out of range" << std::endl;
 			return draws;
 		}
-		FontLoader::LoadedFont* font = fonts[drawfont.ID];
+		LoadedFont* font = fonts[drawfont.ID];
 		for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
 		{
 			Character* cTex = font->getChar(*c);
@@ -70,7 +118,7 @@ namespace Resource
 	}
 
 
-FontLoader::LoadedFont::LoadedFont(std::string file, TextureLoader* texLoader)
+LoadedFont::LoadedFont(std::string file, TextureLoader* texLoader)
 {
 #ifndef NDEBUG
 	std::cout << "loading font: " << file << std::endl;
@@ -146,12 +194,12 @@ FontLoader::LoadedFont::LoadedFont(std::string file, TextureLoader* texLoader)
 	FT_Done_FreeType(ftlib);
 }
 
-FontLoader::Character FontLoader::LoadedFont::blankChar(const FT_Face &face)
+Character LoadedFont::blankChar(const FT_Face &face)
 {
 	return makeChar(nullptr, face);
 }
 
-FontLoader::Character FontLoader::LoadedFont::makeChar(unsigned char* buffer, const FT_Face &face)
+Character LoadedFont::makeChar(unsigned char* buffer, const FT_Face &face)
 {
 	return Character(
 			buffer, face->glyph->bitmap.width, face->glyph->bitmap.rows,
@@ -161,7 +209,7 @@ FontLoader::Character FontLoader::LoadedFont::makeChar(unsigned char* buffer, co
 	);
 }
 
-bool FontLoader::LoadedFont::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
+bool LoadedFont::loadCharacter(TextureLoader* textureLoader, FT_Face face, char c)
 {
 	if (FT_Load_Char(face, c, FT_LOAD_RENDER))
 	{
@@ -185,12 +233,12 @@ bool FontLoader::LoadedFont::loadCharacter(TextureLoader* textureLoader, FT_Face
 	return true;
 }
 
-FontLoader::Character* FontLoader::LoadedFont::getChar(char c)
+Character* LoadedFont::getChar(char c)
 {
 	return &_chars[c];
 }
 
-float FontLoader::LoadedFont::MeasureString(std::string text, float size)
+float LoadedFont::MeasureString(std::string text, float size)
 {
 	float sz = 0;
 	for (std::string::const_iterator c = text.begin(); c != text.end(); c++)
@@ -203,5 +251,22 @@ float FontLoader::LoadedFont::MeasureString(std::string text, float size)
 	return sz;
 }
 
+} // namespace Resource
+
+
+
+#else
+
+
+#include <stdexcept>
+
+namespace Resource {
+    FontLoader::~FontLoader() {}
+    Font FontLoader::LoadFont(std::string file, TextureLoader* texLoader) { throw std::runtime_error("Tried to use Font::LoadFont, but NO_FREETYPE is defined"); }
+    std::vector<QuadDraw> FontLoader::DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate) { throw std::runtime_error("Tried to use Font::DrawString, but NO_FREETYPE is defined"); }
+    float FontLoader::MeasureString(Font font, std::string text, float size) { throw std::runtime_error("Tried to use Font::MesaureString, but NO_FREETYPE is defined"); }
+    void UnloadFonts() {}
 }
+
+#endif
 //end

@@ -125,8 +125,9 @@ private:
 
     void unloadAllModelData();
 
+#ifndef NO_ASSIMP
 	ModelLoader modelLoader;
-
+#endif
 	Base base;
 	VkCommandPool pool;
 	ModelGroup<Vertex2D> loaded2D;

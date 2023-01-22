@@ -1,7 +1,7 @@
 #ifndef PARTS_DESCRIPTORS_H
 #define PARTS_DESCRIPTORS_H
 
-#include "../volk.h"
+#include <volk.h>
 
 #include <vector>
 
