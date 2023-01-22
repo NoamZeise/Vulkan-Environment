@@ -22,14 +22,10 @@ if(NOT NO_FREETYPE)
 endif()
 
 target_link_libraries(${Vulkan-Render-Lib} PUBLIC 
-OutfacingGraphics 
-glfw 
-glm
-volk)
+  OutfacingGraphics 
+  glfw 
+  volk)
 
-target_include_directories(${Vulkan-Render-Lib} PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/../include/ 
-)
 
 if(NOT NO_FREETYPE)
   target_include_directories(${Vulkan-Render-Lib} PRIVATE ${FREETYPE_INCLUDE_DIRS})
