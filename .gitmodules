@@ -2,15 +2,15 @@
 	path = libs/glfw
 	url = https://github.com/glfw/glfw.git
 	branch = 3.3-stable
-[submodule "libs/freetype"]
-	path = libs/freetype
-	url = https://gitlab.freedesktop.org/freetype/freetype.git
 [submodule "libs/volk"]
 	path = libs/volk
 	url = https://github.com/zeux/volk.git
-[submodule "libs\\glm"]
-	path = libs\\glm
+	branch = master
+[submodule "libs/glm"]
+	path = libs/glm
 	url = https://github.com/g-truc/glm.git
+	branch = master
 [submodule "libs/assimp"]
 	path = libs/assimp
 	url = https://github.com/assimp/assimp.git
+	branch = master
