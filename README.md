@@ -35,16 +35,13 @@ There are some optional flags that can be set to change what is built:
 - pass `-DBUILD_DEMO=true` to build the example binary
 - pass `-DNO_FREETYPE=true` to remove the freetype dependancy from the library (font related functions will throw an exception)
 - pass `-DNO_ASSIMP=true` to remove the assimp dependancy from the library ( model related functions will throw an exception)
-- pass `-DSTATIC_FLAG=true` to add the `-static` linker option to the compiler (this will only work with GNU compilers)
 - pass `-DASSIMP_BUILD_<Some Model Type>_IMPORTER=true` to enable the importing of models that this project doesn't by default. (By default only .fbx and .obj model importers are built)
 
 To get this project and it's submodules run `$ git clone <this repo> --recurse-submodules`
 
 ### Windows
 
-GNU compilers are prefered (ie with mingw-w64), untested with microsoft's compiler. You can use something like Msys2 and use `$ pacman -S mingw-w64-x86_64-freetype` to get freetype or [download freetype directly](https://freetype.org/download.html). 
-
-Make sure you have a `FindFreetype.cmake` somewhere [where cmake looks for them](https://cmake.org/cmake/help/latest/command/find_package.html#id6). 
+If using GNU compiler on window, you can use something like Msys2 and use `$ pacman -S mingw-w64-x86_64-freetype` to get freetype or if not using Msys2, or using microsoft's compiler [download freetype directly](https://freetype.org/download.html) and make sure your compiler can see the library file.
 
 Download the [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/), for getting the vulkan headers and compiling shaders into spirv. make sure the headers can be seen by your compiler.
 
