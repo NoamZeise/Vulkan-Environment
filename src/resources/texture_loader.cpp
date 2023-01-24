@@ -11,7 +11,7 @@
 namespace Resource
 {
 
-TextureLoader::TextureLoader(Base base, VkCommandPool pool)
+TextureLoader::TextureLoader(DeviceState base, VkCommandPool pool)
 {
 	this->base = base;
 	this->pool = pool;

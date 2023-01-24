@@ -1,31 +1,32 @@
 #ifndef PARTS_PRIMARY_H
 #define PARTS_PRIMARY_H
 
+#include <volk.h>
+#include <vulkan/vulkan_core.h>
 #include "../render_structs.h"
-#include <config.h>
-
-#include <stdexcept>
-#include <array>
-#include <set>
-#include <cstring>
-#include <iostream>
 
 
 namespace part
 {
     namespace create
     {
-            void Instance(VkInstance* instance);
-            void Device(VkInstance instance, Base* base, VkSurfaceKHR surface);
+	VkResult Instance(VkInstance* instance);
+	VkResult Device(VkInstance instance,
+			DeviceState* base,
+			VkSurfaceKHR surface,
+			EnabledFeatures requestFeatures);
     #ifndef NDEBUG
-            void DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
+	VkResult DebugMessenger(VkInstance instance,
+				VkDebugUtilsMessengerEXT* messenger);
     #endif
     }
 
 #ifndef NDEBUG
     namespace destroy
     {
-        void DebugMessenger(VkInstance instance,VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+        void DebugMessenger(VkInstance instance,
+			    VkDebugUtilsMessengerEXT debugMessenger,
+			    const VkAllocationCallbacks* pAllocator);
     }
 #endif
 }

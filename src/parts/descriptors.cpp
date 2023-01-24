@@ -9,7 +9,7 @@ namespace create
 
 void _createDescriptorPool(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount);
 void _createDescriptorSet(VkDevice device, VkDescriptorPool pool, DS::DescriptorSet *ds, uint32_t frameCount);
-size_t _createHostVisibleShaderBufferMemory(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
+size_t _createHostVisibleShaderBufferMemory(DeviceState base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
 
 void DescriptorSetLayout(VkDevice device, DS::DescriptorSet *ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags)
 {
@@ -45,7 +45,7 @@ void DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<D
   }
 }
 
-void PrepareShaderBufferSets(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
+void PrepareShaderBufferSets(DeviceState base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
 {
 	size_t memSize = _createHostVisibleShaderBufferMemory(base, ds, buffer, memory);
 
@@ -159,7 +159,7 @@ void _createDescriptorSet(VkDevice device, VkDescriptorPool pool, DS::Descriptor
 		throw std::runtime_error("failed to allocate descriptor sets");
 }
 
-size_t _createHostVisibleShaderBufferMemory(Base base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
+size_t _createHostVisibleShaderBufferMemory(DeviceState base, std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory)
 {
 	VkPhysicalDeviceProperties physDevProps;
 	vkGetPhysicalDeviceProperties(base.physicalDevice, &physDevProps);

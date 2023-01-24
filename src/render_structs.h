@@ -10,8 +10,8 @@
 
 struct QueueFamilies
 {
-	uint32_t graphicsPresentFamilyIndex;
-	VkQueue graphicsPresentQueue;
+  uint32_t graphicsPresentFamilyIndex;
+  VkQueue graphicsPresentQueue;
 };
 
 struct EnabledFeatures
@@ -20,27 +20,27 @@ struct EnabledFeatures
   bool sampleRateShading = false;
 };
 
-struct Base
+struct DeviceState
 {
-	VkPhysicalDevice physicalDevice;
-	VkDevice device;
-	QueueFamilies queue;
-    EnabledFeatures features;
+  VkPhysicalDevice physicalDevice;
+  VkDevice device;
+  QueueFamilies queue;
+  EnabledFeatures features;
 };
 
 
 struct AttachmentImage
 {
-	VkImage image;
-	VkImageView view;
-	VkFormat format;
-	size_t memoryOffset;
-
-	void destroy(VkDevice device)
-	{
-		vkDestroyImageView(device, view, nullptr);
-		vkDestroyImage(device, image, nullptr);
-	}
+  VkImage image;
+  VkImageView view;
+  VkFormat format;
+  size_t memoryOffset;
+  
+  void destroy(VkDevice device)
+  {
+    vkDestroyImageView(device, view, nullptr);
+    vkDestroyImage(device, image, nullptr);
+  }
 };
 
 

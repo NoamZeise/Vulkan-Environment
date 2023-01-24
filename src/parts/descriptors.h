@@ -7,7 +7,7 @@
 
 #include "../descriptor_structs.h"
 //#include "../render_structs.h"
-struct Base;
+struct DeviceState;
 
 namespace part
 {
@@ -15,7 +15,7 @@ namespace part
     {
         void DescriptorSetLayout(VkDevice device, DS::DescriptorSet *ds, std::vector<DS::Binding*> bindings, VkShaderStageFlagBits stageFlags);
         void DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount);
-        void PrepareShaderBufferSets(Base base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
+        void PrepareShaderBufferSets(DeviceState base,	std::vector<DS::Binding*> ds, VkBuffer* buffer, VkDeviceMemory* memory);
     }
 }
 

@@ -78,8 +78,7 @@ private:
   GLFWwindow *_window;
   VkInstance _instance;
   VkSurfaceKHR _surface;
-  Base _base;
-  FrameData _frame;
+  DeviceState _base;
   SwapChain _swapchain;
   VkRenderPass _renderPass;
   VkRenderPass _finalRenderPass;

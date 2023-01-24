@@ -16,7 +16,7 @@ namespace Resource
 class TextureLoader
 {
 public:
-	TextureLoader(Base base, VkCommandPool pool);
+	TextureLoader(DeviceState base, VkCommandPool pool);
 	~TextureLoader();
 	void UnloadTextures();
 	Texture LoadTexture(std::string path);
@@ -56,7 +56,7 @@ private:
 
 	VkImageView _getImageView(uint32_t texID);
 
-	Base base;
+	DeviceState base;
 	VkCommandPool pool;
 
 	std::vector<TempTexture> texToLoad;

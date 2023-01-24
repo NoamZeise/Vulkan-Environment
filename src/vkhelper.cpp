@@ -18,7 +18,7 @@ uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBit
 	throw std::runtime_error("failed to find suitable memory type");
 }
 
-void createBufferAndMemory(Base base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+void createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL};
 	bufferInfo.size = size;

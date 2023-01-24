@@ -1,5 +1,6 @@
 #include "render.h"
 
+#include "config.h"
 #include "render_structs.h"
 #include "descriptor_structs.h"
 #include "parts/render_style.h"
@@ -42,11 +43,8 @@ void checkVolk() {
 
 Render::Render(GLFWwindow *window)
 {
-    checkVolk();
-  _initRender(window);
-  _forceTargetResolution = false;
-  _targetResolution = glm::vec2(_swapchain.swapchainExtent.width,
-                                _swapchain.swapchainExtent.height);
+    Render(window, glm::vec2(_swapchain.swapchainExtent.width,
+			     _swapchain.swapchainExtent.height));
 }
 
 Render::Render(GLFWwindow *window, glm::vec2 target)
@@ -68,7 +66,7 @@ void Render::_initRender(GLFWwindow *window)
   {
       throw std::runtime_error("failed to create window surface!");
   }
-  part::create::Device(_instance, &_base, _surface);
+  part::create::Device(_instance, &_base, _surface, EnabledFeatures { true, settings::SAMPLE_SHADING });
 
   // create general command pool
   VkCommandPoolCreateInfo commandPoolInfo{

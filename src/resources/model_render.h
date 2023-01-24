@@ -24,7 +24,7 @@ namespace Resource
 class ModelRender
 {
 public:
-	ModelRender(Base base, VkCommandPool pool);
+	ModelRender(DeviceState base, VkCommandPool pool);
 	~ModelRender();
 	Model loadModel(std::string path, TextureLoader* texLoader);
 	Model loadModel(std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
@@ -128,7 +128,7 @@ private:
 #ifndef NO_ASSIMP
 	ModelLoader modelLoader;
 #endif
-	Base base;
+	DeviceState base;
 	VkCommandPool pool;
 	ModelGroup<Vertex2D> loaded2D;
 	ModelGroup<Vertex3D> loaded3D;

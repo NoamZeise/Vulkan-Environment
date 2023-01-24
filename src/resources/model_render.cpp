@@ -14,7 +14,7 @@
 namespace Resource
 {
 
-ModelRender::ModelRender(Base base, VkCommandPool pool)
+ModelRender::ModelRender(DeviceState base, VkCommandPool pool)
 {
 	this->base = base;
 	this->pool = pool;
