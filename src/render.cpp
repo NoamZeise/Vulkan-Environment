@@ -10,6 +10,7 @@
 #include "parts/primary.h"
 #include "parts/swapchain.h"
 #include "parts/descriptors.h"
+#include "parts/command.h"
 #include "pipeline.h"
 
 
@@ -22,6 +23,7 @@
 #include <vector>
 
 #include <glmhelper.h>
+#include <vulkan/vulkan_core.h>
 
 namespace vkenv {
 
@@ -36,16 +38,11 @@ bool Render::LoadVulkan()
 }
 
 void checkVolk() {
-	if(volkGetInstanceVersion() == 0) {
-	    throw std::runtime_error("Vulkan has not been loaded! make sure Render::LoadVulkan has been called and checked before creating an instance of Render");
-	}
+    if(volkGetInstanceVersion() == 0) {
+	throw std::runtime_error("Vulkan has not been loaded! make sure Render::LoadVulkan has been called and checked before creating an instance of Render");
+    }
  }
 
-Render::Render(GLFWwindow *window)
-{
-    Render(window, glm::vec2(_swapchain.swapchainExtent.width,
-			     _swapchain.swapchainExtent.height));
-}
 
 Render::Render(GLFWwindow *window, glm::vec2 target)
 {
@@ -57,32 +54,29 @@ Render::Render(GLFWwindow *window, glm::vec2 target)
 void Render::_initRender(GLFWwindow *window)
 {
   _window = window;
-  part::create::Instance(&_instance);
+  if(part::create::Instance(&_instance) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create instance");
+  }
 #ifndef NDEBUG
-  part::create::DebugMessenger(_instance, &_debugMessenger);
+  if(part::create::DebugMessenger(_instance, &_debugMessenger) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create debug messenger");
+  }
 #endif
-
   if (glfwCreateWindowSurface(_instance, _window, nullptr, &_surface) != VK_SUCCESS)
   {
       throw std::runtime_error("failed to create window surface!");
   }
-  part::create::Device(_instance, &_base, _surface, EnabledFeatures { true, settings::SAMPLE_SHADING });
 
-  // create general command pool
-  VkCommandPoolCreateInfo commandPoolInfo{
-      VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
-  commandPoolInfo.queueFamilyIndex = _base.queue.graphicsPresentFamilyIndex;
-  if (vkCreateCommandPool(_base.device, &commandPoolInfo, nullptr, &_generalCommandPool) != VK_SUCCESS)
-    throw std::runtime_error("failed to create command pool");
+  if(part::create::Device(_instance, &_base, _surface, EnabledFeatures { true, settings::SAMPLE_SHADING }) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create device");
+  }
 
-  // create transfer command buffer
-  VkCommandBufferAllocateInfo commandBufferInfo{
-      VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
-  commandBufferInfo.commandPool = _generalCommandPool;
-  commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  commandBufferInfo.commandBufferCount = 1;
-  if (vkAllocateCommandBuffers(_base.device, &commandBufferInfo, &_transferCommandBuffer))
-    throw std::runtime_error("failed to allocate command buffer");
+  if(part::create::CommandPoolAndBuffer(_base.device,
+					&_generalCommandPool,
+					&_transferCommandBuffer,
+					_base.queue.graphicsPresentFamilyIndex) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create general command pool");
+  }
 
   _initStagingResourceManagers();
 }

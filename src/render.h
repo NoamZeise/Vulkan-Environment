@@ -30,7 +30,6 @@ const int MAX_2D_INSTANCE = 20;
 
 class Render {
 public:
-  Render(GLFWwindow *window);
   Render(GLFWwindow *window, glm::vec2 target);
   ~Render();
   static bool LoadVulkan();

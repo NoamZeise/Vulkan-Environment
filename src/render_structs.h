@@ -1,12 +1,14 @@
 #ifndef VULKAN_RENDER_STRUCTS_H
 #define VULKAN_RENDER_STRUCTS_H
 
+#include <stdexcept>
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
 #include <stdint.h>
 #include <vector>
 #include "parts/images.h"
+#include "parts/command.h"
 
 struct QueueFamilies
 {
@@ -46,49 +48,44 @@ struct AttachmentImage
 
 struct FrameData
 {
-	void SetPerFramData(VkDevice device, VkImage image, VkFormat format, uint32_t graphicsQueueIndex)
-	{
-		this->image = image;
-		part::create::ImageView(device, &view, image, format, VK_IMAGE_ASPECT_COLOR_BIT);
-	        	//create command pool
-		VkCommandPoolCreateInfo commandPoolInfo{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-		commandPoolInfo.queueFamilyIndex = graphicsQueueIndex;
-		//commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-		if (vkCreateCommandPool(device, &commandPoolInfo, nullptr, &commandPool) != VK_SUCCESS)
-			throw std::runtime_error("failed to create command buffer");
+  void SetPerFramData(VkDevice device, VkImage image, VkFormat format,
+                      uint32_t graphicsQueueIndex) {
+    this->image = image;
+    part::create::ImageView(device, &view, image, format,
+                            VK_IMAGE_ASPECT_COLOR_BIT);
 
-		//create command buffer
-		VkCommandBufferAllocateInfo commandBufferInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-		commandBufferInfo.commandPool = commandPool;
-		commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-		commandBufferInfo.commandBufferCount = 1;
-		if (vkAllocateCommandBuffers(device, &commandBufferInfo, &commandBuffer))
-			throw std::runtime_error("failed to allocate command buffer");
+    if(part::create::CommandPoolAndBuffer(device, &commandPool, &commandBuffer,
+					  graphicsQueueIndex) != VK_SUCCESS) {
+	throw std::runtime_error("failed to create command pool/buffer for frame");
+    }
 
-		//create semaphores
-		VkSemaphoreCreateInfo semaphoreInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
-		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &presentReadySem) != VK_SUCCESS)
-			throw std::runtime_error("failed to create present ready semaphore");
+    // create semaphores
+    VkSemaphoreCreateInfo semaphoreInfo{
+        VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &presentReadySem) !=
+        VK_SUCCESS)
+      throw std::runtime_error("failed to create present ready semaphore");
 
-		//create fence
-		VkFenceCreateInfo fenceInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-		if (vkCreateFence(device, &fenceInfo, nullptr, &frameFinishedFen) != VK_SUCCESS)
-			throw std::runtime_error("failed to create frame finished fence");
-	}
-	VkCommandPool commandPool;
-	VkCommandBuffer commandBuffer;
-	VkSemaphore presentReadySem;
-	VkFence frameFinishedFen;
+    // create fence
+    VkFenceCreateInfo fenceInfo{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    if (vkCreateFence(device, &fenceInfo, nullptr, &frameFinishedFen) !=
+        VK_SUCCESS)
+      throw std::runtime_error("failed to create frame finished fence");
+  }
+  VkCommandPool commandPool;
+  VkCommandBuffer commandBuffer;
+  VkSemaphore presentReadySem;
+  VkFence frameFinishedFen;
 
-	VkImage image;
-	VkImageView view;
-	VkFramebuffer framebuffer;
+  VkImage image;
+  VkImageView view;
+  VkFramebuffer framebuffer;
 
-	AttachmentImage multisampling;
-	AttachmentImage depthBuffer;
-	AttachmentImage offscreen;
-	VkFramebuffer offscreenFramebuffer;
+  AttachmentImage multisampling;
+  AttachmentImage depthBuffer;
+  AttachmentImage offscreen;
+  VkFramebuffer offscreenFramebuffer;
 };
 
 

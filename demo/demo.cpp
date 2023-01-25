@@ -1,6 +1,7 @@
 #include "../src/render.h"
 #include "glmhelper.h"
 #include <GLFW/glfw3.h>
+#include <exception>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <chrono>
@@ -59,8 +60,9 @@ int main() {
     GLFWwindow* window = glfwCreateWindow(400, 400, "Vulkan Demo", nullptr, nullptr);
     glfwSetKeyCallback(window, key_callback);
     glfwSetErrorCallback(error_callback);
-    
-    vkenv::Render render(window, glm::vec2(400, 400));
+    std::cout << "GLFW window created\n";
+    try {
+	vkenv::Render render(window, glm::vec2(400, 400));
 
     std::cout << "Framebuffer Size:\nwidth: " << render.getTargetResolution().x << "\nheight: " << render.getTargetResolution().y << std::endl;;
 
@@ -105,7 +107,10 @@ int main() {
 	    (std::chrono::high_resolution_clock::now() - start).count();
 	start =  std::chrono::high_resolution_clock::now();
     }
-    
+    }
+    catch (const std::exception &e) {
+	std::cerr << "failed to load Render: " << e.what() << std::endl;
+    }
     glfwDestroyWindow(window);
     return 0;
 }

@@ -4,21 +4,11 @@
 #include <config.h>
 
 #include <array>
+#include <set>
 #include <cstring>
 #include <iostream>
-#include <set>
-#include <vulkan/vulkan_core.h>
 
-#define returnOnErr(result_expr)                                               \
-  result = result_expr;                                                        \
-  if (result != VK_SUCCESS)                                                    \
-    return result;
-
-#define msgAndReturnOnErr(result_expr, msg)                                    \
-  result = result_expr;                                                        \
-  if (result != VK_SUCCESS)                                                    \
-      std::cerr << "Error: " << msg << std::endl;               	       \
-  return result;
+#include "part_macros.h"
 
 namespace part {
 
@@ -137,7 +127,7 @@ bool checkIfPhysicalDeviceIsValid(VkPhysicalDevice candidateDevice,
 VkResult choosePhysicalDevice(VkInstance instance,
 			      VkSurfaceKHR surface,
 			      VkPhysicalDevice *physicalDevice,
-			      uint32_t *graphicsPresentQueueFamilyId) {	
+			      uint32_t *graphicsPresentQueueFamilyId) {
   VkResult result;
   uint32_t deviceCount;
   msgAndReturnOnErr(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr), "Failed to get device count!");
@@ -148,34 +138,29 @@ VkResult choosePhysicalDevice(VkInstance instance,
 
   std::vector<VkPhysicalDevice> gpus(deviceCount);
   msgAndReturnOnErr(vkEnumeratePhysicalDevices(instance, &deviceCount, gpus.data()), "Failed to get device list!");
-  // find best device
+
   bool foundSuitable = false;
   for (size_t i = 0; i < gpus.size(); i++) {
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(gpus[i], &deviceProperties);
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, nullptr);
-    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, queueFamilies.data());
-
-    // supports graphics and present queues?
-    if (!foundSuitable ||
-        deviceProperties.deviceType ==
-            VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) // prioritise discrete gpu
-    {
-	if (checkIfPhysicalDeviceIsValid(gpus[i], surface, queueFamilies, graphicsPresentQueueFamilyId)) {
-	    *physicalDevice = gpus[i];
-	    foundSuitable = true;
-	    break;
-	}
-    }
+      VkPhysicalDeviceProperties deviceProperties;
+      vkGetPhysicalDeviceProperties(gpus[i], &deviceProperties);
+      
+      uint32_t queueFamilyCount = 0;
+      vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, nullptr);
+      std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+      vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, queueFamilies.data());
+      if (checkIfPhysicalDeviceIsValid(gpus[i], surface, queueFamilies, graphicsPresentQueueFamilyId)) {
+	  *physicalDevice = gpus[i];
+	  foundSuitable = true;
+	  if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+	      break;
+      }
   }
   if (!foundSuitable)
   {
       std::cerr << "Error: Failed to find device which supports graphics and present queues\n";
       return VK_ERROR_FEATURE_NOT_PRESENT;
   }
+  return result;
 }
     
 VkResult Device(VkInstance instance, DeviceState *deviceState, VkSurfaceKHR surface, EnabledFeatures requestFeatures) {
@@ -207,14 +192,13 @@ VkResult Device(VkInstance instance, DeviceState *deviceState, VkSurfaceKHR surf
 
   deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
   deviceInfo.pQueueCreateInfos = queueInfos.data();
-
   // check requested extensions
   uint32_t extensionCount;
   msgAndReturnOnErr(vkEnumerateDeviceExtensionProperties(deviceState->physicalDevice,
 							 nullptr,
 							 &extensionCount,
 							 nullptr),
-		    "failed to find device extenions count");
+		    "failed to find device extensions count");
   std::vector<VkExtensionProperties> deviceExtensions(extensionCount);
   msgAndReturnOnErr(vkEnumerateDeviceExtensionProperties(
 							 deviceState->physicalDevice,
@@ -222,6 +206,7 @@ VkResult Device(VkInstance instance, DeviceState *deviceState, VkSurfaceKHR surf
 							 &extensionCount,
 							 deviceExtensions.data()),
 		    "failed to find device extenions");
+	    
   for (const auto &extension : REQUESTED_DEVICE_EXTENSIONS) {
       bool found = false;
       for (const auto &supported : deviceExtensions) {
@@ -270,6 +255,7 @@ VkResult Device(VkInstance instance, DeviceState *deviceState, VkSurfaceKHR surf
   vkGetDeviceQueue(deviceState->device,
                    deviceState->queue.graphicsPresentFamilyIndex, 0,
                    &deviceState->queue.graphicsPresentQueue);
+  return result;
 }
 
 // DEBUG FUNCTIONS
