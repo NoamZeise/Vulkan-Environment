@@ -1,6 +1,6 @@
 #include "vulkan_manager.h"
 #include "config.h"
-#include "parts/primary.h"
+#include "parts/core.h"
 #include <vulkan/vulkan_core.h>
 
 #include <iostream>

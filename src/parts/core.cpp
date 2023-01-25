@@ -1,5 +1,4 @@
-#include "primary.h"
-
+#include  "core.h"
 #include <GLFW/glfw3.h>
 #include <config.h>
 
@@ -10,7 +9,9 @@
 #include <stdint.h>
 
 #include "part_macros.h"
+#ifndef NDEBUG
 #include "helper/debug.h"
+#endif
 #include "helper/device.h"
 #include "helper/choose_physical_device.h"
 

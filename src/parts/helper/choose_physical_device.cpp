@@ -5,31 +5,17 @@
 #include "../part_macros.h"
 #include "device.h"
 
-bool physicalDeviceSuitable(VkPhysicalDevice candidateDevice,
-				  VkSurfaceKHR surface,
-				  const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
-				     uint32_t *graphicsPresentQueueID,
-				     const std::vector<const char*> &requestedExtensions) {
-    VkBool32 graphicQueueSupport = VK_FALSE;
-    VkBool32 presentQueueSupport = VK_FALSE;
-    uint32_t graphicsPresent;
-    for (uint32_t j = 0; j < queueFamilyProps.size(); j++) {
-	vkGetPhysicalDeviceSurfaceSupportKHR(candidateDevice, j, surface, &presentQueueSupport);
-	if (requestedExtensionsSupported(candidateDevice, requestedExtensions) &&
-	    queueFamilyProps[j].queueFlags & VK_QUEUE_GRAPHICS_BIT && presentQueueSupport) {
-	    graphicQueueSupport = VK_TRUE;
-	    graphicsPresent = j;
-	}
-    }
-    *graphicsPresentQueueID = graphicsPresent;
-    return graphicQueueSupport && presentQueueSupport;
-}
+bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
+				VkSurfaceKHR surface,
+				const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
+				uint32_t *pGraphicsPresentQueueID,
+			       const std::vector<const char*> &requestedExtensions);
 
     
 VkResult choosePhysicalDevice(VkInstance instance,
 			      VkSurfaceKHR surface,
-			      VkPhysicalDevice *physicalDevice,
-			      uint32_t *graphicsPresentQueueFamilyId,
+			      VkPhysicalDevice *pPhysicalDevice,
+			      uint32_t *pGraphicsPresentQueueFamilyId,
 			      const std::vector<const char*> &requestedExtensions) {
     VkResult result;
     uint32_t deviceCount;
@@ -53,9 +39,8 @@ VkResult choosePhysicalDevice(VkInstance instance,
 	vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, nullptr);
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyCount, queueFamilies.data());
-	if (physicalDeviceSuitable(gpus[i], surface, queueFamilies,
-				   graphicsPresentQueueFamilyId, requestedExtensions)) {
-	    *physicalDevice = gpus[i];
+	if (getGraphicsPresentQueueID(gpus[i], surface, queueFamilies, pGraphicsPresentQueueFamilyId, requestedExtensions)) {
+	    *pPhysicalDevice = gpus[i];
 	    foundSuitable = true;
 	    // prefer discreet GPUs
 	    if(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -68,4 +53,28 @@ VkResult choosePhysicalDevice(VkInstance instance,
 	return VK_ERROR_FEATURE_NOT_PRESENT;
     }
     return result;
+}
+
+
+
+bool graphicsPresentSupported(VkPhysicalDevice candidate, VkQueueFamilyProperties queueProps, uint32_t queueId, VkSurfaceKHR surface) {
+    VkBool32 presentQueueSupported;
+    vkGetPhysicalDeviceSurfaceSupportKHR(candidate, queueId, surface, &presentQueueSupported);
+    return presentQueueSupported && queueProps.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+}
+
+bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
+				VkSurfaceKHR surface,
+				const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
+				uint32_t *pGraphicsPresentQueueID,
+				const std::vector<const char*> &requestedExtensions) {
+    pGraphicsPresentQueueID = nullptr;
+    for (uint32_t j = 0; j < queueFamilyProps.size(); j++) {
+	if (requestedExtensionsSupported(candidateDevice, requestedExtensions) &&
+	    graphicsPresentSupported(candidateDevice, queueFamilyProps[j], j, surface))  {
+	    *pGraphicsPresentQueueID = j;
+	    return true;
+	}
+    }
+    return false;
 }
