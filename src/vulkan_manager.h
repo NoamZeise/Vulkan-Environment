@@ -7,27 +7,27 @@
 #include "render_structs.h"
 
 class VulkanManager {
- public:
-  VulkanManager(GLFWwindow* window);
+public:
+    VulkanManager(GLFWwindow* window);
+    ~VulkanManager();
+private:
+    VkInstance instance;
+    VkSurfaceKHR windowSurface;
+    DeviceState deviceState;
+    SwapChain swapchain;
 
- private:
-  VkInstance instance;
-  VkSurfaceKHR windowSurface;
-  DeviceState deviceState;
-  SwapChain swapchain;
+    VkRenderPass primaryRenderPass;
+    VkRenderPass finalRenderPass;
 
-  VkRenderPass primaryRenderPass;
-  VkRenderPass finalRenderPass;
+    VkCommandPool dataTransferCommandPool;
+    VkCommandBuffer dataTransferCommandBuffer;
 
-  VkCommandPool dataTransferCommandPool;
-  VkCommandBuffer dataTransferCommandBuffer;
-
-  // frame state
-  uint32_t frameIndex;
-  VkSemaphore imageAquiredSem;
+    // frame state
+    uint32_t frameIndex;
+    VkSemaphore imageAquiredSem;
   
 #ifndef NDEBUG
-  VkDebugUtilsMessengerEXT debugMessenger;
+    VkDebugUtilsMessengerEXT debugMessenger;
 #endif
 };
 
