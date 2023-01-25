@@ -7,8 +7,11 @@
 #include <set>
 #include <cstring>
 #include <iostream>
+#include <stdint.h>
+#include <vulkan/vulkan_core.h>
 
 #include "part_macros.h"
+#include "helper/debug.h"
 
 namespace part {
 
@@ -18,26 +21,19 @@ namespace create {
 
 const std::array<const char *, 1> OPTIONAL_LAYERS = {
     "VK_LAYER_KHRONOS_validation"};
+    
 const std::array<VkValidationFeatureEnableEXT, 2> VALIDATION_LAYER_FEATURES = {
     VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
 
-};
-
-bool validationLayersSupported();
-void populateDebugMessengerCreateInfo(
-    VkDebugUtilsMessengerCreateInfoEXT *createInfo);
-VkResult createDebugUtilsMessengerEXT(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator,
-    VkDebugUtilsMessengerEXT *pDebugMessenger);
-VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData);
-
+};  
+#else
+const std::array<const char *, 1> OPTIONAL_LAYERS = {};    
 #endif // NDEBUG
+    
+bool checkRequiredLayersSupported();
 
+    
 const std::array<const char *, 1> REQUESTED_DEVICE_EXTENSIONS = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -67,15 +63,13 @@ VkResult Instance(VkInstance *instance) {
       static_cast<uint32_t>(extensions.size());
   instanceCreateInfo.ppEnabledExtensionNames = extensions.data();
 
-  // setup debug features
-#ifndef NDEBUG
-  if (!validationLayersSupported()) {
-    std::cerr << "ERROR: validation layers were requested, but aren't "
-                 "supported. Make sure you have the Vulkan SDK installed, and "
-                 "that vaildation layers are available.\n";
+  if (!checkRequiredLayersSupported()) {
+    std::cerr << "ERROR: extension layers that were requested aren't "
+                 "supported by the chosen device. Make sure you have the Vulkan SDK installed, and "
+                 "that the requested layers are available.\n";
     return VK_ERROR_FEATURE_NOT_PRESENT;
   }
-
+  #ifndef NDEBUG
   instanceCreateInfo.enabledLayerCount =
       static_cast<uint32_t>(OPTIONAL_LAYERS.size());
   instanceCreateInfo.ppEnabledLayerNames = OPTIONAL_LAYERS.data();
@@ -98,32 +92,183 @@ VkResult Instance(VkInstance *instance) {
   instanceCreateInfo.pNext = nullptr;
 #endif
 
-  // create instance
   returnOnErr(vkCreateInstance(&instanceCreateInfo, nullptr, instance));
   volkLoadInstance(*instance);
   return VK_SUCCESS;
 }
 
+
+VkResult checkReqeustedExtensionsAreSupported(VkPhysicalDevice physicalDevice) {
+  VkResult result = VK_SUCCESS;
+  uint32_t extensionCount;
+  msgAndReturnOnErr(vkEnumerateDeviceExtensionProperties(physicalDevice,
+							 nullptr,
+							 &extensionCount,
+							 nullptr),
+		    "failed to find device extensions count");
+  std::vector<VkExtensionProperties> deviceExtensions(extensionCount);
+  msgAndReturnOnErr(vkEnumerateDeviceExtensionProperties(physicalDevice,
+							 nullptr,
+							 &extensionCount,
+							 deviceExtensions.data()),
+		    "failed to find device extenions");
+	    
+  for (const auto &extension : REQUESTED_DEVICE_EXTENSIONS) {
+      bool found = false;
+      for (const auto &supported : deviceExtensions) {
+	  // std::cout << supported.extensionName  << std::endl;
+	  if (std::strcmp(extension, supported.extensionName) == 0) {
+	      found = true;
+	      break;
+	  }
+      }
+      if (!found) {
+	  std::cerr << "Error: Device does not support requested extention\n";
+	  return VK_ERROR_EXTENSION_NOT_PRESENT;
+      }
+  }
+  return result;
+}
+
+std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies) {
+  std::vector<VkDeviceQueueCreateInfo> queueInfos(uniqueQueueFamilies.size());
+  float queuePriority = 1.0f;
+  int familyCount = 0;
+  for (uint32_t familyIndex : uniqueQueueFamilies) {
+    VkDeviceQueueCreateInfo queueCreateInfo{
+        VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
+    queueCreateInfo.queueFamilyIndex = familyIndex;
+    queueCreateInfo.queueCount = 1;
+    queueCreateInfo.pQueuePriorities = &queuePriority;
+
+    queueInfos[familyCount] = queueCreateInfo;
+    familyCount++;
+  }
+  return queueInfos;
+}
+    
+
+VkResult choosePhysicalDevice(VkInstance instance, VkSurfaceKHR surface,
+                              VkPhysicalDevice *physicalDevice,
+                              uint32_t *graphicsPresentQueueFamilyId);
+
+bool checkIfPhysicalDeviceIsValid(
+    VkPhysicalDevice candidateDevice, VkSurfaceKHR surface,
+    const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
+    uint32_t *graphicsPresentQueueID);
+
+VkResult Device(VkInstance instance, DeviceState *deviceState, VkSurfaceKHR surface, EnabledFeatures requestFeatures) {
+    VkResult result = VK_SUCCESS;
+    returnOnErr(choosePhysicalDevice(instance,
+				     surface,
+				     &deviceState->physicalDevice,
+				     &deviceState->queue.graphicsPresentFamilyIndex));
+
+  // create logical device
+
+  VkDeviceCreateInfo deviceInfo{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
+
+  std::vector<VkDeviceQueueCreateInfo> queueInfos = fillQueueFamiliesCreateInfo(
+			    { deviceState->queue.graphicsPresentFamilyIndex});
+  deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
+  deviceInfo.pQueueCreateInfos = queueInfos.data();
+
+  msgAndReturnOnErr(checkReqeustedExtensionsAreSupported(deviceState->physicalDevice),
+		    "The selected device did not support all of the requested extensions");
+  deviceInfo.enabledExtensionCount =
+      static_cast<uint32_t>(REQUESTED_DEVICE_EXTENSIONS.size());
+  deviceInfo.ppEnabledExtensionNames = REQUESTED_DEVICE_EXTENSIONS.data();
+
+  VkPhysicalDeviceFeatures availableDeviceFeatures;
+  vkGetPhysicalDeviceFeatures(deviceState->physicalDevice, &availableDeviceFeatures);
+  // enable optional device features
+  VkPhysicalDeviceFeatures chosenDeviceFeatures{};
+  if (availableDeviceFeatures.samplerAnisotropy && requestFeatures.samplerAnisotropy) {
+    chosenDeviceFeatures.samplerAnisotropy = VK_TRUE;
+    deviceState->features.samplerAnisotropy = true;
+  }
+  if (availableDeviceFeatures.sampleRateShading && requestFeatures.sampleRateShading) {
+      chosenDeviceFeatures.sampleRateShading = VK_TRUE;
+      deviceState->features.sampleRateShading = true;
+  }
+
+  deviceInfo.pEnabledFeatures = &chosenDeviceFeatures;
+
+#ifndef NDEBUG
+  deviceInfo.enabledLayerCount = static_cast<uint32_t>(OPTIONAL_LAYERS.size());
+  deviceInfo.ppEnabledLayerNames = OPTIONAL_LAYERS.data();
+#else
+  deviceInfo.enabledLayerCount = 0;
+#endif // NDEBUG
+
+  returnOnErr(vkCreateDevice(deviceState->physicalDevice, &deviceInfo, nullptr,
+			     &deviceState->device))
+
+  volkLoadDevice(deviceState->device);
+  // get queue handles for graphics and present
+  vkGetDeviceQueue(deviceState->device,
+                   deviceState->queue.graphicsPresentFamilyIndex, 0,
+                   &deviceState->queue.graphicsPresentQueue);
+  return result;
+}
+
+    
+#ifndef NDEBUG
+VkResult DebugMessenger(VkInstance instance,
+                        VkDebugUtilsMessengerEXT *messenger) {
+  VkResult result = VK_SUCCESS;
+  // setup debug messenger for all operations
+  VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+  populateDebugMessengerCreateInfo(&createInfo);
+  returnOnErr(
+      createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, messenger));
+  return result;
+}
+#endif
+
+
+bool checkRequiredLayersSupported() {
+  uint32_t layerCount;
+  vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
+  std::vector<VkLayerProperties> availableLayers(layerCount);
+  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+  for (auto layer : OPTIONAL_LAYERS) {
+    bool layerSupported = false;
+    for (size_t i = 0; i < layerCount; i++) {
+      if (std::strcmp(layer, availableLayers[i].layerName) == 0) {
+        layerSupported = true;
+        break;
+      }
+    }
+    if (!layerSupported) {
+      return false;
+    }
+  }
+  return true;
+}
+
+    
 bool checkIfPhysicalDeviceIsValid(VkPhysicalDevice candidateDevice,
 				  VkSurfaceKHR surface,
 				  const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
 				  uint32_t *graphicsPresentQueueID) {
-	VkBool32 graphicQueueSupport = VK_FALSE;
-	VkBool32 presentQueueSupport = VK_FALSE;
-	uint32_t graphicsPresent;
-	for (uint32_t j = 0; j < queueFamilyProps.size(); j++) {
-	    vkGetPhysicalDeviceSurfaceSupportKHR(candidateDevice, j, surface,
-						 &presentQueueSupport);
-	    if (queueFamilyProps[j].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
-		presentQueueSupport) {
-		graphicQueueSupport = VK_TRUE;
-		graphicsPresent = j;
-	    }
+    VkBool32 graphicQueueSupport = VK_FALSE;
+    VkBool32 presentQueueSupport = VK_FALSE;
+    uint32_t graphicsPresent;
+    for (uint32_t j = 0; j < queueFamilyProps.size(); j++) {
+	vkGetPhysicalDeviceSurfaceSupportKHR(candidateDevice, j, surface,
+					     &presentQueueSupport);
+	if (queueFamilyProps[j].queueFlags & VK_QUEUE_GRAPHICS_BIT &&
+	    presentQueueSupport) {
+	    graphicQueueSupport = VK_TRUE;
+	    graphicsPresent = j;
 	}
-	*graphicsPresentQueueID = graphicsPresent;
-	return graphicQueueSupport && presentQueueSupport;
     }
+    *graphicsPresentQueueID = graphicsPresent;
+    return graphicQueueSupport && presentQueueSupport;
+}
 
+    
 VkResult choosePhysicalDevice(VkInstance instance,
 			      VkSurfaceKHR surface,
 			      VkPhysicalDevice *physicalDevice,
@@ -162,188 +307,6 @@ VkResult choosePhysicalDevice(VkInstance instance,
   }
   return result;
 }
-    
-VkResult Device(VkInstance instance, DeviceState *deviceState, VkSurfaceKHR surface, EnabledFeatures requestFeatures) {
-    VkResult result = VK_SUCCESS;
-    returnOnErr(choosePhysicalDevice(instance,
-				     surface,
-				     &deviceState->physicalDevice,
-				     &deviceState->queue.graphicsPresentFamilyIndex));
-
-  // create logical device
-
-  VkDeviceCreateInfo deviceInfo{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-
-  // create queues
-  std::set<uint32_t> uniqueQueueFamilies = {
-      deviceState->queue.graphicsPresentFamilyIndex};
-  std::vector<VkDeviceQueueCreateInfo> queueInfos(uniqueQueueFamilies.size());
-  float queuePriority = 1.0f;
-  int familyCount = 0;
-  for (uint32_t familyIndex : uniqueQueueFamilies) {
-    VkDeviceQueueCreateInfo queueCreateInfo{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
-    queueCreateInfo.queueFamilyIndex = familyIndex;
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
-
-    queueInfos[familyCount] = queueCreateInfo;
-    familyCount++;
-  }
-
-  deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
-  deviceInfo.pQueueCreateInfos = queueInfos.data();
-  // check requested extensions
-  uint32_t extensionCount;
-  msgAndReturnOnErr(vkEnumerateDeviceExtensionProperties(deviceState->physicalDevice,
-							 nullptr,
-							 &extensionCount,
-							 nullptr),
-		    "failed to find device extensions count");
-  std::vector<VkExtensionProperties> deviceExtensions(extensionCount);
-  msgAndReturnOnErr(vkEnumerateDeviceExtensionProperties(
-							 deviceState->physicalDevice,
-							 nullptr,
-							 &extensionCount,
-							 deviceExtensions.data()),
-		    "failed to find device extenions");
-	    
-  for (const auto &extension : REQUESTED_DEVICE_EXTENSIONS) {
-      bool found = false;
-      for (const auto &supported : deviceExtensions) {
-	  // std::cout << supported.extensionName  << std::endl;
-	  if (std::strcmp(extension, supported.extensionName) == 0) {
-	      found = true;
-	      break;
-	  }
-      }
-      if (!found) {
-	  std::cerr << "Error: Device does not support requested extention\n";
-	  return VK_ERROR_EXTENSION_NOT_PRESENT;
-      }
-  }
-  deviceInfo.enabledExtensionCount =
-      static_cast<uint32_t>(REQUESTED_DEVICE_EXTENSIONS.size());
-  deviceInfo.ppEnabledExtensionNames = REQUESTED_DEVICE_EXTENSIONS.data();
-
-  VkPhysicalDeviceFeatures availableDeviceFeatures;
-  vkGetPhysicalDeviceFeatures(deviceState->physicalDevice, &availableDeviceFeatures);
-  // enable optional device features
-  VkPhysicalDeviceFeatures chosenDeviceFeatures{};
-  if (availableDeviceFeatures.samplerAnisotropy && requestFeatures.samplerAnisotropy) {
-    chosenDeviceFeatures.samplerAnisotropy = VK_TRUE;
-    deviceState->features.samplerAnisotropy = true;
-  }
-  if (availableDeviceFeatures.sampleRateShading && requestFeatures.sampleRateShading) {
-      chosenDeviceFeatures.sampleRateShading = VK_TRUE;
-      deviceState->features.sampleRateShading = true;
-  }
-
-  deviceInfo.pEnabledFeatures = &chosenDeviceFeatures;
-
-#ifndef NDEBUG
-  deviceInfo.enabledLayerCount = static_cast<uint32_t>(OPTIONAL_LAYERS.size());
-  deviceInfo.ppEnabledLayerNames = OPTIONAL_LAYERS.data();
-#else
-  deviceInfo.enabledLayerCount = 0;
-#endif // NDEBUG
-
-  returnOnErr(vkCreateDevice(deviceState->physicalDevice, &deviceInfo, nullptr,
-			     &deviceState->device))
-
-  volkLoadDevice(deviceState->device);
-  // get queue handles for graphics and present
-  vkGetDeviceQueue(deviceState->device,
-                   deviceState->queue.graphicsPresentFamilyIndex, 0,
-                   &deviceState->queue.graphicsPresentQueue);
-  return result;
-}
-
-// DEBUG FUNCTIONS
-#ifndef NDEBUG
-VkResult DebugMessenger(VkInstance instance,
-                        VkDebugUtilsMessengerEXT *messenger) {
-  VkResult result = VK_SUCCESS;
-  // setup debug messenger for all operations
-  VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-  populateDebugMessengerCreateInfo(&createInfo);
-  returnOnErr(
-      createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, messenger));
-  return result;
-}
-
-void populateDebugMessengerCreateInfo(
-    VkDebugUtilsMessengerCreateInfoEXT *createInfo) {
-  // debug messenger settings
-  createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  if (settings::ERROR_ONLY)
-    createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  else
-    createInfo->messageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  createInfo->messageType =
-      VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT // all types
-      | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-      VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  createInfo->pfnUserCallback = debugUtilsMessengerCallback;
-  createInfo->pUserData = nullptr; // optional pointer to user type
-}
-
-bool validationLayersSupported() {
-  // check if validation layer and selected optional layers are supported
-  uint32_t layerCount;
-  vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-  std::vector<VkLayerProperties> availableLayers(layerCount);
-  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-  for (auto layer : OPTIONAL_LAYERS) {
-    bool layerSupported = false;
-    for (size_t i = 0; i < layerCount; i++) {
-      if (std::strcmp(layer, availableLayers[i].layerName) == 0) {
-        layerSupported = true;
-        break;
-      }
-      // std::cout << availableLayers[i].layerName << std::endl;
-    }
-    if (!layerSupported) {
-      return false;
-    }
-  }
-  return true;
-}
-
-VkResult createDebugUtilsMessengerEXT(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-    const VkAllocationCallbacks *pAllocator,
-    VkDebugUtilsMessengerEXT *pDebugMessenger) {
-  // returns nullptr if function couldnt be loaded
-  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkCreateDebugUtilsMessengerEXT");
-  if (func != nullptr) {
-    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-  } else {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-}
-
-VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-    void *pUserData) {
-  // write out warnings and errors
-  if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    std::cout << "Warning: " << pCallbackData->messageIdNumber << ":"
-              << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage
-              << std::endl;
-  } else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    std::cerr << "Error: " << pCallbackData->messageIdNumber << ":"
-              << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage
-              << std::endl;
-  }
-  return VK_FALSE;
-}
-#endif
 } // namespace create
 
 #ifndef NDEBUG
