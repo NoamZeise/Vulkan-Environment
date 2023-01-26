@@ -7,6 +7,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdint.h>
+#include <vector>
 
 #include "part_macros.h"
 #ifndef NDEBUG
@@ -18,7 +19,7 @@
 namespace part {
     
   namespace create {
-    const std::array<const char *, 1> OPTIONAL_LAYERS = {
+    const std::vector<const char *> OPTIONAL_LAYERS = {
 #ifndef NDEBUG
 	"VK_LAYER_KHRONOS_validation",
 #else
@@ -26,7 +27,7 @@ namespace part {
 #endif
     };
     
-    const std::array<VkValidationFeatureEnableEXT, 2> VALIDATION_LAYER_FEATURES = {
+    const std::vector<VkValidationFeatureEnableEXT> VALIDATION_LAYER_FEATURES = {
 #ifndef NDEBUG
 	VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
 	VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,

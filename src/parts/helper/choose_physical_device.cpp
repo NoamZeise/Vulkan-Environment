@@ -6,9 +6,9 @@
 #include "device.h"
 
 bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
-				VkSurfaceKHR surface,
-				const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
-				uint32_t *pGraphicsPresentQueueID,
+			       VkSurfaceKHR surface,
+			       const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
+			       uint32_t *pGraphicsPresentQueueID,
 			       const std::vector<const char*> &requestedExtensions);
 
     
@@ -70,7 +70,7 @@ bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
 				const std::vector<const char*> &requestedExtensions) {
     pGraphicsPresentQueueID = nullptr;
     for (uint32_t j = 0; j < queueFamilyProps.size(); j++) {
-	if (requestedExtensionsSupported(candidateDevice, requestedExtensions) &&
+	if (checkRequestedExtensionsAreSupported(candidateDevice, requestedExtensions) &&
 	    graphicsPresentSupported(candidateDevice, queueFamilyProps[j], j, surface))  {
 	    *pGraphicsPresentQueueID = j;
 	    return true;
