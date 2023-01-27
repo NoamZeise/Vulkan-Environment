@@ -1,11 +1,12 @@
 #include "swapchain.h"
+#include <stdexcept>
 
 namespace part
 {
 namespace create
 {
 
-    std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent, GLFWwindow* window, bool vsync)
+  std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t windowWidth, uint32_t windowHeight,  bool vsync, bool srgb, VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent)
 {
 	//get surface formats
 	uint32_t formatCount;
@@ -18,7 +19,7 @@ namespace create
 	else if (formatCount == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
 	{
 		*format = formats[0];
-		if(settings::SRGB)
+		if(srgb)
 			format->format = VK_FORMAT_R8G8B8A8_SRGB;
 		else
 			format->format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -31,7 +32,7 @@ namespace create
 			switch (fmt.format)
 			{
 			case VK_FORMAT_R8G8B8A8_SRGB:
-				if (settings::SRGB)
+				if (srgb)
 					*format = fmt;
 				break;
 			case VK_FORMAT_R8G8B8A8_UNORM:
@@ -67,20 +68,16 @@ namespace create
 	}
 	else
 	{
-	    int swidth, sheight;
-		glfwGetFramebufferSize(window, &swidth, &sheight);
-		uint32_t width = static_cast<uint32_t>(swidth);
-		uint32_t height = static_cast<uint32_t>(sheight);
-		*extent = {width, height};
+		*extent = {windowWidth, windowHeight};
 		//clamp width
-		if (width > surfaceCapabilities.maxImageExtent.width)
+		if (windowWidth > surfaceCapabilities.maxImageExtent.width)
 			extent->width = surfaceCapabilities.maxImageExtent.width;
-		else if (width < surfaceCapabilities.minImageExtent.width)
+		else if (windowWidth < surfaceCapabilities.minImageExtent.width)
 			extent->width = surfaceCapabilities.minImageExtent.width;
 		//clamp height
-		if (height > surfaceCapabilities.maxImageExtent.height)
+		if (windowHeight > surfaceCapabilities.maxImageExtent.height)
 			extent->width = surfaceCapabilities.maxImageExtent.height;
-		else if (height < surfaceCapabilities.minImageExtent.height)
+		else if (windowWidth < surfaceCapabilities.minImageExtent.height)
 			extent->width = surfaceCapabilities.minImageExtent.height;
 	}
 

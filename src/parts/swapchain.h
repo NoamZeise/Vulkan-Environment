@@ -4,18 +4,13 @@
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-#include <config.h>
-#include <stdexcept>
 #include <vector>
 
 namespace part
 {
     namespace create
     {
-        std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice,
-                                       VkSurfaceKHR surface, VkSwapchainKHR *swapchain,
-                                       VkSurfaceFormatKHR *format, VkExtent2D *extent,
-                                       GLFWwindow* window, bool vsync);
+      std::vector<VkImage> Swapchain(VkDevice device, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, uint32_t windowWidth, uint32_t windowHeight, bool vsync, bool srgb, VkSwapchainKHR *swapchain, VkSurfaceFormatKHR *format, VkExtent2D *extent);
     }
 }
 

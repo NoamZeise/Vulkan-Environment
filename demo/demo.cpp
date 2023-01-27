@@ -102,7 +102,7 @@ int main() {
 	    drawFinished = false;
 	    render.EndDraw(drawFinished);
 
-	    frameElapsed = std::chrono::duration_cast<std::chrono::milliseconds>
+	    frameElapsed = (long)std::chrono::duration_cast<std::chrono::milliseconds>
 		(std::chrono::high_resolution_clock::now() - start).count();
 	    start =  std::chrono::high_resolution_clock::now();
 	}

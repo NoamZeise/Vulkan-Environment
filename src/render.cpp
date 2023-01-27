@@ -1,6 +1,6 @@
 #include "render.h"
 
-#include "config.h"
+#include <config.h>
 #include "render_structs.h"
 #include "descriptor_structs.h"
 #include "parts/render_style.h"
@@ -23,7 +23,6 @@
 #include <vector>
 
 #include <glmhelper.h>
-#include <vulkan/vulkan_core.h>
 
 namespace vkenv {
 
@@ -114,26 +113,17 @@ Render::~Render()
 
 void Render::_initFrameResources()
 {
-  if (_swapchain.swapChain != VK_NULL_HANDLE)
-    _swapchain.destroyResources(_base.device);
-  auto images = part::create::Swapchain(
-      _base.device, _base.physicalDevice, _surface, &_swapchain.swapChain,
-      &_swapchain.format, &_swapchain.swapchainExtent, _window, vsync);
-  size_t frameCount = images.size();
+    int winWidth, winHeight;
+    glfwGetFramebufferSize(_window, &winWidth, &winHeight);
+    VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
+    if (_forceTargetResolution)
+	offscreenBufferExtent = {(uint32_t)_targetResolution.x,
+				      (uint32_t)_targetResolution.y};
+    _swapchain.initResources(_base, _surface, (uint32_t)winWidth,
+			     (uint32_t)winHeight , vsync, offscreenBufferExtent);
 
-  _swapchain.frameData.resize(frameCount);
-
-  for (size_t i = 0; i < frameCount; i++) {
-    _swapchain.frameData[i].SetPerFramData(
-        _base.device, images[i], _swapchain.format.format,
-        _base.queue.graphicsPresentFamilyIndex);
-  }
-
-  if (_forceTargetResolution)
-      _swapchain.offscreenExtent = {(uint32_t)_targetResolution.x,
-				    (uint32_t)_targetResolution.y};
-  else
-    _swapchain.offscreenExtent = _swapchain.swapchainExtent;
+    
+    size_t frameCount = _swapchain.frameData.size();
 
   // create attachment resources
   //

@@ -2,7 +2,6 @@
 
 #include "../part_macros.h"
 #include <iostream>
-#include <vulkan/vulkan_core.h>
 #include <cstring>
 
 #define checkStringsAgainstList(str_list, other, path_to_str) \

@@ -3,6 +3,7 @@ file(GLOB VK_RENDER_SOURCES
 	  resources/*
 	  parts/*
 	  parts/helper/*
+	  render_structs/*
 	  )
 
 set(Vulkan-Render-Lib "VulkanEnvironment")

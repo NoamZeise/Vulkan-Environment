@@ -1,34 +1,17 @@
 #ifndef VULKAN_RENDER_STRUCTS_H
 #define VULKAN_RENDER_STRUCTS_H
 
-#include <stdexcept>
+#include <exception>
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
 #include <stdint.h>
 #include <vector>
+
 #include "parts/images.h"
 #include "parts/command.h"
+#include "render_structs/device_state.h"
 
-struct QueueFamilies
-{
-  uint32_t graphicsPresentFamilyIndex;
-  VkQueue graphicsPresentQueue;
-};
-
-struct EnabledFeatures
-{
-  bool samplerAnisotropy = false;
-  bool sampleRateShading = false;
-};
-
-struct DeviceState
-{
-  VkPhysicalDevice physicalDevice;
-  VkDevice device;
-  QueueFamilies queue;
-  EnabledFeatures features;
-};
 
 
 struct AttachmentImage
@@ -91,40 +74,45 @@ struct FrameData
 
 struct SwapChain
 {
-	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	VkSurfaceFormatKHR format;
-	VkExtent2D swapchainExtent;
-	VkExtent2D offscreenExtent;
-	VkSampleCountFlagBits maxMsaaSamples;
-	std::vector<FrameData> frameData;
-	std::vector<VkSemaphore> imageAquireSem;
-	VkDeviceMemory attachmentMemory;
+    VkSwapchainKHR swapChain = VK_NULL_HANDLE;
+    VkSurfaceFormatKHR format;
+    VkExtent2D swapchainExtent;
+    VkExtent2D offscreenExtent;
+    VkSampleCountFlagBits maxMsaaSamples;
+    std::vector<FrameData> frameData;
+    std::vector<VkSemaphore> imageAquireSem;
+    VkDeviceMemory attachmentMemory = VK_NULL_HANDLE;
 
-	void destroyResources(VkDevice device)
-	{
-			for (size_t i = 0; i < frameData.size(); i++)
-	{
+    VkResult initResources(DeviceState &deviceState,
+			   VkSurfaceKHR windowSurface,
+			   uint32_t windowWidth, uint32_t windowHeight,
+			   bool vsync, VkExtent2D offscreenExtent);
+
+    void destroyResources(VkDevice device)
+    {
+	for (size_t i = 0; i < frameData.size(); i++)
+	    {
 		frameData[i].offscreen.destroy(device);
 		frameData[i].depthBuffer.destroy(device);
 		if(maxMsaaSamples != VK_SAMPLE_COUNT_1_BIT)
-			frameData[i].multisampling.destroy(device);
+		    frameData[i].multisampling.destroy(device);
 
 		vkDestroyImageView(device, frameData[i].view, nullptr);
 		vkFreeCommandBuffers(device, frameData[i].commandPool, 1, &frameData[i].commandBuffer);
 		vkDestroyCommandPool(device, frameData[i].commandPool, nullptr);
 		vkDestroySemaphore(device, frameData[i].presentReadySem, nullptr);
 		vkDestroyFence(device, frameData[i].frameFinishedFen, nullptr);
-	}
+	    }
 
 	vkFreeMemory(device,attachmentMemory, nullptr);
 
 	for (size_t i = 0; i < imageAquireSem.size(); i++)
-	{
+	    {
 		vkDestroySemaphore(device, imageAquireSem[i], nullptr);
-	}
+	    }
 	imageAquireSem.clear();
 	frameData.clear();
-	}
+    }
 };
 
 
