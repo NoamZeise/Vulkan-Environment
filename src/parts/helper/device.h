@@ -7,11 +7,11 @@
 #include <vulkan/vulkan_core.h>
 #include "../../render_structs.h"
 
-bool checkRequiredLayersSupported(std::vector<const char *> requiredLayers);
+bool checkRequiredLayersSupported(const std::vector<const char *> requiredLayers);
 
 bool checkRequestedExtensionsAreSupported(
     VkPhysicalDevice physicalDevice,
-    std::vector<const char *> requestedExtensions);
+    const std::vector<const char *> &requestedExtensions);
 
 std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies);
 

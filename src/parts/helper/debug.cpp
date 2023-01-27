@@ -1,3 +1,4 @@
+#ifndef NDEBUG
 #include "debug.h"
 
 #include <iostream>
@@ -57,4 +58,4 @@ void populateDebugMessengerCreateInfo(
   createInfo->pUserData = nullptr; // optional pointer to user type
 }
 
-
+#endif

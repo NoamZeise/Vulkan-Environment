@@ -30,25 +30,27 @@ bool checkRequiredLayersSupported(std::vector<const char *> requiredLayers) {
 
 bool checkRequestedExtensionsAreSupported(
 	VkPhysicalDevice physicalDevice,
-	std::vector<const char *> requestedExtensions) {
+	const std::vector<const char *> &requestedExtensions) {
     uint32_t extensionCount;
     if(vkEnumerateDeviceExtensionProperties(
-			      physicalDevice,
-			      nullptr,
-			      &extensionCount,
-			      nullptr)  != VK_SUCCESS) {
+	       physicalDevice,
+	       nullptr,
+	       &extensionCount,
+	       nullptr)  != VK_SUCCESS) {
 	std::cerr <<  "Error: failed to find device extensions count\n";
 	return  false;
     }
     std::vector<VkExtensionProperties> deviceExtensions(extensionCount);
     if(vkEnumerateDeviceExtensionProperties(
-			      physicalDevice,
-			      nullptr,
-			      &extensionCount,
-			      deviceExtensions.data()) != VK_SUCCESS) {
-	   std::cerr << "Error: failed to find device extenions\n";
+	       physicalDevice,
+	       nullptr,
+	       &extensionCount,
+	       deviceExtensions.data()) != VK_SUCCESS) {
+	std::cerr << "Error: failed to find device extenions\n";
     }
+
     checkStringsAgainstList(requestedExtensions, deviceExtensions, extensionName);
+    return true;
 }
 
 std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies) {

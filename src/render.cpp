@@ -53,6 +53,7 @@ Render::Render(GLFWwindow *window, glm::vec2 target)
 }
 void Render::_initRender(GLFWwindow *window)
 {
+
   _window = window;
   if(part::create::Instance(&_instance) != VK_SUCCESS) {
       throw std::runtime_error("failed to create instance");

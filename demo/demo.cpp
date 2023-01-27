@@ -7,7 +7,6 @@
 #include <chrono>
 #include <string>
 
-
 glm::vec3 camPos = glm::vec3(-300.0f, 10.0f, 0.0f);
 float yaw = -5.0f;
 float pitch = 2.0f;
@@ -47,10 +46,10 @@ glm::mat4 calcView() {
 int main() {
     std::cout << "--- Vulkan Environment Demo ---\n";
     if(!glfwInit())
-    {
-	std::cerr << "Error: failed to initialise GLFW, aborting!\n";
-	return -1;
-    }
+	{
+	    std::cerr << "Error: failed to initialise GLFW, aborting!\n";
+	    return -1;
+	}
 
     // Vulkan Must be loaded before a window is created
     if(!vkenv::Render::LoadVulkan()) {
@@ -63,54 +62,55 @@ int main() {
     std::cout << "GLFW window created\n";
     try {
 	vkenv::Render render(window, glm::vec2(400, 400));
-
-    std::cout << "Framebuffer Size:\nwidth: " << render.getTargetResolution().x << "\nheight: " << render.getTargetResolution().y << std::endl;;
-
-    Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
-    Resource::Model suzanneModel = render.LoadModel("models/monkey.fbx");
-
-    render.LoadResourcesToGPU();
-    render.UseLoadedResources();
-
-    render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
-
-    float rot = 0.0f;
-    std::atomic<bool> drawFinished;
-    auto start = std::chrono::high_resolution_clock::now();
-    long frameElapsed = 0;
-    while (!glfwWindowShouldClose(window)) {
-	glfwPollEvents();
-
-    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
-	rot += 0.1f * frameElapsed;
-
-	render.Begin2DDraw();
 	
-	render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 100, 100, 100), rot));
+	std::cout << "Framebuffer Size:\nwidth: " << render.getTargetResolution().x << "\nheight: " << render.getTargetResolution().y << std::endl;;
 
-	render.Begin3DDraw();
+	Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
+	Resource::Model suzanneModel = render.LoadModel("models/monkey.fbx");
 
-	auto model =
-	    glm::rotate(
+	render.LoadResourcesToGPU();
+	render.UseLoadedResources();
+
+	render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
+
+	float rot = 0.0f;
+	std::atomic<bool> drawFinished;
+	auto start = std::chrono::high_resolution_clock::now();
+	long frameElapsed = 0;
+	while (!glfwWindowShouldClose(window)) {
+	    glfwPollEvents();
+
+	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
+	    rot += 0.1f * frameElapsed;
+
+	    render.Begin2DDraw();
+	
+	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 100, 100, 100), rot));
+
+	    render.Begin3DDraw();
+
+	    auto model =
+		glm::rotate(
 			glm::rotate(
-				    glm::mat4(1.0f),
-				    glm::radians(90.0f),
-				    glm::vec3(1.0f, 0.0f, 0.0f)),
+				glm::mat4(1.0f),
+				glm::radians(90.0f),
+				glm::vec3(1.0f, 0.0f, 0.0f)),
 			glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f)
-			);
-	render.DrawModel(suzanneModel, model, glm::inverse(glm::transpose(model)));
+			    );
+	    render.DrawModel(suzanneModel, model, glm::inverse(glm::transpose(model)));
 	
-	drawFinished = false;
-	render.EndDraw(drawFinished);
+	    drawFinished = false;
+	    render.EndDraw(drawFinished);
 
-	frameElapsed = std::chrono::duration_cast<std::chrono::milliseconds>
-	    (std::chrono::high_resolution_clock::now() - start).count();
-	start =  std::chrono::high_resolution_clock::now();
-    }
+	    frameElapsed = std::chrono::duration_cast<std::chrono::milliseconds>
+		(std::chrono::high_resolution_clock::now() - start).count();
+	    start =  std::chrono::high_resolution_clock::now();
+	}
     }
     catch (const std::exception &e) {
 	std::cerr << "failed to load Render: " << e.what() << std::endl;
     }
+
     glfwDestroyWindow(window);
     return 0;
 }

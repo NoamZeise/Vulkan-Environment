@@ -21,6 +21,7 @@ VkResult choosePhysicalDevice(VkInstance instance,
     uint32_t deviceCount;
     msgAndReturnOnErr(vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr),
 		      "Failed to get device count!");
+
     if (deviceCount < 1) {
 	std::cerr << "Error: No Physical Devices Found\n";
 	return VK_ERROR_INITIALIZATION_FAILED;
@@ -32,6 +33,7 @@ VkResult choosePhysicalDevice(VkInstance instance,
 
     bool foundSuitable = false;
     for (size_t i = 0; i < gpus.size(); i++) {
+
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(gpus[i], &deviceProperties);
       
@@ -52,6 +54,7 @@ VkResult choosePhysicalDevice(VkInstance instance,
 	    "as well as the requested extensions\n";
 	return VK_ERROR_FEATURE_NOT_PRESENT;
     }
+
     return result;
 }
 
@@ -68,10 +71,9 @@ bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
 				const std::vector<VkQueueFamilyProperties> &queueFamilyProps,
 				uint32_t *pGraphicsPresentQueueID,
 				const std::vector<const char*> &requestedExtensions) {
-    pGraphicsPresentQueueID = nullptr;
     for (uint32_t j = 0; j < queueFamilyProps.size(); j++) {
-	if (checkRequestedExtensionsAreSupported(candidateDevice, requestedExtensions) &&
-	    graphicsPresentSupported(candidateDevice, queueFamilyProps[j], j, surface))  {
+	if(checkRequestedExtensionsAreSupported(candidateDevice, requestedExtensions) &&
+	   graphicsPresentSupported(candidateDevice, queueFamilyProps[j], j, surface))  {
 	    *pGraphicsPresentQueueID = j;
 	    return true;
 	}

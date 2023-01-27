@@ -104,7 +104,6 @@ namespace part {
 			    &deviceState->physicalDevice,
 			    &deviceState->queue.graphicsPresentFamilyIndex,
 			    REQUESTED_DEVICE_EXTENSIONS));
-
 	// create logical device
 	VkDeviceCreateInfo deviceInfo{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 

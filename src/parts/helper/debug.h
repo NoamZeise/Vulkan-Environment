@@ -3,6 +3,8 @@
 
 #include <volk.h>
 
+#ifndef NDEBUG
+
 void populateDebugMessengerCreateInfo(
     VkDebugUtilsMessengerCreateInfoEXT *createInfo);
 
@@ -10,5 +12,7 @@ VkResult createDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
     const VkAllocationCallbacks *pAllocator,
     VkDebugUtilsMessengerEXT *pDebugMessenger);
+
+#endif
 
 #endif
