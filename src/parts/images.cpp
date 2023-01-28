@@ -18,7 +18,7 @@ namespace part
       imageInfo.extent.width = extent.width;
       imageInfo.extent.height = extent.height;
       imageInfo.extent.depth = 1;
-      imageInfo.mipLevels = 1;
+      imageInfo.mipLevels = mipLevels;
       imageInfo.arrayLayers = 1;
       imageInfo.format = format;
       imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
