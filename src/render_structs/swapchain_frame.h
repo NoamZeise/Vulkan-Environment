@@ -24,7 +24,7 @@ class FrameData {
  public:
     FrameData(VkDevice device, uint32_t queueIndex);
     ~FrameData();
-    VkResult InitSwapchainResources(VkImage image, VkFormat format);
+    VkResult InitSwapchainResources(VkPhysicalDevice physicalDevice, VkImage image, VkFormat format);
     void DestroySwapchainResources();
 
  private:

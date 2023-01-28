@@ -99,20 +99,17 @@ VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
   return sampler;
 }
 
-VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features)
-{
-	for (const auto& format : formats)
-	{
-		VkFormatProperties props;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
-
-		if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-			return format;
-		else if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-			return format;
-	}
-	throw std::runtime_error("None of the formats supplied were supported!");
-}
+  VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice, const std::vector<VkFormat>& formats, VkImageTiling tiling, VkFormatFeatureFlags features) {
+      for (const auto& format : formats) {
+	  VkFormatProperties props;
+	  vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+	  if(tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+	      return format;
+	  else if(tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+	      return format;
+      }
+      return VK_FORMAT_UNDEFINED;
+  }
 
 VkSampleCountFlagBits getMaxSupportedMsaaSamples(VkDevice device, VkPhysicalDevice physicalDevice)
 {

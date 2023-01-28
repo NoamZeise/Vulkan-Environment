@@ -3,8 +3,13 @@
 #include "../parts/command.h"
 #include "../parts/threading.h"
 #include "../parts/images.h"
+#include "../parts/part_macros.h"
 
+#include "../vkhelper.h"
+
+#include <iostream>
 #include <stdexcept>
+#include <vector>
 
 FrameData::FrameData(VkDevice device, uint32_t queueIndex) {
     this->device = device;
@@ -28,11 +33,29 @@ FrameData::~FrameData() {
     vkDestroyFence(device, frameFinishedFence, nullptr);
 }
 
-VkResult FrameData::InitSwapchainResources(VkImage image, VkFormat format) {
+
+VkResult createAttachmentResources(VkPhysicalDevice physicalDevice) {
+    VkFormat depthBufferFormat = vkhelper::findSupportedFormat(
+	    physicalDevice,
+	    {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+	    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    if(depthBufferFormat == VK_FORMAT_UNDEFINED) {
+	std::cerr << "Error: Depth buffer format was unsupported\n";
+	return VK_ERROR_FORMAT_NOT_SUPPORTED;
+    }
+
+    //TODO
+    return VK_ERROR_INITIALIZATION_FAILED;
+}
+
+VkResult FrameData::InitSwapchainResources(VkPhysicalDevice physicalDevice, VkImage image, VkFormat format) {
+    VkResult result =  VK_SUCCESS;
     swapchainImage = image;
     part::create::ImageView(device, &swapchainImageView,
 			    swapchainImage, format, VK_IMAGE_ASPECT_COLOR_BIT);
 
+    returnOnErr(createAttachmentResources(physicalDevice));
+    
     //TODO - init rest of frame resources
     return VK_ERROR_INITIALIZATION_FAILED;
 
