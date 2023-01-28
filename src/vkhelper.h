@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "render_structs.h"
+#include "render_structs/device_state.h"
 #include "descriptor_structs.h"
 #include "pipeline.h"
 #include <volk.h>

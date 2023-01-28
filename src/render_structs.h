@@ -12,8 +12,6 @@
 #include "parts/command.h"
 #include "render_structs/device_state.h"
 
-
-
 struct AttachmentImage
 {
   VkImage image;

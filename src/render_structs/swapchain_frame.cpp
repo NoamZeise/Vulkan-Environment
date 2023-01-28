@@ -5,8 +5,6 @@
 #include "../parts/images.h"
 #include "../parts/part_macros.h"
 
-#include "../vkhelper.h"
-
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -26,65 +24,107 @@ FrameData::FrameData(VkDevice device, uint32_t queueIndex) {
 }
 
 FrameData::~FrameData() {
-    if(swapchainInitialized) { DestroySwapchainResources(); }
+    switch(state) {
+    case FrameDataState::AttachmentImagesCreated:
+	destroyAttachmentImages();
+	break;
+    case FrameDataState::SwapchainResourcesCreated:
+	DestroySwapchainResources();
+	break;
+    case FrameDataState::Nothing:
+	break;
+    }
+    
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     vkDestroyCommandPool(device, commandPool, nullptr);
     vkDestroySemaphore(device, presentReadySem, nullptr);
     vkDestroyFence(device, frameFinishedFence, nullptr);
 }
+VkResult FrameData::createAttachmentImage(
+	AttachmentImage *pAttachmentImage,
+	VkFormat format,
+	VkExtent2D extent,
+	VkDeviceSize *pMemoryRequirements,
+	uint32_t *pMemoryFlagBits,
+	VkImageUsageFlags imageUsage,
+	VkSampleCountFlagBits msaaSamples) {
+    VkResult result = VK_SUCCESS;
+    VkMemoryRequirements memReq;
+    pAttachmentImage->format = format;
+    pAttachmentImage->memoryOffset = *pMemoryRequirements;
+    returnOnErr(part::create::Image(
+			      device,
+			      &pAttachmentImage->image,
+			      &memReq,
+			      imageUsage,
+			      extent,
+			      pAttachmentImage->format,
+			      msaaSamples, 1));
+    *pMemoryRequirements += memReq.size;
+    *pMemoryFlagBits |= memReq.memoryTypeBits;
 
+    return result;
+}
+			       
 
-VkResult FrameData::createAttachmentResources(VkPhysicalDevice physicalDevice,
-					      VkFormat swapchainFormat,
+VkResult FrameData::createAttachmentResources(VkFormat swapchainFormat,
+					      VkFormat depthFormat,
+					      VkExtent2D offscreenExtent,
 					      VkDeviceSize *pMemoryRequirements,
 					      uint32_t *pMemoryFlagBits) {
-    VkFormat depthBufferFormat = vkhelper::findSupportedFormat(
-	    physicalDevice,
-	    {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-	    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-    if(depthBufferFormat == VK_FORMAT_UNDEFINED) {
-	std::cerr << "Error: Depth buffer format was unsupported\n";
-	return VK_ERROR_FORMAT_NOT_SUPPORTED;
+    VkResult result = VK_SUCCESS;
+    if(msaaSamples != VK_SAMPLE_COUNT_1_BIT) {
+	msgAndReturnOnErr(createAttachmentImage(&multisamplingImage, swapchainFormat, offscreenExtent, pMemoryRequirements, pMemoryFlagBits,VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, msaaSamples),
+			  "Failed to create multisampling attachment image");
     }
 
-    VkMemoryRequirements memReq;
+    msgAndReturnOnErr(createAttachmentImage(&depthBufferImage, depthFormat, offscreenExtent, pMemoryRequirements, pMemoryFlagBits, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, msaaSamples),
+		      "Failed to create depth buffer attachment image");
+
     
-    if(usingMultisamping) {
-	multisamplingImage.format = swapchainFormat;
-	
-    }
+    msgAndReturnOnErr(createAttachmentImage(&offscreenImage, swapchainFormat, offscreenExtent, pMemoryRequirements, pMemoryFlagBits, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, msaaSamples),
+		      "Failed to create offscreen attachment image");
+    return result;
+}
+
+VkResult FrameData::CreateAttachmentImages(
+	VkImage image, VkFormat format, VkFormat depthFormat,
+	VkExtent2D offscreenExtent,
+	VkDeviceSize *pMemoryRequirements,
+	uint32_t *pMemoryFlagBits,
+	VkSampleCountFlagBits sampleCount) {
+    VkResult result =  VK_SUCCESS;
+    this->msaaSamples = sampleCount;
+    swapchainImage = image;
+    part::create::ImageView(device, &swapchainImageView,
+			    swapchainImage, format, VK_IMAGE_ASPECT_COLOR_BIT);
     
+    returnOnErr(createAttachmentResources(format, depthFormat,
+					  offscreenExtent,
+					  pMemoryRequirements,
+					  pMemoryFlagBits));
+    
+    state = FrameDataState::AttachmentImagesCreated;
+    return VK_SUCCESS;
+}
+
+VkResult FrameData::CreateAttachments() {
     //TODO
     return VK_ERROR_INITIALIZATION_FAILED;
 }
 
-VkResult FrameData::InitSwapchainResources(
-	    VkPhysicalDevice physicalDevice,
-	    VkImage image, VkFormat format,
-	    VkDeviceSize *pMemoryRequirements,
-	    uint32_t *pMemoryFlagBits,
-	    bool useMultisampling) {
-    VkResult result =  VK_SUCCESS;
-    this->usingMultisamping = useMultisampling;
-    swapchainImage = image;
-    part::create::ImageView(device, &swapchainImageView,
-			    swapchainImage, format, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    returnOnErr(createAttachmentResources(physicalDevice,
-					  format,
-					  pMemoryRequirements,
-					  pMemoryFlagBits));
-    
-    //TODO - init rest of frame resources
-    return VK_ERROR_INITIALIZATION_FAILED;
-
-    swapchainInitialized = true;
-    return VK_SUCCESS;
+void FrameData::destroyAttachmentImages() {
+    if(msaaSamples != VK_SAMPLE_COUNT_1_BIT)
+	vkDestroyImage(device, multisamplingImage.image, nullptr);
+    vkDestroyImage(device, depthBufferImage.image, nullptr);
+    vkDestroyImage(device, offscreenImage.image, nullptr);
+    vkDestroyImageView(device, swapchainImageView, nullptr);
 }
 
 void FrameData::DestroySwapchainResources() {
     
-    vkDestroyImageView(device, swapchainImageView, nullptr);
+    destroyAttachmentImages();
 
-    swapchainInitialized = false;
+
+    state = FrameDataState::Nothing;
 }

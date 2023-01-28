@@ -24,23 +24,35 @@ class FrameData {
  public:
     FrameData(VkDevice device, uint32_t queueIndex);
     ~FrameData();
-    VkResult InitSwapchainResources(
-	    VkPhysicalDevice physicalDevice,
-	    VkImage image, VkFormat format,
+    VkResult CreateAttachmentImages(
+	    VkImage image, VkFormat format, VkFormat depthFormat,
+	    VkExtent2D offscreenExtent,
 	    VkDeviceSize *pMemoryRequirements,
 	    uint32_t *pMemoryFlagBits,
-	    bool useMultisampling);
+	    VkSampleCountFlagBits msaaSamples);
+    VkResult CreateAttachments();
     void DestroySwapchainResources();
 
  private:
-    VkResult createAttachmentResources(VkPhysicalDevice physicalDevice,
-				       VkFormat swapchainFormat,
+    VkResult createAttachmentResources(VkFormat swapchainFormat,
+				       VkFormat depthFormat,
+				       VkExtent2D offscreenExtent,
 				       VkDeviceSize *pMemoryRequirements,
 				       uint32_t *pMemoryFlagBits);
-    
+
+    VkResult createAttachmentImage(
+	AttachmentImage *pAttachmentImage,
+	VkFormat format,
+	VkExtent2D extent,
+	VkDeviceSize *pMemoryRequirements,
+	uint32_t *pMemoryFlagBits,
+	VkImageUsageFlags imageUsage,
+	VkSampleCountFlagBits msaaSamples);
+
+    void destroyAttachmentImages();
+				   
     VkDevice device;
-    bool swapchainInitialized = false;
-    bool usingMultisamping = false;
+    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
@@ -57,6 +69,13 @@ class FrameData {
     AttachmentImage depthBufferImage;
     AttachmentImage offscreenImage;
     VkFramebuffer offscreenFramebuffer;
+
+    enum class FrameDataState {
+	Nothing,
+	AttachmentImagesCreated,
+	SwapchainResourcesCreated,
+    };
+    FrameDataState state = FrameDataState::Nothing;
 
 };
 
