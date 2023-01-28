@@ -24,12 +24,23 @@ class FrameData {
  public:
     FrameData(VkDevice device, uint32_t queueIndex);
     ~FrameData();
-    VkResult InitSwapchainResources(VkPhysicalDevice physicalDevice, VkImage image, VkFormat format);
+    VkResult InitSwapchainResources(
+	    VkPhysicalDevice physicalDevice,
+	    VkImage image, VkFormat format,
+	    VkDeviceSize *pMemoryRequirements,
+	    uint32_t *pMemoryFlagBits,
+	    bool useMultisampling);
     void DestroySwapchainResources();
 
  private:
+    VkResult createAttachmentResources(VkPhysicalDevice physicalDevice,
+				       VkFormat swapchainFormat,
+				       VkDeviceSize *pMemoryRequirements,
+				       uint32_t *pMemoryFlagBits);
+    
     VkDevice device;
     bool swapchainInitialized = false;
+    bool usingMultisamping = false;
     
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;

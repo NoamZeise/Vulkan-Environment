@@ -20,7 +20,7 @@ class Swapchain {
 
     /// these are used when the swapchain is out of date
     /// the swapchain will be reused, while all the other resources are remade.
-    VkResult InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB);
+    VkResult InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB, bool useMultisampling);
     void DestroyFrameResources();
 
     VkFormat getSwapchainFormat() { return formatKHR.format; }

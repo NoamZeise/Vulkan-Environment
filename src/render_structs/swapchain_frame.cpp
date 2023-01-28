@@ -34,7 +34,10 @@ FrameData::~FrameData() {
 }
 
 
-VkResult createAttachmentResources(VkPhysicalDevice physicalDevice) {
+VkResult FrameData::createAttachmentResources(VkPhysicalDevice physicalDevice,
+					      VkFormat swapchainFormat,
+					      VkDeviceSize *pMemoryRequirements,
+					      uint32_t *pMemoryFlagBits) {
     VkFormat depthBufferFormat = vkhelper::findSupportedFormat(
 	    physicalDevice,
 	    {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
@@ -44,17 +47,33 @@ VkResult createAttachmentResources(VkPhysicalDevice physicalDevice) {
 	return VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
 
+    VkMemoryRequirements memReq;
+    
+    if(usingMultisamping) {
+	multisamplingImage.format = swapchainFormat;
+	
+    }
+    
     //TODO
     return VK_ERROR_INITIALIZATION_FAILED;
 }
 
-VkResult FrameData::InitSwapchainResources(VkPhysicalDevice physicalDevice, VkImage image, VkFormat format) {
+VkResult FrameData::InitSwapchainResources(
+	    VkPhysicalDevice physicalDevice,
+	    VkImage image, VkFormat format,
+	    VkDeviceSize *pMemoryRequirements,
+	    uint32_t *pMemoryFlagBits,
+	    bool useMultisampling) {
     VkResult result =  VK_SUCCESS;
+    this->usingMultisamping = useMultisampling;
     swapchainImage = image;
     part::create::ImageView(device, &swapchainImageView,
 			    swapchainImage, format, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    returnOnErr(createAttachmentResources(physicalDevice));
+    returnOnErr(createAttachmentResources(physicalDevice,
+					  format,
+					  pMemoryRequirements,
+					  pMemoryFlagBits));
     
     //TODO - init rest of frame resources
     return VK_ERROR_INITIALIZATION_FAILED;

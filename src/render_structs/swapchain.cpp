@@ -15,7 +15,7 @@ Swapchain::~Swapchain() {
     vkDestroySwapchainKHR(deviceState.device, swapchain, nullptr);
 }
 
-VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB) {
+VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB, bool useMultisampling) {
     if(swapchain != VK_NULL_HANDLE)
 	DestroyFrameResources();
 
@@ -26,6 +26,8 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 	    &swapchain, &formatKHR, &swapchainExtent);
 
 
+    VkDeviceSize attachmentImagesMemorySize;
+    uint32_t attachmentImagesMemoryRequirements;
     for(int i = 0; i < images.size(); i++) {
 	if(i == frames.size()) 
 	    frames.push_back(FrameData(deviceState.device,
@@ -33,7 +35,11 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 	else 
 	    frames[i].DestroySwapchainResources();
 	
-	frames[i].InitSwapchainResources(images[i], formatKHR.format);
+	frames[i].InitSwapchainResources(deviceState.physicalDevice,
+					 images[i], formatKHR.format,
+					 &attachmentImagesMemorySize,
+					 &attachmentImagesMemoryRequirements,
+					 useMultisampling);
     }
     while(images.size() < frames.size())
 	frames.pop_back();

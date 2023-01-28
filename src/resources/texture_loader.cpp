@@ -7,6 +7,7 @@
 
 #include <resources/stb_image.h>
 #include <config.h>
+#include "../parts/images.h"
 
 namespace Resource
 {
@@ -153,26 +154,17 @@ void TextureLoader::endLoading()
 		if (textures[i].mipLevels < minMips)
 			minMips = textures[i].mipLevels;
 
+		if(part::create::Image(base.device, &textures[i].image, &memreq,
+				       VK_IMAGE_USAGE_SAMPLED_BIT |
+				       VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+				       VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+				       VkExtent2D { textures[i].width, textures[i].height },
+				       texToLoad[i].format,
+				       VK_SAMPLE_COUNT_1_BIT, textures[i].mipLevels) != VK_SUCCESS) {
+		    throw std::runtime_error("failed to create image for texture at: "
+					     + texToLoad[i].path);
+		}
 
-		VkImageCreateInfo imageInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = textures[i].width;
-		imageInfo.extent.height = textures[i].height;
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = textures[i].mipLevels;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = texToLoad[i].format;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT; //todo add multsampling
-
-		if (vkCreateImage(base.device, &imageInfo, nullptr, &textures[i].image) != VK_SUCCESS)
-			throw std::runtime_error("failed to create image from texture at: " + texToLoad[i].path);
-
-
-		vkGetImageMemoryRequirements(base.device, textures[i].image, &memreq);
 		memoryTypeBits |= memreq.memoryTypeBits;
 		textures[i].imageMemSize = memreq.size;
 
