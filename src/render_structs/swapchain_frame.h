@@ -4,6 +4,7 @@
 /// used by Swapchain class as each frame of the swapchain
 
 #include <volk.h>
+#include <vector>
 
 struct AttachmentImage
 {
@@ -24,13 +25,16 @@ class FrameData {
  public:
     FrameData(VkDevice device, uint32_t queueIndex);
     ~FrameData();
+    /// first create image views for attachments, getting the memory requirments for the images
     VkResult CreateAttachmentImages(
 	    VkImage image, VkFormat format, VkFormat depthFormat,
 	    VkExtent2D offscreenExtent,
 	    VkDeviceSize *pMemoryRequirements,
 	    uint32_t *pMemoryFlagBits,
 	    VkSampleCountFlagBits msaaSamples);
-    VkResult CreateAttachments();
+    /// call this after creating the memory required by the attachment images
+    VkResult CreateAttachmentImageViews(VkDeviceMemory attachmentMemory);
+    VkResult CreateFramebuffers();
     void DestroySwapchainResources();
 
  private:
@@ -49,7 +53,13 @@ class FrameData {
 	VkImageUsageFlags imageUsage,
 	VkSampleCountFlagBits msaaSamples);
 
+    VkResult createAttachmentImageView(AttachmentImage* attachmentImage,
+					      VkDeviceMemory attachmentMemory,
+					      VkImageAspectFlags imageAspectFlags);
+
+
     void destroyAttachmentImages();
+    void destroyAttachmentViews();
 				   
     VkDevice device;
     VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
@@ -73,6 +83,7 @@ class FrameData {
     enum class FrameDataState {
 	Nothing,
 	AttachmentImagesCreated,
+	AttachmentViewsCreated,
 	SwapchainResourcesCreated,
     };
     FrameDataState state = FrameDataState::Nothing;

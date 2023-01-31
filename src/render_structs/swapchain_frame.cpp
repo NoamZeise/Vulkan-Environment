@@ -28,6 +28,9 @@ FrameData::~FrameData() {
     case FrameDataState::AttachmentImagesCreated:
 	destroyAttachmentImages();
 	break;
+    case FrameDataState::AttachmentViewsCreated:
+	destroyAttachmentViews();
+	break;
     case FrameDataState::SwapchainResourcesCreated:
 	DestroySwapchainResources();
 	break;
@@ -108,12 +111,42 @@ VkResult FrameData::CreateAttachmentImages(
     return VK_SUCCESS;
 }
 
-VkResult FrameData::CreateAttachments() {
-    //TODO
-    return VK_ERROR_INITIALIZATION_FAILED;
+VkResult FrameData::createAttachmentImageView(AttachmentImage* attachmentImage,
+					      VkDeviceMemory attachmentMemory,
+					      VkImageAspectFlags imageAspectFlags) {
+    vkBindImageMemory(device, attachmentImage->image,
+		      attachmentMemory, attachmentImage->memoryOffset);
+    return part::create::ImageView(device,
+			    &attachmentImage->view,
+			    attachmentImage->image,
+			    attachmentImage->format,
+			    imageAspectFlags);
+}
+
+VkResult FrameData::CreateAttachmentImageViews(VkDeviceMemory attachmentMemory) {
+    VkResult result = VK_SUCCESS;
+    if(msaaSamples != VK_SAMPLE_COUNT_1_BIT) {
+	msgAndReturnOnErr(createAttachmentImageView(&this->multisamplingImage, attachmentMemory,
+						    VK_IMAGE_ASPECT_COLOR_BIT),
+			  "Failed to create multisampling attachment image view");
+    }
+    msgAndReturnOnErr(createAttachmentImageView(&this->depthBufferImage, attachmentMemory,
+						VK_IMAGE_ASPECT_DEPTH_BIT),
+		      "Failed to create depth buffer attachment image view");
+    msgAndReturnOnErr(createAttachmentImageView(&this->offscreenImage, attachmentMemory,
+						VK_IMAGE_ASPECT_COLOR_BIT),
+		      "Failed to create offscreen attachment image view");
+    
+    state = FrameDataState::AttachmentViewsCreated;
+    return result;
 }
 
 void FrameData::destroyAttachmentImages() {
+    if(state != FrameDataState::AttachmentImagesCreated) {
+	throw std::runtime_error("this should only be used if"
+				 " attachment images have been created "
+				 "but nothing else has been created");
+    }
     if(msaaSamples != VK_SAMPLE_COUNT_1_BIT)
 	vkDestroyImage(device, multisamplingImage.image, nullptr);
     vkDestroyImage(device, depthBufferImage.image, nullptr);
@@ -121,10 +154,18 @@ void FrameData::destroyAttachmentImages() {
     vkDestroyImageView(device, swapchainImageView, nullptr);
 }
 
+void FrameData::destroyAttachmentViews() {
+    if(msaaSamples != VK_SAMPLE_COUNT_1_BIT)
+	multisamplingImage.destroy(device);
+    depthBufferImage.destroy(device);
+    offscreenImage.destroy(device);
+    vkDestroyImageView(device, swapchainImageView, nullptr);
+}
+
 void FrameData::DestroySwapchainResources() {
-    
     destroyAttachmentImages();
 
 
     state = FrameDataState::Nothing;
 }
+

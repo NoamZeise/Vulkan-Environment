@@ -14,7 +14,7 @@ namespace part
 		 VkExtent2D extent, VkFormat format,
 		       VkSampleCountFlagBits sampleFlags, uint32_t mipLevels);
 
-        void ImageView(VkDevice device, VkImageView* imgView, VkImage image,
+        VkResult ImageView(VkDevice device, VkImageView* imgView, VkImage image,
                               VkFormat format, VkImageAspectFlags aspectFlags);
     }
 }

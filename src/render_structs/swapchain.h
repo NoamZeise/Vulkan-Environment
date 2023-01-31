@@ -37,6 +37,11 @@ class Swapchain {
     VkDeviceMemory attachmentMemory = VK_NULL_HANDLE;
     std::vector<FrameData> frames;
     bool frameInitialized = false;
+
+    VkRenderPass offscreenRenderPass;
+    VkRenderPass finalRenderPass;
+
+    VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images, VkFormat depthBufferFormat);
 };
 
 #endif

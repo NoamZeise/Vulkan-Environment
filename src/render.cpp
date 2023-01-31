@@ -191,9 +191,11 @@ Render::~Render()
 	  memoryFlagBits |= memReq.memoryTypeBits;
       }
 
-      vkhelper::createMemory(_base.device, _base.physicalDevice, totalMemory,
-			     &_swapchain.attachmentMemory,
-			     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryFlagBits);
+	  if(vkhelper::createMemory(_base.device, _base.physicalDevice, totalMemory,
+				&_swapchain.attachmentMemory,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryFlagBits) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create attachment memory for swapchain!");
+	    }
 
       for (size_t i = 0; i < _swapchain.frameData.size(); i++) {
 	  if (settings::MULTISAMPLING) {
@@ -201,28 +203,34 @@ Render::~Render()
 				_swapchain.frameData[i].multisampling.image,
 				_swapchain.attachmentMemory,
 				_swapchain.frameData[i].multisampling.memoryOffset);
-	      part::create::ImageView(_base.device,
+	      if(part::create::ImageView(_base.device,
 				      &_swapchain.frameData[i].multisampling.view,
 				      _swapchain.frameData[i].multisampling.image,
 				      _swapchain.frameData[i].multisampling.format,
-				      VK_IMAGE_ASPECT_COLOR_BIT);
+				      VK_IMAGE_ASPECT_COLOR_BIT) != VK_SUCCESS) {
+		    throw std::runtime_error("failed to create multisampling image view");
+		}
 	  }
 
 	  vkBindImageMemory(_base.device, _swapchain.frameData[i].depthBuffer.image,
 			    _swapchain.attachmentMemory,
 			    _swapchain.frameData[i].depthBuffer.memoryOffset);
-	  part::create::ImageView(
+	  if(part::create::ImageView(
 		  _base.device, &_swapchain.frameData[i].depthBuffer.view,
 		  _swapchain.frameData[i].depthBuffer.image,
-		  _swapchain.frameData[i].depthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT);
+		  _swapchain.frameData[i].depthBuffer.format, VK_IMAGE_ASPECT_DEPTH_BIT) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create depth image view");
+		}
 
 	  vkBindImageMemory(_base.device, _swapchain.frameData[i].offscreen.image,
 			    _swapchain.attachmentMemory,
 			    _swapchain.frameData[i].offscreen.memoryOffset);
-	  part::create::ImageView(
+	  if(part::create::ImageView(
 		  _base.device, &_swapchain.frameData[i].offscreen.view,
 		  _swapchain.frameData[i].offscreen.image,
-		  _swapchain.frameData[i].offscreen.format, VK_IMAGE_ASPECT_COLOR_BIT);
+		  _swapchain.frameData[i].offscreen.format, VK_IMAGE_ASPECT_COLOR_BIT) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to create image view for offscreen image");
+		}
       }
 
       part::create::RenderPass(_base.device, &_renderPass, _swapchain, false);

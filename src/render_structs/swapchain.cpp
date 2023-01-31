@@ -1,6 +1,7 @@
 #include "swapchain.h"
 
 #include "../parts/swapchain.h"
+#include "../parts/part_macros.h"
 #include "../vkhelper.h"
 #include "swapchain_frame.h"
 
@@ -32,7 +33,39 @@ VkSampleCountFlagBits getMultisampleCount(DeviceState deviceState, bool useMulti
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
+VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images, VkFormat depthBufferFormat) {
+    VkResult result = VK_SUCCESS;
+    VkDeviceSize attachmentImagesMemorySize;
+    uint32_t attachmentImagesMemoryRequirements;
+    for(int i = 0; i < images.size(); i++) {
+	if(i == frames.size()) 
+	    frames.push_back(FrameData(deviceState.device,
+				       deviceState.queue.graphicsPresentFamilyIndex));
+	else 
+	    frames[i].DestroySwapchainResources();
+	
+	returnOnErr(frames[i].CreateAttachmentImages(images[i], formatKHR.format,
+					 depthBufferFormat, offscreenExtent,
+					 &attachmentImagesMemorySize,
+					 &attachmentImagesMemoryRequirements,
+							   maxMsaaSamples));
+    }
+    
+    while(images.size() < frames.size())
+	frames.pop_back();
+    
+    msgAndReturnOnErr(vkhelper::createMemory(deviceState.device, deviceState.physicalDevice,
+					     attachmentImagesMemorySize,
+					     &this->attachmentMemory,
+					     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				    attachmentImagesMemoryRequirements),
+	"Failed to create memory for swapchain frame attachment images"); 
+    
+    return result;
+}
+
 VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB, bool useMultisampling) {
+    VkResult result = VK_SUCCESS;
     if(swapchain != VK_NULL_HANDLE)
 	DestroyFrameResources();
 
@@ -47,41 +80,32 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 	std::cerr << "Error: Depth buffer format was unsupported\n";
 	return VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
-    
+
     maxMsaaSamples = getMultisampleCount(deviceState, useMultisampling);
     
-    VkDeviceSize attachmentImagesMemorySize;
-    uint32_t attachmentImagesMemoryRequirements;
-    for(int i = 0; i < images.size(); i++) {
-	if(i == frames.size()) 
-	    frames.push_back(FrameData(deviceState.device,
-				       deviceState.queue.graphicsPresentFamilyIndex));
-	else 
-	    frames[i].DestroySwapchainResources();
-	
-	frames[i].CreateAttachmentImages(images[i], formatKHR.format,
-					 depthBufferFormat, offscreenExtent,
-					 &attachmentImagesMemorySize,
-					 &attachmentImagesMemoryRequirements,
-					 maxMsaaSamples);
-    }
-    
-    while(images.size() < frames.size())
-	frames.pop_back();
+    returnOnErr(initFramesAndAttachmentImages(images, depthBufferFormat));
 
-    
+    for(auto& frame: frames) {
+	frame.CreateAttachmentImageViews(attachmentMemory);
+    }
+
+    // msgAndReturnOnErr(part::create::RenderPass(deviceState.device, &offscreenRenderPass, swapchain, true), "Failed to create offscreen Render Pass");
     
     //TODO
     return VK_ERROR_INITIALIZATION_FAILED;
     
     this->offscreenExtent = offscreenExtent;
     frameInitialized = true;
-    return VK_SUCCESS;
+    return result;
 }
 
 void Swapchain::DestroyFrameResources() {
     if(swapchain != VK_NULL_HANDLE) {
+	
+    }
 
+    for(auto& frame: frames) {
+	frame.DestroySwapchainResources();
     }
 
     frameInitialized = false;

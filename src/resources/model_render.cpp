@@ -372,8 +372,10 @@ void ModelRender::endLoading(VkCommandBuffer transferBuff)
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingMemory;
 
-	vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &stagingBuffer, &stagingMemory,
-		VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+	if(vkhelper::createBufferAndMemory(base, vertexDataSize + indexDataSize, &stagingBuffer, &stagingMemory,
+					   VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) != VK_SUCCESS) {
+	    throw std::runtime_error("Failed to create staging buffer for model data");
+	}
 
 	vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
 	void* pMem;

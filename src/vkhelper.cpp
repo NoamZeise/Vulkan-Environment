@@ -18,7 +18,7 @@ uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBit
 	throw std::runtime_error("failed to find suitable memory type");
 }
 
-void createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+VkResult createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL};
 	bufferInfo.size = size;
@@ -27,24 +27,25 @@ void createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* buffer
 	bufferInfo.queueFamilyIndexCount = 1;
 	bufferInfo.pQueueFamilyIndices = &base.queue.graphicsPresentFamilyIndex;
 	bufferInfo.flags = 0;
-
-	if (vkCreateBuffer(base.device, &bufferInfo, nullptr, buffer) != VK_SUCCESS)
-		throw std::runtime_error("failed to create buffer of size " + std::to_string(size));
+	
+	VkResult result = vkCreateBuffer(base.device, &bufferInfo, nullptr, buffer);
+	if(result != VK_SUCCESS)
+	    return result;
 
 	VkMemoryRequirements memReq;
 	vkGetBufferMemoryRequirements(base.device, *buffer, &memReq);
 
-	createMemory(base.device, base.physicalDevice, memReq.size, memory, properties, memReq.memoryTypeBits);
+	return createMemory(base.device, base.physicalDevice, memReq.size,
+			    memory, properties, memReq.memoryTypeBits);
 }
 
-void createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
+VkResult createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
 {
 	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	memInfo.allocationSize = size;
 	memInfo.memoryTypeIndex = findMemoryIndex(physicalDevice, memoryTypeBits, properties);
 
-	if (vkAllocateMemory(device, &memInfo, nullptr, memory) != VK_SUCCESS)
-		throw std::runtime_error("failed to allocate memory of size " + std::to_string(size));
+	return vkAllocateMemory(device, &memInfo, nullptr, memory);
 }
 
 VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
