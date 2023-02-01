@@ -12,6 +12,7 @@ namespace create
 
 VkShaderModule _loadShaderModule(VkDevice device, std::string file);
 
+  //TODO delete  this once new swapchain implemented
 void RenderPass(VkDevice device, VkRenderPass *renderPass, SwapChain swapchain,
                 bool presentOnly) {
   if (presentOnly) {
@@ -24,7 +25,7 @@ void RenderPass(VkDevice device, VkRenderPass *renderPass, SwapChain swapchain,
     colourAttachment.format = swapchain.format.format;
     colourAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

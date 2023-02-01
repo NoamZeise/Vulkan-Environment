@@ -241,8 +241,10 @@ Render::~Render()
 				      _swapchain.frameData[i].depthBuffer.view,
 				      _swapchain.frameData[i].offscreen.view};
 	  else
-	      offscreenAttachments = {_swapchain.frameData[i].offscreen.view,
-				      _swapchain.frameData[i].depthBuffer.view};
+	      offscreenAttachments = {
+		  _swapchain.frameData[i].depthBuffer.view,
+		  _swapchain.frameData[i].offscreen.view,
+				      };
 	  part::create::Framebuffer(
 		  _base.device, _renderPass,
 		  &_swapchain.frameData[i].offscreenFramebuffer, offscreenAttachments,

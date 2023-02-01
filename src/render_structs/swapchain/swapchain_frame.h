@@ -6,20 +6,7 @@
 #include <volk.h>
 #include <vector>
 
-struct AttachmentImage
-{
-  VkImage image;
-  VkImageView view;
-  VkFormat format;
-  size_t memoryOffset;
-  
-  void destroy(VkDevice device)
-  {
-    vkDestroyImageView(device, view, nullptr);
-    vkDestroyImage(device, image, nullptr);
-  }
-};
-
+#include "attachment_image.h"
 
 class FrameData {
  public:
@@ -27,7 +14,8 @@ class FrameData {
     ~FrameData();
     /// first create image views for attachments, getting the memory requirments for the images
     VkResult CreateAttachmentImages(
-	    VkImage image, VkFormat format, VkFormat depthFormat,
+	    VkImage image, VkFormat swapchainFormat,
+	    std::vector<AttachmentImageDescription> &attachDescs,
 	    VkExtent2D offscreenExtent,
 	    VkDeviceSize *pMemoryRequirements,
 	    uint32_t *pMemoryFlagBits,
@@ -38,31 +26,11 @@ class FrameData {
     void DestroySwapchainResources();
 
  private:
-    VkResult createAttachmentResources(VkFormat swapchainFormat,
-				       VkFormat depthFormat,
-				       VkExtent2D offscreenExtent,
-				       VkDeviceSize *pMemoryRequirements,
-				       uint32_t *pMemoryFlagBits);
-
-    VkResult createAttachmentImage(
-	AttachmentImage *pAttachmentImage,
-	VkFormat format,
-	VkExtent2D extent,
-	VkDeviceSize *pMemoryRequirements,
-	uint32_t *pMemoryFlagBits,
-	VkImageUsageFlags imageUsage,
-	VkSampleCountFlagBits msaaSamples);
-
-    VkResult createAttachmentImageView(AttachmentImage* attachmentImage,
-					      VkDeviceMemory attachmentMemory,
-					      VkImageAspectFlags imageAspectFlags);
-
 
     void destroyAttachmentImages();
-    void destroyAttachmentViews();
+    void destroyAttachments();
 				   
     VkDevice device;
-    VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
     
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
@@ -75,9 +43,8 @@ class FrameData {
     VkFramebuffer swapchainFramebuffer;
     
     /// images for offscreen rendering
-    AttachmentImage multisamplingImage;
-    AttachmentImage depthBufferImage;
-    AttachmentImage offscreenImage;
+    std::vector<AttachmentImage> attachments;
+    
     VkFramebuffer offscreenFramebuffer;
 
     enum class FrameDataState {

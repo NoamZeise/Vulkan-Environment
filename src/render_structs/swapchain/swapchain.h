@@ -2,7 +2,8 @@
 #define RENDER_STRUCT_SWAPCHAIN_H
 
 #include <volk.h>
-#include "device_state.h"
+#include "../device_state.h"
+#include "attachment_image.h"
 
 #include <vector>
 
@@ -41,7 +42,7 @@ class Swapchain {
     VkRenderPass offscreenRenderPass;
     VkRenderPass finalRenderPass;
 
-    VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images, VkFormat depthBufferFormat);
+    VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images, std::vector<AttachmentImageDescription> &attachDescs);
 };
 
 #endif
