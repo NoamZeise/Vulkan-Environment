@@ -245,17 +245,21 @@ Render::~Render()
 		  _swapchain.frameData[i].depthBuffer.view,
 		  _swapchain.frameData[i].offscreen.view,
 				      };
-	  part::create::Framebuffer(
+	  if(part::create::Framebuffer(
 		  _base.device, _renderPass,
 		  &_swapchain.frameData[i].offscreenFramebuffer, offscreenAttachments,
-		  _swapchain.offscreenExtent.width, _swapchain.offscreenExtent.height);
+		  _swapchain.offscreenExtent.width, _swapchain.offscreenExtent.height) != VK_SUCCESS) {
+	      throw std::runtime_error("Failed to create framebuffer");
+	  }
       }
       part::create::RenderPass(_base.device, &_finalRenderPass, _swapchain, true);
       for (size_t i = 0; i < _swapchain.frameData.size(); i++)
-	  part::create::Framebuffer(
+	  if(part::create::Framebuffer(
 		  _base.device, _finalRenderPass, &_swapchain.frameData[i].framebuffer,
 		  {_swapchain.frameData[i].view}, _swapchain.swapchainExtent.width,
-		  _swapchain.swapchainExtent.height);
+		  _swapchain.swapchainExtent.height) != VK_SUCCESS) {
+	      throw std::runtime_error("Failed to create framebuffer");
+	  }
 
       /// set shader  descripor sets
 
@@ -392,8 +396,12 @@ Render::~Render()
 	      {});
 
 
-      float ratio = ((float)_swapchain.offscreenExtent.width / (float)_swapchain.offscreenExtent.height) * ((float)_swapchain.swapchainExtent.height / (float)_swapchain.swapchainExtent.width);
-      _offscreenTransform.data[0] = glm::scale(glm::mat4(1.0f), glm::vec3(ratio < 1.0f ? ratio: 1.0f, ratio > 1.0f ? 1.0f / ratio : 1.0f, 1.0f));
+      float ratio = ((float)_swapchain.offscreenExtent.width / (float)_swapchain.offscreenExtent.height) *
+	  ((float)_swapchain.swapchainExtent.height / (float)_swapchain.swapchainExtent.width);
+      _offscreenTransform.data[0] = glm::scale(glm::mat4(1.0f),
+					       glm::vec3(ratio < 1.0f ? ratio: 1.0f,
+							 ratio > 1.0f ? 1.0f / ratio : 1.0f,
+							 1.0f));
   }
 
 void Render::_destroyFrameResources()

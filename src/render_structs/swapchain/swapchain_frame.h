@@ -22,7 +22,10 @@ class FrameData {
 	    VkSampleCountFlagBits msaaSamples);
     /// call this after creating the memory required by the attachment images
     VkResult CreateAttachmentImageViews(VkDeviceMemory attachmentMemory);
-    VkResult CreateFramebuffers();
+    
+    VkResult CreateFramebuffers(VkRenderPass offscreenPass, VkExtent2D offscreenExtent,
+				VkRenderPass finalPass, VkExtent2D finalExtent);
+    
     void DestroySwapchainResources();
 
  private:
@@ -37,15 +40,16 @@ class FrameData {
     VkSemaphore presentReadySem;
     VkFence frameFinishedFence;
     
-    //swapchain image
+    //swapchain image - for final render pass
     VkImage swapchainImage;
     VkImageView swapchainImageView;
     VkFramebuffer swapchainFramebuffer;
     
-    /// images for offscreen rendering
+    /// attachments for offscreen render pass
     std::vector<AttachmentImage> attachments;
     
     VkFramebuffer offscreenFramebuffer;
+    VkFramebuffer finalFramebuffer;
 
     enum class FrameDataState {
 	Nothing,

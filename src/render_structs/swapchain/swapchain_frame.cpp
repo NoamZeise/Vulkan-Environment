@@ -4,6 +4,8 @@
 #include "../../parts/threading.h"
 #include "../../parts/images.h"
 #include "../../parts/part_macros.h"
+#include "../../parts/framebuffer.h"
+
 
 #include <iostream>
 #include <stdexcept>
@@ -80,11 +82,33 @@ VkResult FrameData::CreateAttachmentImageViews(VkDeviceMemory attachmentMemory) 
     return result;
 }
 
+VkResult FrameData::CreateFramebuffers(VkRenderPass offscreenPass, VkExtent2D offscreenExtent, VkRenderPass finalPass, VkExtent2D finalExtent) {
+    VkResult result = VK_SUCCESS;
+
+    std::vector<VkImageView> offscreenViews;
+    for(auto &a: attachments)
+	offscreenViews.push_back(a.view);
+
+    msgAndReturnOnErr(part::create::Framebuffer(
+			      device, offscreenPass, &offscreenFramebuffer, offscreenViews,
+			      offscreenExtent.width, offscreenExtent.height),
+		      "Failed to create offscreen framebuffer for FrameData");
+    
+    msgAndReturnOnErr(part::create::Framebuffer(
+			      device, finalPass, &finalFramebuffer, {swapchainImageView},
+			      finalExtent.width, finalExtent.height),
+		      "Failed to create final framebuffer for FrameData");
+    state = FrameDataState::SwapchainResourcesCreated;
+    return result;
+}
+
+
 void FrameData::destroyAttachmentImages() {
     if(state != FrameDataState::AttachmentImagesCreated) {
 	throw std::runtime_error("this should only be used if"
 				 " attachment images have been created "
-				 "but nothing else has been created");
+				 "but nothing else has been created,"
+				 "use destroyAttachments() instead");
     }
     for(auto &a: attachments)
 	vkDestroyImage(device, a.image, nullptr);
@@ -98,10 +122,9 @@ void FrameData::destroyAttachments() {
 }
 
 void FrameData::DestroySwapchainResources() {
-    destroyAttachmentImages();
-
-    //TODO framebuffer
-
+    vkDestroyFramebuffer(device, offscreenFramebuffer, nullptr);
+    vkDestroyFramebuffer(device, finalFramebuffer, nullptr);
+    destroyAttachments();
     state = FrameDataState::Nothing;
 }
 

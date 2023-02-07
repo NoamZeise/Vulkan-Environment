@@ -173,23 +173,6 @@ void RenderPass(VkDevice device, VkRenderPass *renderPass, SwapChain swapchain,
   }
 }
 
-void Framebuffer(VkDevice device, VkRenderPass renderPass,
-                 VkFramebuffer *framebuffer,
-                 std::vector<VkImageView> attachments, uint32_t width,
-                 uint32_t height) {
-  VkFramebufferCreateInfo createInfo{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
-  createInfo.renderPass = renderPass;
-  createInfo.width = width;
-  createInfo.height = height;
-  createInfo.layers = 1;
-  createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-  createInfo.pAttachments = attachments.data();
-
-  if (vkCreateFramebuffer(device, &createInfo, nullptr, framebuffer) !=
-      VK_SUCCESS)
-    throw std::runtime_error("failed to create framebuffer");
-}
-
 void GraphicsPipeline(
     VkDevice device, Pipeline *pipeline, SwapChain swapchain,
     VkRenderPass renderPass, std::vector<DS::DescriptorSet*> descriptorSets,

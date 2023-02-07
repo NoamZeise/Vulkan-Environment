@@ -4,6 +4,7 @@
 #include "../../parts/part_macros.h"
 #include "../../vkhelper.h"
 #include "swapchain_frame.h"
+#include "render_pass_state.h"
 
 #include <iostream>
 
@@ -33,7 +34,8 @@ VkSampleCountFlagBits getMultisampleCount(DeviceState deviceState, bool useMulti
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
-VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images, std::vector<AttachmentImageDescription> &attachDescs) {
+VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images,
+						  std::vector<AttachmentImageDescription> &attachDescs) {
     VkResult result = VK_SUCCESS;
     VkDeviceSize attachmentImagesMemorySize;
     uint32_t attachmentImagesMemoryRequirements;
@@ -64,47 +66,10 @@ VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images, 
     return result;
 }
 
-std::vector<AttachmentImageDescription> getAttachmentImageDescriptions(VkSampleCountFlagBits samples, VkFormat swapchainFormat, VkFormat depthFormat) {
-    std::vector<AttachmentImageDescription> attachments;
-    uint32_t attachmentIndex = 0;
-    if(samples != VK_SAMPLE_COUNT_1_BIT) {
-	AttachmentImageDescription multisampling(attachmentIndex++, AttachmentImageType::Colour);
-	multisampling.imageUsageFlags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-	multisampling.samples = samples;
-	multisampling.format = swapchainFormat;
-	multisampling.finalImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	multisampling.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	multisampling.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments.push_back(multisampling);
-    }
-    AttachmentImageDescription depth(attachmentIndex++, AttachmentImageType::Depth);
-    depth.samples = samples;
-    depth.format = depthFormat;
-    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments.push_back(depth);
-
-    AttachmentImageType type = samples == VK_SAMPLE_COUNT_1_BIT ?
-	AttachmentImageType::Colour : AttachmentImageType::Resolve;
-    AttachmentImageDescription resolve(attachmentIndex++, type);
-    resolve.samples = samples;
-    resolve.format = swapchainFormat;
-    resolve.finalImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //TODO check if this is nessecary
-    if(resolve.type == AttachmentImageType::Resolve)
-	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    else
-	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    resolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments.push_back(resolve);
-    
-    return attachments;
-}
-
 VkResult createRenderPass(
 	VkDevice device,
 	std::vector<AttachmentImageDescription> &attachments,
+	std::vector<VkSubpassDependency> dependancies,
 	VkRenderPass *pRenderPass) {
     std::vector<VkAttachmentReference> colourRefs;
     std::vector<VkAttachmentReference> depthRefs;
@@ -123,8 +88,25 @@ VkResult createRenderPass(
 	attachmentDescriptions.push_back(a.getAttachmentDescription());
     }
 
-    //TODO create subpass, dependencies, renderpass
-    return VK_ERROR_INITIALIZATION_FAILED;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = (uint32_t)colourRefs.size();
+    subpass.pColorAttachments = colourRefs.data();
+    if(resolveRefs.size() > 0)
+	subpass.pResolveAttachments = resolveRefs.data();
+    if(depthRefs.size() > 0)
+	subpass.pDepthStencilAttachment = depthRefs.data();
+
+    VkRenderPassCreateInfo createInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
+    createInfo.attachmentCount = (uint32_t)attachmentDescriptions.size();
+    createInfo.pAttachments = attachmentDescriptions.data();
+    createInfo.subpassCount = 1;
+    createInfo.pSubpasses = &subpass;
+    createInfo.dependencyCount = (uint32_t)dependancies.size();
+    createInfo.pDependencies = dependancies.data();
+    
+    return vkCreateRenderPass(device, &createInfo, nullptr, pRenderPass);
 }
 
 VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB, bool useMultisampling) {
@@ -147,7 +129,7 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
     maxMsaaSamples = getMultisampleCount(deviceState, useMultisampling);
 
     std::vector<AttachmentImageDescription> attachmentsDesc =
-	getAttachmentImageDescriptions(maxMsaaSamples, formatKHR.format, depthBufferFormat);
+	getOffscreenAttachmentImageDescriptions(maxMsaaSamples, formatKHR.format, depthBufferFormat);
     
     returnOnErr(initFramesAndAttachmentImages(images, attachmentsDesc));
 
@@ -156,10 +138,23 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
     }
 
 
-    msgAndReturnOnErr(createRenderPass(deviceState.device, attachmentsDesc, &offscreenRenderPass),
+    msgAndReturnOnErr(createRenderPass(deviceState.device, attachmentsDesc,
+				       getOffscreenSubpassDependancies(),
+				       &offscreenRenderPass),
 		      "Failed to create offscreen Render Pass");
+
+    auto finalAttachments = getFinalAttachmentImageDescriptions(formatKHR.format);
+    msgAndReturnOnErr(createRenderPass(deviceState.device,
+				       finalAttachments,
+				       getFinalSubpassDependancies(),
+				       &finalRenderPass),
+    		      "Failed to create final Render Pass");
+
+
+    for(FrameData &f: frames) {
+	f.CreateFramebuffers(offscreenRenderPass, offscreenExtent, finalRenderPass, swapchainExtent);
+    }
     
-    //TODO
     return VK_ERROR_INITIALIZATION_FAILED;
     
     this->offscreenExtent = offscreenExtent;

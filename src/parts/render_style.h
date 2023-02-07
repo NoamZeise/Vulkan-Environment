@@ -3,6 +3,7 @@
 
 #include "../render_structs.h"
 #include "../pipeline.h"
+#include "framebuffer.h"
 #include <volk.h>
 
 #include <string>
@@ -14,7 +15,6 @@ namespace part
     namespace create
     {
         void RenderPass(VkDevice device, VkRenderPass* renderPass, SwapChain swapchain, bool presentOnly);
-        void Framebuffer(VkDevice device, VkRenderPass renderPass, VkFramebuffer* framebuffer, std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
         void GraphicsPipeline(VkDevice device, Pipeline* pipeline, SwapChain swapchain, VkRenderPass renderPass,
 								std::vector<DS::DescriptorSet*> descriptorSets,
 								std::vector<VkPushConstantRange> pushConstantsRanges,
