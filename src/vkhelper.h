@@ -9,7 +9,6 @@
 #include "pipeline.h"
 #include <volk.h>
 #include <config.h>
-#include "vulkan/vulkan_core.h"
 
 namespace vkhelper
 {

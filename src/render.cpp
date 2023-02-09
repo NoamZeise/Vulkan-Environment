@@ -870,7 +870,6 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   VkResult result =
       vkQueuePresentKHR(_base.queue.graphicsPresentQueue, &presentInfo);
-vkDeviceWaitIdle(_base.device);
   if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR ||
       _framebufferResized) {
     _framebufferResized = false;

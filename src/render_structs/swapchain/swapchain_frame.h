@@ -34,6 +34,14 @@ class FrameData {
 
     VkFramebuffer getOffscreenFramebuffer() { return offscreenFramebuffer; }
 
+    VkFramebuffer getSwapchainFramebuffer() { return swapchainFramebuffer; }
+
+    VkCommandBuffer getCmdBuff() { return commandBuffer; }
+
+    
+    VkSemaphore presentReadySem;
+    VkFence frameFinishedFence;
+
  private:
 
     void destroyAttachmentImages();
@@ -43,8 +51,6 @@ class FrameData {
     
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
-    VkSemaphore presentReadySem;
-    VkFence frameFinishedFence;
     
     //swapchain image - for final render pass
     VkImage swapchainImage;

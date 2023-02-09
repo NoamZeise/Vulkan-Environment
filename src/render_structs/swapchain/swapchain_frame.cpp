@@ -17,7 +17,7 @@ FrameData::FrameData(VkDevice device, uint32_t queueIndex) {
 					  &commandBuffer, queueIndex) != VK_SUCCESS) {
 	throw std::runtime_error("failed to create command pool and buffer for FrameData");
     }
-    
+
     if (part::create::Semaphore(device, &presentReadySem) != VK_SUCCESS)
       throw std::runtime_error("failed to create present ready semaphore");
 

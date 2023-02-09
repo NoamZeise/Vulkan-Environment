@@ -184,20 +184,38 @@ void Swapchain::DestroyFrameResources() {
 }
 
 
+VkViewport getViewport(VkExtent2D extent) {
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)extent.width;
+    viewport.height = (float)extent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    return viewport;
+}
 
-VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff, VkSemaphore *pImageAquireSem) {
+VkRect2D getScissor(VkExtent2D extent) {
+    VkRect2D scissor;
+    scissor.offset = {0, 0};
+    scissor.extent = extent;
+    return scissor;
+}
+
+
+VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
     VkResult result = VK_SUCCESS;
     if (imageAquireSemaphores.empty()) {
-	part::create::Semaphore(deviceState.device, pImageAquireSem);
+	part::create::Semaphore(deviceState.device, &currentImgAquireSem);
     } else {
-	*pImageAquireSem = imageAquireSemaphores.back();
+	currentImgAquireSem = imageAquireSemaphores.back();
 	imageAquireSemaphores.pop_back();
     }
 
-    result = vkAcquireNextImageKHR(deviceState.device, swapchain, UINT64_MAX, *pImageAquireSem,
+    result = vkAcquireNextImageKHR(deviceState.device, swapchain, UINT64_MAX, currentImgAquireSem,
 				   nullptr, &frameIndex);
     if(result != VK_SUCCESS) {
-	imageAquireSemaphores.push_back(*pImageAquireSem);
+	imageAquireSemaphores.push_back(currentImgAquireSem);
 	return result;
     }
 
@@ -215,22 +233,76 @@ VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff, VkSemaph
     renderPassInfo.pClearValues = clearColours;
 
     vkCmdBeginRenderPass(*pCmdBuff, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    VkViewport viewport;
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float)offscreenExtent.width;
-    viewport.height = (float)offscreenExtent.height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
+    
+    VkViewport viewport = getViewport(offscreenExtent);
     vkCmdSetViewport(*pCmdBuff, 0, 1, &viewport);
 
-    VkRect2D scissor;
-    scissor.offset = {0, 0};
-    scissor.extent = offscreenExtent;
+    VkRect2D scissor = getScissor(offscreenExtent);
     vkCmdSetScissor(*pCmdBuff, 0, 1, &scissor);
     
     return result;
 }
 
-//TODO during frame and end frame swapchain
+VkResult Swapchain::endOffscreenRenderPass() {
+    VkResult result = VK_SUCCESS;
+    VkCommandBuffer cmdbuff = frames[frameIndex].getCmdBuff();
+    vkCmdEndRenderPass(cmdbuff);
+
+    VkRenderPassBeginInfo renderPassInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+    renderPassInfo.renderPass = finalRenderPass;
+    renderPassInfo.framebuffer = frames[frameIndex].getSwapchainFramebuffer();
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = swapchainExtent;
+    VkClearValue clear = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clear;
+
+    vkCmdBeginRenderPass(cmdbuff,
+			 &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport = getViewport(swapchainExtent);
+    vkCmdSetViewport(cmdbuff, 0, 1, &viewport);
+    VkRect2D scissor = getScissor(swapchainExtent);
+    vkCmdSetScissor(cmdbuff, 0, 1, &scissor);
+
+
+    
+    //TODO: begin final pipeline
+    return VK_ERROR_FEATURE_NOT_PRESENT;
+
+    
+
+    vkCmdDraw(cmdbuff, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(cmdbuff);
+
+    msgAndReturnOnErr(vkEndCommandBuffer(cmdbuff), "Failed to end frame command buffer");
+
+    //Submit draw command
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = &currentImgAquireSem;
+    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submitInfo.pWaitDstStageMask = &stageFlags;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &cmdbuff;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &frames[frameIndex].presentReadySem;
+    msgAndReturnOnErr(
+	    vkQueueSubmit(deviceState.queue.graphicsPresentQueue, 1, &submitInfo,
+			  frames[frameIndex].frameFinishedFence),
+	    "Failed to submit graphics queue");
+
+    //Submit present command
+    VkPresentInfoKHR presentInfo {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = &frames[frameIndex].presentReadySem;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain;
+    presentInfo.pImageIndices = &frameIndex;
+    result = vkQueuePresentKHR(deviceState.queue.graphicsPresentQueue, &presentInfo);
+
+    imageAquireSemaphores.push_back(currentImgAquireSem);
+    
+    return result;
+}

@@ -28,19 +28,13 @@ class Swapchain {
 
     void DestroyFrameResources();
 
-    VkResult beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff, VkSemaphore *pImageAquireSem);
+    VkResult beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff);
+
+    VkResult endOffscreenRenderPass();
 
     size_t frameCount() { return frames.size(); }
 
     std::vector<VkImageView> getOffscreenViews();
-
-
-    VkExtent2D swapchainExtent;
-    VkExtent2D offscreenExtent;
-    
-    VkRenderPass offscreenRenderPass;
-    VkRenderPass finalRenderPass;
-
     
  private:
     DeviceState deviceState;
@@ -48,6 +42,9 @@ class Swapchain {
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkSurfaceFormatKHR formatKHR;
 
+    VkExtent2D swapchainExtent;
+    VkExtent2D offscreenExtent;
+    
     VkSampleCountFlagBits maxMsaaSamples;
     VkDeviceMemory attachmentMemory = VK_NULL_HANDLE;
     std::vector<FrameData> frames;
@@ -55,6 +52,9 @@ class Swapchain {
 
     uint32_t frameIndex = 0;
     std::vector<VkSemaphore> imageAquireSemaphores;
+    VkSemaphore currentImgAquireSem;
+    VkRenderPass offscreenRenderPass;
+    VkRenderPass finalRenderPass;
 
     VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images, std::vector<AttachmentImageDescription> &attachDescs);
 };
