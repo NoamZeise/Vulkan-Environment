@@ -19,6 +19,7 @@ namespace Resource {
     
 #include "render_structs.h"
 #include "pipeline.h"
+#include "render_structs/device_state.h"
 
 #include <atomic>
 
@@ -78,9 +79,10 @@ private:
   VkInstance _instance;
   VkSurfaceKHR _surface;
   DeviceState _base;
-  SwapChain _swapchain;
-  VkRenderPass _renderPass;
-  VkRenderPass _finalRenderPass;
+
+    SwapChain _swapchain;
+    VkRenderPass _renderPass;
+    VkRenderPass _finalRenderPass;
 
   VkCommandPool _generalCommandPool;
   VkCommandBuffer _transferCommandBuffer;

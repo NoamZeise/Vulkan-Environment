@@ -28,6 +28,12 @@ class FrameData {
     
     void DestroySwapchainResources();
 
+    VkImageView getSwapchainImageView();
+
+    VkResult startFrame(VkCommandBuffer* pCmdBuff);
+
+    VkFramebuffer getOffscreenFramebuffer() { return offscreenFramebuffer; }
+
  private:
 
     void destroyAttachmentImages();

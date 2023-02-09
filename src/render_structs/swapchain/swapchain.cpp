@@ -2,6 +2,7 @@
 
 #include "../../parts/swapchain.h"
 #include "../../parts/part_macros.h"
+#include "../../parts/threading.h"
 #include "../../vkhelper.h"
 #include "swapchain_frame.h"
 #include "render_pass_state.h"
@@ -17,6 +18,14 @@ Swapchain::~Swapchain() {
     if(frameInitialized) { DestroyFrameResources(); }
     frames.clear();
     vkDestroySwapchainKHR(deviceState.device, swapchain, nullptr);
+}
+
+std::vector<VkImageView> Swapchain::getOffscreenViews() {
+    std::vector<VkImageView> views(frameCount());
+    for(size_t i = 0; i < views.size(); i++) {
+	views[i] = frames[i].getSwapchainImageView();
+    }
+    return views;
 }
 
 VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
@@ -164,7 +173,7 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 
 void Swapchain::DestroyFrameResources() {
     if(swapchain != VK_NULL_HANDLE) {
-	
+	// not sure that 
     }
 
     for(auto& frame: frames) {
@@ -173,3 +182,55 @@ void Swapchain::DestroyFrameResources() {
 
     frameInitialized = false;
 }
+
+
+
+VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff, VkSemaphore *pImageAquireSem) {
+    VkResult result = VK_SUCCESS;
+    if (imageAquireSemaphores.empty()) {
+	part::create::Semaphore(deviceState.device, pImageAquireSem);
+    } else {
+	*pImageAquireSem = imageAquireSemaphores.back();
+	imageAquireSemaphores.pop_back();
+    }
+
+    result = vkAcquireNextImageKHR(deviceState.device, swapchain, UINT64_MAX, *pImageAquireSem,
+				   nullptr, &frameIndex);
+    if(result != VK_SUCCESS) {
+	imageAquireSemaphores.push_back(*pImageAquireSem);
+	return result;
+    }
+
+    returnOnErr(frames[frameIndex].startFrame(pCmdBuff));
+
+    VkRenderPassBeginInfo renderPassInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+    renderPassInfo.renderPass = offscreenRenderPass;
+    renderPassInfo.framebuffer = frames[frameIndex].getOffscreenFramebuffer();
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = offscreenExtent;
+    VkClearValue clearColours[2];
+    clearColours[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearColours[1].depthStencil = {1.0f, 0};
+    renderPassInfo.clearValueCount = 2;
+    renderPassInfo.pClearValues = clearColours;
+
+    vkCmdBeginRenderPass(*pCmdBuff, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    VkViewport viewport;
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = (float)offscreenExtent.width;
+    viewport.height = (float)offscreenExtent.height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(*pCmdBuff, 0, 1, &viewport);
+
+    VkRect2D scissor;
+    scissor.offset = {0, 0};
+    scissor.extent = offscreenExtent;
+    vkCmdSetScissor(*pCmdBuff, 0, 1, &scissor);
+    
+    return result;
+}
+
+//TODO during frame and end frame swapchain

@@ -44,7 +44,14 @@ FrameData::~FrameData() {
     vkDestroyCommandPool(device, commandPool, nullptr);
     vkDestroySemaphore(device, presentReadySem, nullptr);
     vkDestroyFence(device, frameFinishedFence, nullptr);
-}			       
+}
+
+VkImageView FrameData::getSwapchainImageView() {
+    if(state != FrameDataState::SwapchainResourcesCreated)
+	throw std::runtime_error("tried to get swapchain image view from frame"
+				 " that hasn't finished being created!");
+    return swapchainImageView;
+}
 
 VkResult FrameData::CreateAttachmentImages(
 	VkImage image, VkFormat swapchainFormat,
@@ -126,5 +133,23 @@ void FrameData::DestroySwapchainResources() {
     vkDestroyFramebuffer(device, finalFramebuffer, nullptr);
     destroyAttachments();
     state = FrameDataState::Nothing;
+}
+
+
+VkResult FrameData::startFrame(VkCommandBuffer *pCmdBuff) {
+    VkResult result = VK_SUCCESS;
+    
+    vkWaitForFences(device, 1, &frameFinishedFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &frameFinishedFence);
+
+    vkResetCommandPool(device, commandPool, 0);
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    beginInfo.pInheritanceInfo = nullptr;
+    msgAndReturnOnErr(vkBeginCommandBuffer(commandBuffer, &beginInfo),
+		      "Failed to begin command buffer for frame");
+
+    *pCmdBuff = commandBuffer;
+    return result;
 }
 

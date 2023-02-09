@@ -507,7 +507,7 @@ void Render::_startDraw()
         VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     if (vkCreateSemaphore(_base.device, &semaphoreInfo, nullptr,
                           &_imgAquireSem) != VK_SUCCESS)
-      throw std::runtime_error("failed to create image available semaphore");
+      throw std::runtime_error("failed to create image aquired semaphore");
   } else {
     _imgAquireSem = _swapchain.imageAquireSem.back();
     _swapchain.imageAquireSem.pop_back();
