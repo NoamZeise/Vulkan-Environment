@@ -32,7 +32,7 @@ class Swapchain {
 
     VkResult endOffscreenRenderPass();
 
-    size_t frameCount() { return frames.size(); }
+    size_t frameCount();
 
     std::vector<VkImageView> getOffscreenViews();
     
@@ -55,6 +55,8 @@ class Swapchain {
     VkSemaphore currentImgAquireSem;
     VkRenderPass offscreenRenderPass;
     VkRenderPass finalRenderPass;
+
+    
 
     VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images, std::vector<AttachmentImageDescription> &attachDescs);
 };

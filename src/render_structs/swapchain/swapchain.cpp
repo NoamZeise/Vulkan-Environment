@@ -28,6 +28,8 @@ std::vector<VkImageView> Swapchain::getOffscreenViews() {
     return views;
 }
 
+size_t Swapchain::frameCount() { return frames.size(); }
+
 VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
     return vkhelper::findSupportedFormat(
 	    physicalDevice,
@@ -173,7 +175,7 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 
 void Swapchain::DestroyFrameResources() {
     if(swapchain != VK_NULL_HANDLE) {
-	// not sure that 
+	//TODO: optimize swapchain recreation for reuse 
     }
 
     for(auto& frame: frames) {
@@ -201,7 +203,6 @@ VkRect2D getScissor(VkExtent2D extent) {
     scissor.extent = extent;
     return scissor;
 }
-
 
 VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
     VkResult result = VK_SUCCESS;

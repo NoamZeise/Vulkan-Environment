@@ -2,7 +2,7 @@
 #define PARTS_PRIMARY_H
 
 #include <volk.h>
-#include "../render_structs.h"
+#include "../render_structs/device_state.h"
 
 
 namespace part

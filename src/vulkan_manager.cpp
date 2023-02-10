@@ -1,6 +1,7 @@
 #include "vulkan_manager.h"
 #include "config.h"
 #include "parts/core.h"
+#include "parts/command.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -19,7 +20,8 @@ VkResult loadVulkan() {
     return result;
 }
 
-VulkanManager::VulkanManager(GLFWwindow *window) {
+VulkanManager::VulkanManager(GLFWwindow *window, EnabledFeatures featuresToEnable) {
+    this->window = window;
     throwOnErr(loadVulkan(),
 	       "Failed to load Vulkan functions");
     throwOnErr(part::create::Instance(&instance),
@@ -30,20 +32,15 @@ VulkanManager::VulkanManager(GLFWwindow *window) {
 #endif
     throwOnErr(glfwCreateWindowSurface(instance, window, nullptr, &windowSurface),
 	       "Failed to get Window Surface From GLFW");
-
-    EnabledFeatures featuresToEnable;
-    featuresToEnable.sampleRateShading = settings::SAMPLE_SHADING;
-    featuresToEnable.samplerAnisotropy = true;
     throwOnErr(part::create::Device(instance, &deviceState, windowSurface, featuresToEnable),
 	       "Failed to get physical device and create logical device");
-
     throwOnErr(part::create::CommandPoolAndBuffer(
 		       deviceState.device,
 		       &generalCommandPool,
 		       &generalCommandBuffer,
 		       deviceState.queue.graphicsPresentFamilyIndex),
 	       "Failed to create command pool and buffer");
-    
+    swapchain = new Swapchain(deviceState, windowSurface);
     throwOnErr(initFrameResources(),
 	       "Failed to create frame resources");
 }
@@ -51,8 +48,9 @@ VulkanManager::VulkanManager(GLFWwindow *window) {
 
 VulkanManager::~VulkanManager() {
     vkQueueWaitIdle(deviceState.queue.graphicsPresentQueue);
-
-    destroyFrameResources();
+    if(frameResourcesCreated)
+	destroyFrameResources();
+    delete swapchain;
     vkDestroyCommandPool(deviceState.device, generalCommandPool, nullptr);
     vkDestroyDevice(deviceState.device, nullptr);
     vkDestroySurfaceKHR(instance, windowSurface, nullptr);
@@ -63,6 +61,27 @@ VulkanManager::~VulkanManager() {
 }
 
 VkResult VulkanManager::initFrameResources() {
-    //if(swapchain.swapChain
+    if(frameResourcesCreated) 
+	throw std::runtime_error("Tried to create frame resources that already exist!\n");
+    
+    int windowWidth, windowHeight;
+    glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+    if(windowWidth == 0 && windowHeight == 0) {
+	std::cerr << "Error: GLFW ERROR GETTING FRAMEBUFFER SIZE\n";
+    }
+    VkExtent2D swapchainExtent = {(uint32_t)windowWidth, uint32_t(windowHeight)};
+    VkExtent2D offscreenExtent = useWindowResolution ? swapchainExtent : this->offscreenExtent;
+    swapchain->InitFrameResources(swapchainExtent, offscreenExtent, vsync, srgb, multisampling);
+
+    frameResourcesCreated = true;
     return VK_SUCCESS;
+}
+
+void VulkanManager::destroyFrameResources() {
+    if(!frameResourcesCreated) 
+	throw std::runtime_error("Tried to destroy frame resources before they were created!\n");
+
+    swapchain->DestroyFrameResources();
+    
+    frameResourcesCreated = false;
 }
