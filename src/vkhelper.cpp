@@ -1,5 +1,9 @@
 #include "vkhelper.h"
 
+#include <config.h>
+
+#include <stdexcept>
+
 namespace vkhelper
 {
 
@@ -55,7 +59,8 @@ VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
 	return desiredSize;
 }
 
-    VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice, float maxLod, bool enableAnisotrophy,
+    VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice,
+				   float maxLod, bool enableAnisotrophy,
 				   VkSamplerAddressMode addressMode)
 {
   VkSampler sampler;

@@ -5,7 +5,7 @@
 #include <vector>
 #include <set>
 #include <vulkan/vulkan_core.h>
-#include "../../render_structs.h"
+#include "../../render_structs/device_state.h"
 
 bool checkRequiredLayersSupported(const std::vector<const char *> requiredLayers);
 

@@ -7,6 +7,7 @@
 
 #include <resources/stb_image.h>
 #include <config.h>
+#include "../vkhelper.h"
 #include "../parts/images.h"
 
 namespace Resource
@@ -145,9 +146,12 @@ void TextureLoader::endLoading()
 
 		textures[i] = LoadedTexture(texToLoad[i]);
 		VkFormatProperties formatProperties;
-		vkGetPhysicalDeviceFormatProperties(base.physicalDevice, texToLoad[i].format, &formatProperties);
-		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
-			|| !(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT)
+		vkGetPhysicalDeviceFormatProperties(base.physicalDevice, texToLoad[i].format,
+						    &formatProperties);
+		if (!(formatProperties.optimalTilingFeatures &
+		      VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
+			|| !(formatProperties.optimalTilingFeatures &
+			     VK_FORMAT_FEATURE_BLIT_DST_BIT)
 			|| !settings::MIP_MAPPING)
 			textures[i].mipLevels = 1;
 		//get smallest mip levels of any texture
@@ -338,7 +342,10 @@ void TextureLoader::endLoading()
 			throw std::runtime_error("Failed to create image view from texture at: " + texToLoad[i].path);
 	}
     
-	textureSampler = vkhelper::createTextureSampler(base.device, base.physicalDevice, static_cast<float>(minMips), base.features.samplerAnisotropy, VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	textureSampler = vkhelper::createTextureSampler(base.device, base.physicalDevice,
+							static_cast<float>(minMips),
+							base.features.samplerAnisotropy,
+							VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
 	vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
 

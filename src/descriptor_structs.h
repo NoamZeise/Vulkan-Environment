@@ -87,7 +87,7 @@ struct Binding {
 
   size_t offset;
   VkDeviceSize slotSize;
-  void *pointer;
+  void *pBuffer;
   VkImageView *imageViews;
   VkSampler *samplers;
   bool viewsPerSet = false;
@@ -103,12 +103,13 @@ struct Binding {
 #else
            memcpy(
 #endif
-          static_cast<char *>(pointer) + offset + dynamicOffsetIndex*setCount*bufferSize +
-              ((frameIndex * bufferSize) + (descriptorIndex * arraySize * slotSize) + (arrayIndex * slotSize)),
-          data, dataStructSize);
-    else
-      throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
-                               "in non uniform or storage buffer!");
+		   static_cast<char *>(pBuffer) + offset + dynamicOffsetIndex*setCount*bufferSize +
+		   ((frameIndex * bufferSize) + (descriptorIndex * arraySize * slotSize) +
+		    (arrayIndex * slotSize)),
+		   data, dataStructSize);
+	   else
+	       throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
+					"in non uniform or storage buffer!");
   }
 };
 
@@ -214,7 +215,8 @@ template <typename T> struct BindingAndData
     if (arrayIndex >= data.size())
       throw std::runtime_error("Descriptor Set Binding: tried to store data in "
                                "an index outside of the data range");
-    binding.storeSetData(frameIndex, &data[(descriptorIndex * binding.arraySize) + arrayIndex], descriptorIndex, arrayIndex, currentDynamicOffsetIndex);
+    binding.storeSetData(frameIndex, &data[(descriptorIndex * binding.arraySize) + arrayIndex],
+			 descriptorIndex, arrayIndex, currentDynamicOffsetIndex);
   }
 };
 

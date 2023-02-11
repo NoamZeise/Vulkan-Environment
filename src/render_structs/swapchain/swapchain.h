@@ -30,35 +30,47 @@ class Swapchain {
 
     VkResult beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff);
 
-    VkResult endOffscreenRenderPass();
+    void endOffscreenRenderPassAndBeginFinal();
+
+    VkResult endFinalRenderPass();
+
+    VkSampleCountFlagBits  getMaxMsaaSamples() { return maxMsaaSamples; }
 
     size_t frameCount();
-
     std::vector<VkImageView> getOffscreenViews();
+    uint32_t getFrameIndex();
+
+    VkRenderPass offscreenRenderPass;
+    VkRenderPass finalRenderPass;
+
+    VkExtent2D swapchainExtent;
+    VkExtent2D offscreenExtent;
     
  private:
     DeviceState deviceState;
     VkSurfaceKHR windowSurface;
     VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkSurfaceFormatKHR formatKHR;
-
-    VkExtent2D swapchainExtent;
-    VkExtent2D offscreenExtent;
     
     VkSampleCountFlagBits maxMsaaSamples;
     VkDeviceMemory attachmentMemory = VK_NULL_HANDLE;
-    std::vector<FrameData> frames;
-    bool frameInitialized = false;
+    std::vector<FrameData*> frames;
 
     uint32_t frameIndex = 0;
     std::vector<VkSemaphore> imageAquireSemaphores;
     VkSemaphore currentImgAquireSem;
-    VkRenderPass offscreenRenderPass;
-    VkRenderPass finalRenderPass;
 
-    
+    enum class FrameState {
+	NothingInitialized,
+	FrameResourcesCreated,
+	OffscreenPassBegan,
+	FinalPassBegan,
+    };
 
-    VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images, std::vector<AttachmentImageDescription> &attachDescs);
+    FrameState currentState = FrameState::NothingInitialized;
+
+    VkResult initFramesAndAttachmentImages(std::vector<VkImage> &images,
+					   std::vector<AttachmentImageDescription> &attachDescs);
 };
 
 #endif

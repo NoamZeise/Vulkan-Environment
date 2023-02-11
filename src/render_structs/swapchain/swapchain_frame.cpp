@@ -39,18 +39,19 @@ FrameData::~FrameData() {
     case FrameDataState::Nothing:
 	break;
     }
-    
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     vkDestroyCommandPool(device, commandPool, nullptr);
     vkDestroySemaphore(device, presentReadySem, nullptr);
     vkDestroyFence(device, frameFinishedFence, nullptr);
 }
 
-VkImageView FrameData::getSwapchainImageView() {
-    if(state != FrameDataState::SwapchainResourcesCreated)
+VkImageView FrameData::getOffscreenImageView() {
+    if(state != FrameDataState::SwapchainResourcesCreated || attachments.size() < 1)
 	throw std::runtime_error("tried to get swapchain image view from frame"
 				 " that hasn't finished being created!");
-    return swapchainImageView;
+    //last attachment is either colour or resolve, the one being sampled
+    //by the final render pass
+    return attachments.back().view;
 }
 
 VkResult FrameData::CreateAttachmentImages(
@@ -64,13 +65,13 @@ VkResult FrameData::CreateAttachmentImages(
 
     swapchainImage = image;
     msgAndReturnOnErr(part::create::ImageView(device, &swapchainImageView,
-					       swapchainImage, swapchainFormat,
-					      VK_IMAGE_ASPECT_COLOR_BIT),
-		       "Failed to create image view for swapchain image");
+                                              swapchainImage, swapchainFormat,
+                                              VK_IMAGE_ASPECT_COLOR_BIT),
+                      "Failed to create image view for swapchain image");
     
     for(AttachmentImageDescription &attachDesc: attachDescs) {
-	AttachmentImage attachmentImage(attachDesc);
-	msgAndReturnOnErr(attachmentImage.CreateImage(device, offscreenExtent,
+	attachments.push_back(AttachmentImage(attachDesc));
+	msgAndReturnOnErr(attachments.back().CreateImage(device, offscreenExtent,
 						      pMemoryRequirements, pMemoryFlagBits),
 			  "Failed to create attachment image");
     }
@@ -119,12 +120,14 @@ void FrameData::destroyAttachmentImages() {
     }
     for(auto &a: attachments)
 	vkDestroyImage(device, a.image, nullptr);
+    attachments.clear();
     vkDestroyImageView(device, swapchainImageView, nullptr);
 }
 
 void FrameData::destroyAttachments() {
     for(auto &a: attachments)
 	a.Destroy(device);
+    attachments.clear();
     vkDestroyImageView(device, swapchainImageView, nullptr);
 }
 

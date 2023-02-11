@@ -52,6 +52,7 @@ struct AttachmentImageDescription {
     
     VkAttachmentDescription getAttachmentDescription()  {
 	VkAttachmentDescription attachDesc;
+	attachDesc.flags = 0;
 	attachDesc.format = format;
 	attachDesc.samples = samples;
 	attachDesc.loadOp = loadOp;
@@ -74,7 +75,7 @@ struct AttachmentImage {
     VkImage image;
     VkImageView view;
     size_t memoryOffset;
-
+    
     AttachmentImageDescription desc;
 
     void Destroy(VkDevice device);

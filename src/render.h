@@ -16,10 +16,11 @@ namespace Resource {
     class FontLoader;
     class TextureLoader;
 } // namespace Resource
-    
-#include "render_structs.h"
+
+
+#include "render_structs/swapchain/swapchain.h"
 #include "pipeline.h"
-#include "render_structs/device_state.h"
+#include "vulkan_manager.h"
 
 #include <atomic>
 
@@ -72,20 +73,15 @@ private:
   //render settings
   bool _forceTargetResolution = false;
   glm::vec2 _targetResolution;
-  bool vsync = true;
+    bool vsync;
+    bool srgb;
+    bool multisampling;
 
+    VulkanManager* manager;
     
-  GLFWwindow *_window;
-  VkInstance _instance;
-  VkSurfaceKHR _surface;
-  DeviceState _base;
+    Swapchain *swapchain;
+    VkCommandBuffer currentCommandBuffer;
 
-    SwapChain _swapchain;
-    VkRenderPass _renderPass;
-    VkRenderPass _finalRenderPass;
-
-  VkCommandPool _generalCommandPool;
-  VkCommandBuffer _transferCommandBuffer;
 
   Pipeline _pipeline3D;
   Pipeline _pipelineAnim3D;
@@ -156,7 +152,6 @@ private:
   unsigned int _instance2Druns = 0;
   unsigned int _current2DInstanceIndex = 0;
 
-  void _initRender(GLFWwindow *window);
   void _initStagingResourceManagers();
   void _initFrameResources();
   void _destroyFrameResources();
@@ -164,10 +159,6 @@ private:
   void _resize();
   void _updateViewProjectionMatrix();
   void _drawBatch();
-
-#ifndef NDEBUG
-  VkDebugUtilsMessengerEXT _debugMessenger;
-#endif
 };
 
 } //namespace

@@ -15,7 +15,7 @@
 #include <resources/model_loader.h>
 #endif
 #include "texture_loader.h"
-#include "../render_structs.h"
+#include "../render_structs/device_state.h"
 #include "../pipeline.h"
 
 namespace Resource

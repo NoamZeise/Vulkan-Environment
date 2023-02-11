@@ -5,6 +5,9 @@
 #include <volk.h>
 #include "attachment_image.h"
 
+
+#include <iostream>
+
 //TODO make this more abstract, instead of just writing out the state
 
 std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(VkSampleCountFlagBits samples, VkFormat swapchainFormat, VkFormat depthFormat) {
@@ -23,7 +26,7 @@ std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(
     AttachmentImageDescription depth(attachmentIndex++, AttachmentImageType::Depth);
     depth.samples = samples;
     depth.format = depthFormat;
-    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachments.push_back(depth);
@@ -31,9 +34,10 @@ std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(
     AttachmentImageType type = samples == VK_SAMPLE_COUNT_1_BIT ?
 	AttachmentImageType::Colour : AttachmentImageType::Resolve;
     AttachmentImageDescription resolve(attachmentIndex++, type);
-    resolve.samples = samples;
+    resolve.samples = VK_SAMPLE_COUNT_1_BIT;
     resolve.format = swapchainFormat;
     resolve.finalImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    resolve.imageUsageFlags  |= VK_IMAGE_USAGE_SAMPLED_BIT;
     //TODO check if this is nessecary
     if(resolve.type == AttachmentImageType::Resolve)
 	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -84,7 +88,7 @@ std::vector<AttachmentImageDescription> getFinalAttachmentImageDescriptions(VkFo
     colour.samples = VK_SAMPLE_COUNT_1_BIT;
     colour.format = swapchainFormat;
     colour.finalImageLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    colour.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colour.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colour.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachments.push_back(colour);
     

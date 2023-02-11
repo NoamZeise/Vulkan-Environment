@@ -33,8 +33,7 @@ layout(location = 4) in vec4 inWeights;
 layout(location = 0) out vec2 outTexCoord;
 layout(location = 1) out vec3 outFragPos;
 layout(location = 2) out vec3 outNormal;
-layout(location = 3) out vec3 outBoneColour;
-
+//layout(location = 3) out vec3 outBoneColour;
 
 
 void main()

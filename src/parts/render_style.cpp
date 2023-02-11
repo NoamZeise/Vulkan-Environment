@@ -3,6 +3,7 @@
 #include <config.h>
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
 
 
 namespace part
@@ -12,174 +13,13 @@ namespace create
 
 VkShaderModule _loadShaderModule(VkDevice device, std::string file);
 
-  //TODO delete  this once new swapchain implemented
-void RenderPass(VkDevice device, VkRenderPass *renderPass, SwapChain swapchain,
-                bool presentOnly) {
-  if (presentOnly) {
-    // create attachments
-
-    // present attachment
-    VkAttachmentReference colourAttachmentRef{
-        0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentDescription colourAttachment{};
-    colourAttachment.format = swapchain.format.format;
-    colourAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colourAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    std::vector<VkAttachmentDescription> attachments;
-    attachments = {colourAttachment};
-    // create subpass
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colourAttachmentRef;
-
-    std::array<VkSubpassDescription, 1> subpasses = {subpass};
-
-    // depenancy to external events
-    std::array<VkSubpassDependency, 1> dependencies;
-    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].srcStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].srcAccessMask = 0;
-    dependencies[0].dstSubpass = 0;
-    dependencies[0].dstStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    VkRenderPassCreateInfo createInfo{
-        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    createInfo.pAttachments = attachments.data();
-    createInfo.subpassCount = static_cast<uint32_t>(subpasses.size());
-    createInfo.pSubpasses = subpasses.data();
-    createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-    createInfo.pDependencies = dependencies.data();
-
-    if (vkCreateRenderPass(device, &createInfo, nullptr, renderPass) !=
-        VK_SUCCESS)
-      throw std::runtime_error("failed to create render pass!");
-  } else {
-    // create attachments
-
-    // present attachment
-    VkAttachmentReference colourAttachmentRef{
-        0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentDescription colourAttachment{};
-    colourAttachment.format = swapchain.format.format;
-    colourAttachment.samples = swapchain.maxMsaaSamples;
-    if (settings::MULTISAMPLING) {
-      colourAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    } else {
-      colourAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    }
-    colourAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    if (settings::MULTISAMPLING)
-      colourAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colourAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colourAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colourAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    // depth attachment
-    VkAttachmentReference depthBufferRef{
-        1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = swapchain.frameData[0].depthBuffer.format;
-    depthAttachment.samples = swapchain.maxMsaaSamples;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout =
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    // resolve attachment
-    VkAttachmentReference resolveAttachmentRef{
-        2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-    VkAttachmentDescription resolveAttachment{};
-    resolveAttachment.format = swapchain.format.format;
-    resolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    resolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    resolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    resolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    resolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    resolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    resolveAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    std::vector<VkAttachmentDescription> attachments;
-    if (settings::MULTISAMPLING)
-      attachments = {colourAttachment, depthAttachment, resolveAttachment};
-    else
-      attachments = {colourAttachment, depthAttachment};
-    // create subpass
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colourAttachmentRef;
-    if (settings::MULTISAMPLING)
-      subpass.pResolveAttachments = &resolveAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthBufferRef;
-
-    std::array<VkSubpassDescription, 1> subpasses = {subpass};
-
-    // depenancy to external events
-    std::array<VkSubpassDependency, 2> dependencies;
-    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[0].srcStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependencies[0].srcAccessMask = 0;
-    dependencies[0].dstSubpass = 0;
-    dependencies[0].dstStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependencies[0].dstAccessMask =
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    dependencies[1].srcSubpass = 0;
-    dependencies[1].srcStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependencies[1].srcAccessMask =
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-    VkRenderPassCreateInfo createInfo{
-        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
-    createInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    createInfo.pAttachments = attachments.data();
-    createInfo.subpassCount = static_cast<uint32_t>(subpasses.size());
-    createInfo.pSubpasses = subpasses.data();
-    createInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-    createInfo.pDependencies = dependencies.data();
-
-    if (vkCreateRenderPass(device, &createInfo, nullptr, renderPass) !=
-        VK_SUCCESS)
-      throw std::runtime_error("failed to create render pass!");
-  }
-}
-
 void GraphicsPipeline(
-    VkDevice device, Pipeline *pipeline, SwapChain swapchain,
+    VkDevice device, Pipeline *pipeline, VkSampleCountFlagBits  msaaSamples,
     VkRenderPass renderPass, std::vector<DS::DescriptorSet*> descriptorSets,
     std::vector<VkPushConstantRange> pushConstantsRanges,
     std::string vertexShaderPath, std::string fragmentShaderPath,
-    bool useDepthTest, bool useMultisampling, bool useBlend, VkExtent2D extent,
-    VkCullModeFlags cullMode,
+    bool useDepthTest, bool useMultisampling, bool useBlend,
+    VkExtent2D extent, VkCullModeFlags cullMode,
     std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
     std::vector<VkVertexInputBindingDescription> vertexBindingDesc) {
 
@@ -284,7 +124,7 @@ void GraphicsPipeline(
       VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
 
   if (useMultisampling) {
-    multisampleInfo.rasterizationSamples = swapchain.maxMsaaSamples;
+      multisampleInfo.rasterizationSamples = msaaSamples;
     if (settings::SAMPLE_SHADING) {
       multisampleInfo.minSampleShading = 1.0f;
       multisampleInfo.sampleShadingEnable = VK_TRUE;

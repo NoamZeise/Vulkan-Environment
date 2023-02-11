@@ -8,6 +8,7 @@
 #include "render_pass_state.h"
 
 #include <iostream>
+#include <fstream>
 
 Swapchain::Swapchain(DeviceState deviceState, VkSurfaceKHR windowSurface) {
     this->deviceState = deviceState;
@@ -15,20 +16,28 @@ Swapchain::Swapchain(DeviceState deviceState, VkSurfaceKHR windowSurface) {
 }
 
 Swapchain::~Swapchain() {
-    if(frameInitialized) { DestroyFrameResources(); }
-    frames.clear();
+    if(currentState != FrameState::NothingInitialized) { DestroyFrameResources(); }
+    for(int i = 0; i < frames.size(); i++) {
+	delete frames[i];
+    }
+    for(int i = 0; i < imageAquireSemaphores.size(); i++) {
+	vkDestroySemaphore(deviceState.device, imageAquireSemaphores[i], nullptr);
+    }
+    
     vkDestroySwapchainKHR(deviceState.device, swapchain, nullptr);
 }
 
 std::vector<VkImageView> Swapchain::getOffscreenViews() {
     std::vector<VkImageView> views(frameCount());
     for(size_t i = 0; i < views.size(); i++) {
-	views[i] = frames[i].getSwapchainImageView();
+	views[i] = frames[i]->getOffscreenImageView();
     }
     return views;
 }
 
 size_t Swapchain::frameCount() { return frames.size(); }
+
+uint32_t Swapchain::getFrameIndex() {  return frameIndex; }
 
 VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
     return vkhelper::findSupportedFormat(
@@ -48,24 +57,25 @@ VkSampleCountFlagBits getMultisampleCount(DeviceState deviceState, bool useMulti
 VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images,
 						  std::vector<AttachmentImageDescription> &attachDescs) {
     VkResult result = VK_SUCCESS;
-    VkDeviceSize attachmentImagesMemorySize;
-    uint32_t attachmentImagesMemoryRequirements;
+    VkDeviceSize attachmentImagesMemorySize  = 0;
+    uint32_t attachmentImagesMemoryRequirements = 0;
     for(int i = 0; i < images.size(); i++) {
-	if(i == frames.size()) 
-	    frames.push_back(FrameData(deviceState.device,
+	if(i == frames.size()) {
+	    frames.push_back(new FrameData(deviceState.device,
 				       deviceState.queue.graphicsPresentFamilyIndex));
-	else 
-	    frames[i].DestroySwapchainResources();
+	}
 	
-	returnOnErr(frames[i].CreateAttachmentImages(images[i], formatKHR.format,
+	returnOnErr(frames[i]->CreateAttachmentImages(images[i], formatKHR.format,
 					 attachDescs, offscreenExtent,
 					 &attachmentImagesMemorySize,
 					 &attachmentImagesMemoryRequirements,
 							   maxMsaaSamples));
     }
     
-    while(images.size() < frames.size())
+    while(images.size() < frames.size()) {
+	delete frames.back();
 	frames.pop_back();
+    }
     
     msgAndReturnOnErr(vkhelper::createMemory(deviceState.device, deviceState.physicalDevice,
 					     attachmentImagesMemorySize,
@@ -73,7 +83,6 @@ VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images,
 					     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				    attachmentImagesMemoryRequirements),
 	"Failed to create memory for swapchain frame attachment images"); 
-    
     return result;
 }
 
@@ -93,8 +102,10 @@ VkResult createRenderPass(
 	    break;
 	case AttachmentImageType::Depth:
 	    depthRefs.push_back(a.getAttachmentReference());
+	    break;
 	case AttachmentImageType::Resolve:
 	    resolveRefs.push_back(a.getAttachmentReference());
+	    break;
 	}
 	attachmentDescriptions.push_back(a.getAttachmentDescription());
     }
@@ -120,10 +131,15 @@ VkResult createRenderPass(
     return vkCreateRenderPass(device, &createInfo, nullptr, pRenderPass);
 }
 
-VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, bool vsync, bool useSRGB, bool useMultisampling) {
+VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent,
+				       bool vsync, bool useSRGB, bool useMultisampling) {
+    if(currentState != FrameState::NothingInitialized) {
+	std::cerr << "Error: "
+	    "tried to create frame resources when they already exist\n";
+	return  VK_ERROR_UNKNOWN;
+    }
+    this->offscreenExtent = offscreenExtent;
     VkResult result = VK_SUCCESS;
-    if(swapchain != VK_NULL_HANDLE)
-	DestroyFrameResources();
 
     std::vector<VkImage> images = part::create::Swapchain(
 	    deviceState.device,
@@ -144,8 +160,9 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
     
     returnOnErr(initFramesAndAttachmentImages(images, attachmentsDesc));
 
-    for(auto& frame: frames) {
-	frame.CreateAttachmentImageViews(attachmentMemory);
+    
+    for(FrameData *f: frames) {
+	f->CreateAttachmentImageViews(attachmentMemory);
     }
 
 
@@ -161,28 +178,33 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 				       &finalRenderPass),
     		      "Failed to create final Render Pass");
 
-
-    for(FrameData &f: frames) {
-	f.CreateFramebuffers(offscreenRenderPass, offscreenExtent, finalRenderPass, swapchainExtent);
+    
+    for(FrameData *f: frames) {
+	f->CreateFramebuffers(offscreenRenderPass, offscreenExtent,
+			      finalRenderPass, swapchainExtent);
     }
-    
-    return VK_ERROR_INITIALIZATION_FAILED;
-    
-    this->offscreenExtent = offscreenExtent;
-    frameInitialized = true;
+
+    currentState = FrameState::FrameResourcesCreated;
     return result;
 }
 
 void Swapchain::DestroyFrameResources() {
-    if(swapchain != VK_NULL_HANDLE) {
-	//TODO: optimize swapchain recreation for reuse 
+    if(currentState != FrameState::FrameResourcesCreated) {
+	throw std::runtime_error("Tried to destroy frame resources"
+				 " while render pass is running "
+				 "or frame resources are uncreated!");
     }
+    //TODO: optimize swapchain recreation for reuse 
 
-    for(auto& frame: frames) {
-	frame.DestroySwapchainResources();
+    vkDestroyRenderPass(deviceState.device, offscreenRenderPass,  nullptr);
+    vkDestroyRenderPass(deviceState.device, finalRenderPass,  nullptr);
+    
+    for(FrameData *f: frames) {
+	f->DestroySwapchainResources();
     }
-
-    frameInitialized = false;
+    vkFreeMemory(deviceState.device,  attachmentMemory,  nullptr);
+    
+    currentState = FrameState::NothingInitialized;
 }
 
 
@@ -205,6 +227,12 @@ VkRect2D getScissor(VkExtent2D extent) {
 }
 
 VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
+    if(currentState != FrameState::FrameResourcesCreated) {
+	std::cerr << "Error: "
+	    "tried to begin offscreen render pass without creating frame resources\n";
+	return  VK_ERROR_UNKNOWN;
+    }
+      
     VkResult result = VK_SUCCESS;
     if (imageAquireSemaphores.empty()) {
 	part::create::Semaphore(deviceState.device, &currentImgAquireSem);
@@ -220,11 +248,11 @@ VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
 	return result;
     }
 
-    returnOnErr(frames[frameIndex].startFrame(pCmdBuff));
+    returnOnErr(frames[frameIndex]->startFrame(pCmdBuff));
 
     VkRenderPassBeginInfo renderPassInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     renderPassInfo.renderPass = offscreenRenderPass;
-    renderPassInfo.framebuffer = frames[frameIndex].getOffscreenFramebuffer();
+    renderPassInfo.framebuffer = frames[frameIndex]->getOffscreenFramebuffer();
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = offscreenExtent;
     VkClearValue clearColours[2];
@@ -240,18 +268,21 @@ VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
 
     VkRect2D scissor = getScissor(offscreenExtent);
     vkCmdSetScissor(*pCmdBuff, 0, 1, &scissor);
-    
+
+    currentState = FrameState::OffscreenPassBegan;
     return result;
 }
 
-VkResult Swapchain::endOffscreenRenderPass() {
-    VkResult result = VK_SUCCESS;
-    VkCommandBuffer cmdbuff = frames[frameIndex].getCmdBuff();
+void Swapchain::endOffscreenRenderPassAndBeginFinal() {
+    if(currentState != FrameState::OffscreenPassBegan) {
+	throw std::runtime_error("Tried to end offscreen render pass before it began!");
+    }
+    VkCommandBuffer cmdbuff = frames[frameIndex]->getCmdBuff();
     vkCmdEndRenderPass(cmdbuff);
 
     VkRenderPassBeginInfo renderPassInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     renderPassInfo.renderPass = finalRenderPass;
-    renderPassInfo.framebuffer = frames[frameIndex].getSwapchainFramebuffer();
+    renderPassInfo.framebuffer = frames[frameIndex]->getSwapchainFramebuffer();
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapchainExtent;
     VkClearValue clear = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
@@ -266,21 +297,23 @@ VkResult Swapchain::endOffscreenRenderPass() {
     VkRect2D scissor = getScissor(swapchainExtent);
     vkCmdSetScissor(cmdbuff, 0, 1, &scissor);
 
+    currentState = FrameState::FinalPassBegan;
+}
 
-    
-    //TODO: begin final pipeline
-    return VK_ERROR_FEATURE_NOT_PRESENT;
 
-    
-
-    vkCmdDraw(cmdbuff, 3, 1, 0, 0);
-
+VkResult Swapchain::endFinalRenderPass() {
+    if(currentState != FrameState::FinalPassBegan) {
+	std::cerr << "Error:  tried to end final render pass before it began\n";
+	return  VK_ERROR_UNKNOWN;
+    }
+    VkResult result = VK_SUCCESS;
+    VkCommandBuffer cmdbuff = frames[frameIndex]->getCmdBuff();
     vkCmdEndRenderPass(cmdbuff);
 
     msgAndReturnOnErr(vkEndCommandBuffer(cmdbuff), "Failed to end frame command buffer");
 
     //Submit draw command
-    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
+    VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = &currentImgAquireSem;
     VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -288,22 +321,22 @@ VkResult Swapchain::endOffscreenRenderPass() {
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmdbuff;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &frames[frameIndex].presentReadySem;
+    submitInfo.pSignalSemaphores = &frames[frameIndex]->presentReadySem;
     msgAndReturnOnErr(
 	    vkQueueSubmit(deviceState.queue.graphicsPresentQueue, 1, &submitInfo,
-			  frames[frameIndex].frameFinishedFence),
+			  frames[frameIndex]->frameFinishedFence),
 	    "Failed to submit graphics queue");
 
     //Submit present command
     VkPresentInfoKHR presentInfo {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = &frames[frameIndex].presentReadySem;
+    presentInfo.pWaitSemaphores = &frames[frameIndex]->presentReadySem;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = &swapchain;
     presentInfo.pImageIndices = &frameIndex;
     result = vkQueuePresentKHR(deviceState.queue.graphicsPresentQueue, &presentInfo);
 
     imageAquireSemaphores.push_back(currentImgAquireSem);
-    
+    currentState =  FrameState::FrameResourcesCreated;
     return result;
 }

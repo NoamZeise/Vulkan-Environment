@@ -25,6 +25,7 @@ VkResult AttachmentImage::CreateImage(VkDevice device,
 			extent,
 			desc.format,
 			desc.samples, 1));
+    
     *pMemoryRequirements += memReq.size;
     *pMemoryFlagBits |= memReq.memoryTypeBits;
     return result;
@@ -34,6 +35,7 @@ VkResult AttachmentImage::CreateImageView(VkDevice device,
 			 VkDeviceMemory attachmentMemory) {
     vkBindImageMemory(device, image,
 		      attachmentMemory, memoryOffset);
+
     return part::create::ImageView(device,
 				   &view,
 				   image,

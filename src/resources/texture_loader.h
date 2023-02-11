@@ -6,8 +6,7 @@
 #include <vector>
 #include <string>
 
-#include "../render_structs.h"
-#include "../vkhelper.h"
+#include "../render_structs/device_state.h"
 #include <resources/resources.h>
 
 namespace Resource

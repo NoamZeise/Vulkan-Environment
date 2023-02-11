@@ -28,13 +28,13 @@ class FrameData {
     
     void DestroySwapchainResources();
 
-    VkImageView getSwapchainImageView();
+    VkImageView getOffscreenImageView();
 
     VkResult startFrame(VkCommandBuffer* pCmdBuff);
 
     VkFramebuffer getOffscreenFramebuffer() { return offscreenFramebuffer; }
 
-    VkFramebuffer getSwapchainFramebuffer() { return swapchainFramebuffer; }
+    VkFramebuffer getSwapchainFramebuffer() { return finalFramebuffer; }
 
     VkCommandBuffer getCmdBuff() { return commandBuffer; }
 
@@ -55,7 +55,6 @@ class FrameData {
     //swapchain image - for final render pass
     VkImage swapchainImage;
     VkImageView swapchainImageView;
-    VkFramebuffer swapchainFramebuffer;
     
     /// attachments for offscreen render pass
     std::vector<AttachmentImage> attachments;
