@@ -51,16 +51,14 @@ class FrameData {
     
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
+
     
-    //swapchain image - for final render pass
     VkImage swapchainImage;
     VkImageView swapchainImageView;
-    
-    /// attachments for offscreen render pass
-    std::vector<AttachmentImage> attachments;
-    
-    VkFramebuffer offscreenFramebuffer;
     VkFramebuffer finalFramebuffer;
+    
+    std::vector<AttachmentImage> attachments;
+    VkFramebuffer offscreenFramebuffer;
 
     enum class FrameDataState {
 	Nothing,

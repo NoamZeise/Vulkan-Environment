@@ -5,11 +5,12 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <chrono>
+#include <vector>
 #include <string>
 
-glm::vec3 camPos = glm::vec3(-300.0f, 10.0f, 0.0f);
+glm::vec3 camPos = glm::vec3(-350.0f, 10.0f, 0.0f);
 float yaw = -5.0f;
-float pitch = 2.0f;
+float pitch = -5.0f;
     
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -63,10 +64,15 @@ int main() {
     try {
 	vkenv::Render render(window, glm::vec2(400, 400));
 	
-	std::cout << "Framebuffer Size:\nwidth: " << render.getTargetResolution().x << "\nheight: " << render.getTargetResolution().y << std::endl;;
+	std::cout << "Framebuffer Size:"
+	             "\nwidth: "  << render.getTargetResolution().x
+		  << "\bheight: " << render.getTargetResolution().y << std::endl;
 
 	Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
 	Resource::Model suzanneModel = render.LoadModel("models/monkey.fbx");
+	std::vector<Resource::ModelAnimation> wolfAnimations;
+	Resource::Model animatedWolf = render.LoadAnimatedModel("models/wolf.fbx", &wolfAnimations);
+	Resource::ModelAnimation currentWolfAnimation = wolfAnimations[0];
 
 	render.LoadResourcesToGPU();
 	render.UseLoadedResources();
@@ -81,23 +87,43 @@ int main() {
 	    glfwPollEvents();
 
 	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
+
 	    rot += 0.1f * frameElapsed;
+
+	    currentWolfAnimation.Update((float)frameElapsed);
 
 	    render.Begin2DDraw();
 	
-	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 100, 100, 100), rot));
+	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
 
 	    render.Begin3DDraw();
 
-	    auto model =
-		glm::rotate(
+	    auto monkeyMat =
+			glm::rotate(
+				glm::rotate(
+					glm::translate(
+						glm::mat4(1.0f),
+						glm::vec3(100.0f, -100.0f, -100.0f)),
+					glm::radians(90.0f),
+					glm::vec3(1.0f, 0.0f, 0.0f)),
+				glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f)
+				    );
+	    auto monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
+	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat);
+
+	    render.BeginAnim3DDraw();
+
+	    auto wolfMat =
+		glm::scale(
 			glm::rotate(
 				glm::mat4(1.0f),
 				glm::radians(90.0f),
-				glm::vec3(1.0f, 0.0f, 0.0f)),
-			glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f)
+				glm::vec3(1.0f, -0.8f, 0.5f)),
+			glm::vec3(2.0f, 2.0f, 2.0f)
 			    );
-	    render.DrawModel(suzanneModel, model, glm::inverse(glm::transpose(model)));
+	    auto wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
+	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
+	    
 	
 	    drawFinished = false;
 	    render.EndDraw(drawFinished);
@@ -108,7 +134,7 @@ int main() {
 	}
     }
     catch (const std::exception &e) {
-	std::cerr << "failed to load Render: " << e.what() << std::endl;
+	std::cerr << "Exception Occured during render: " << e.what() << std::endl;
     }
 
     glfwDestroyWindow(window);

@@ -587,7 +587,7 @@ void Render::_updateViewProjectionMatrix() {
       glm::perspective(glm::radians(_projectionFov),
                        ((float)swapchain->offscreenExtent.width) /
                            ((float)swapchain->offscreenExtent.height),
-                       0.1f, 500.0f);
+                       0.1f, 1000.0f);
   _VP3D.data[0].proj[1][1] *=
       -1; // opengl has inversed y axis, so need to correct
 }
