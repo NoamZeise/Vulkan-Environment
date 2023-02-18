@@ -157,14 +157,28 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 
     std::vector<AttachmentImageDescription> attachmentsDesc =
 	getOffscreenAttachmentImageDescriptions(maxMsaaSamples, formatKHR.format, depthBufferFormat);
+
+    attachmentClearValues.clear();
+    for(AttachmentImageDescription &a: attachmentsDesc)  {
+	//not all attachments will use these clear values, but easier to just give them all one
+	VkClearValue clear;
+	switch(a.type) {
+	case AttachmentImageType::Colour:
+	case AttachmentImageType::Resolve:
+	    clear.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+	    break;
+	case AttachmentImageType::Depth:
+	    clear.depthStencil = {1.0f, 0};
+	    break;
+	}
+	attachmentClearValues.push_back(clear);
+    }
     
     returnOnErr(initFramesAndAttachmentImages(images, attachmentsDesc));
-
     
     for(FrameData *f: frames) {
 	f->CreateAttachmentImageViews(attachmentMemory);
     }
-
 
     msgAndReturnOnErr(createRenderPass(deviceState.device, attachmentsDesc,
 				       getOffscreenSubpassDependancies(),
@@ -255,17 +269,14 @@ VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
     renderPassInfo.framebuffer = frames[frameIndex]->getOffscreenFramebuffer();
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = offscreenExtent;
-    VkClearValue clearColours[2];
-    clearColours[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-    clearColours[1].depthStencil = {1.0f, 0};
-    renderPassInfo.clearValueCount = 2;
-    renderPassInfo.pClearValues = clearColours;
+
+    renderPassInfo.clearValueCount = (uint32_t)attachmentClearValues.size();
+    renderPassInfo.pClearValues = attachmentClearValues.data();
 
     vkCmdBeginRenderPass(*pCmdBuff, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     
     VkViewport viewport = getViewport(offscreenExtent);
     vkCmdSetViewport(*pCmdBuff, 0, 1, &viewport);
-
     VkRect2D scissor = getScissor(offscreenExtent);
     vkCmdSetScissor(*pCmdBuff, 0, 1, &scissor);
 

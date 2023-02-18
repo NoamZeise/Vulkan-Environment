@@ -13,23 +13,6 @@
 std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(VkSampleCountFlagBits samples, VkFormat swapchainFormat, VkFormat depthFormat) {
     std::vector<AttachmentImageDescription> attachments;
     uint32_t attachmentIndex = 0;
-    if(samples != VK_SAMPLE_COUNT_1_BIT) {
-	AttachmentImageDescription multisampling(attachmentIndex++, AttachmentImageType::Colour);
-	multisampling.imageUsageFlags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
-	multisampling.samples = samples;
-	multisampling.format = swapchainFormat;
-	multisampling.finalImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	multisampling.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	multisampling.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachments.push_back(multisampling);
-    }
-    AttachmentImageDescription depth(attachmentIndex++, AttachmentImageType::Depth);
-    depth.samples = samples;
-    depth.format = depthFormat;
-    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments.push_back(depth);
 
     AttachmentImageType type = samples == VK_SAMPLE_COUNT_1_BIT ?
 	AttachmentImageType::Colour : AttachmentImageType::Resolve;
@@ -46,6 +29,26 @@ std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(
     resolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachments.push_back(resolve);
     
+    
+    if(samples != VK_SAMPLE_COUNT_1_BIT) {
+	AttachmentImageDescription multisampling(attachmentIndex++, AttachmentImageType::Colour);
+	multisampling.imageUsageFlags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+	multisampling.samples = samples;
+	multisampling.format = swapchainFormat;
+	multisampling.finalImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	multisampling.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	multisampling.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachments.push_back(multisampling);
+    }
+
+    AttachmentImageDescription depth(attachmentIndex++, AttachmentImageType::Depth);
+    depth.samples = samples;
+    depth.format = depthFormat;
+    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachments.push_back(depth);
+
     return attachments;
 }
 

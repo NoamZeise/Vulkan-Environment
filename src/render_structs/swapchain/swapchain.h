@@ -54,6 +54,7 @@ class Swapchain {
     
     VkSampleCountFlagBits maxMsaaSamples;
     VkDeviceMemory attachmentMemory = VK_NULL_HANDLE;
+    std::vector<VkClearValue> attachmentClearValues;
     std::vector<FrameData*> frames;
 
     uint32_t frameIndex = 0;

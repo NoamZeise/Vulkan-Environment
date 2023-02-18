@@ -41,7 +41,8 @@ To get this project and it's submodules run `$ git clone <this repo> --recurse-s
 
 ### Windows
 
-If using GNU compiler on window, you can use something like Msys2 and use `$ pacman -S mingw-w64-x86_64-freetype` to get freetype or if not using Msys2, or using microsoft's compiler [download freetype directly](https://freetype.org/download.html) and make sure your compiler can see the library file.
+If using GNU compiler on window, you can use something like Msys2 and use `$ pacman -S mingw-w64-x86_64-freetype` to get freetype or if not using Msys2, or using microsoft's compiler [download freetype directly](https://freetype.org/download.html) and make sure your compiler can see the library file.  
+You may need to specify `FREETYPE_LIBRARY` as the path to your library folder if cmake can't find it.
 
 Download the [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/), for getting the vulkan headers and compiling shaders into spirv. make sure the headers can be seen by your compiler.
 

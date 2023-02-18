@@ -1,7 +1,7 @@
 #include "framebuffer.h"
 
 namespace part {
-    namespace create {
+namespace create {
 
       
 VkResult Framebuffer(VkDevice device, VkRenderPass renderPass,
@@ -17,7 +17,6 @@ VkResult Framebuffer(VkDevice device, VkRenderPass renderPass,
 
   return vkCreateFramebuffer(device, &createInfo, nullptr, pFramebuffer);
 }
-
 
 
 } // namespace create

@@ -45,13 +45,14 @@ FrameData::~FrameData() {
     vkDestroyFence(device, frameFinishedFence, nullptr);
 }
 
+
 VkImageView FrameData::getOffscreenImageView() {
     if(state != FrameDataState::SwapchainResourcesCreated || attachments.size() < 1)
 	throw std::runtime_error("tried to get swapchain image view from frame"
 				 " that hasn't finished being created!");
-    //last attachment is either colour or resolve, the one being sampled
+    //first attachment is either colour or resolve, the one being sampled
     //by the final render pass
-    return attachments.back().view;
+    return attachments[0].view;
 }
 
 VkResult FrameData::CreateAttachmentImages(
@@ -71,8 +72,8 @@ VkResult FrameData::CreateAttachmentImages(
     
     for(AttachmentImageDescription &attachDesc: attachDescs) {
 	attachments.push_back(AttachmentImage(attachDesc));
-	msgAndReturnOnErr(attachments.back().CreateImage(device, offscreenExtent,
-						      pMemoryRequirements, pMemoryFlagBits),
+	msgAndReturnOnErr(attachments.back().CreateImage(
+				  device, offscreenExtent, pMemoryRequirements, pMemoryFlagBits),
 			  "Failed to create attachment image");
     }
     
@@ -137,7 +138,6 @@ void FrameData::DestroySwapchainResources() {
     destroyAttachments();
     state = FrameDataState::Nothing;
 }
-
 
 VkResult FrameData::startFrame(VkCommandBuffer *pCmdBuff) {
     VkResult result = VK_SUCCESS;
