@@ -66,7 +66,7 @@ int main() {
 	
 	std::cout << "Framebuffer Size:"
 	             "\nwidth: "  << render.getTargetResolution().x
-		  << "\bheight: " << render.getTargetResolution().y << std::endl;
+		  << "\nheight: " << render.getTargetResolution().y << std::endl;
 
 	Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
 	Resource::Model suzanneModel = render.LoadModel("models/monkey.fbx");
@@ -78,6 +78,7 @@ int main() {
 	render.UseLoadedResources();
 
 	render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
+	render.setForceTargetRes(false);
 
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
