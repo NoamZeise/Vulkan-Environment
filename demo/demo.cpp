@@ -11,6 +11,11 @@
 glm::vec3 camPos = glm::vec3(-350.0f, 10.0f, 0.0f);
 float yaw = -5.0f;
 float pitch = -5.0f;
+bool resize = true;
+
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+    resize = true;
+}
     
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -60,6 +65,7 @@ int main() {
     GLFWwindow* window = glfwCreateWindow(400, 400, "Vulkan Demo", nullptr, nullptr);
     glfwSetKeyCallback(window, key_callback);
     glfwSetErrorCallback(error_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     std::cout << "GLFW window created\n";
     try {
 	vkenv::Render render(window, glm::vec2(400, 400));
@@ -128,6 +134,11 @@ int main() {
 	
 	    drawFinished = false;
 	    render.EndDraw(drawFinished);
+
+	    if(resize) {
+		resize = false;
+		render.FramebufferResize();
+	    }
 
 	    frameElapsed = (long)std::chrono::duration_cast<std::chrono::milliseconds>
 		(std::chrono::high_resolution_clock::now() - start).count();
