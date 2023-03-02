@@ -111,6 +111,7 @@ Render::~Render()
       part::create::DescriptorSetLayout(manager->deviceState.device, &_VP3Dds, {&_VP3D.binding},
 					VK_SHADER_STAGE_VERTEX_BIT);
 
+
       _VP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP2Dds);
       part::create::DescriptorSetLayout(manager->deviceState.device, &_VP2Dds, {&_VP2D.binding},
 					VK_SHADER_STAGE_VERTEX_BIT);
@@ -170,12 +171,11 @@ Render::~Render()
 
   
       _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-
       _offscreenSampler.setSamplerBufferProps(
 	      frameCount, VK_DESCRIPTOR_TYPE_SAMPLER, &_offscreends, 1,
 	      &_offscreenTextureSampler);
+      
       std::vector<VkImageView> offscreenViews = swapchain->getOffscreenViews();
-
       _offscreenView.setPerFrameImageViewBufferProps(
 	      frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &_offscreends,
 	      offscreenViews.data());
@@ -188,7 +188,9 @@ Render::~Render()
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&_VP3Dds, &_VP2Dds, &_perInstance3Dds, &_bonesds, &_per2DVertds, &_offscreenTransformds, &_lightingds, &_texturesds, &_per2Dfragds, &_offscreends},
+	      {&_VP3Dds, &_VP2Dds, &_perInstance3Dds, &_bonesds,
+	       &_per2DVertds, &_offscreenTransformds, &_lightingds,
+	       &_texturesds, &_per2Dfragds, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
 
       // create memory mapped buffer for all descriptor set bindings
@@ -204,22 +206,25 @@ Render::~Render()
 
       // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
       part::create::GraphicsPipeline(
-	      manager->deviceState.device, &_pipeline3D, swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
+	      manager->deviceState.device, &_pipeline3D,
+	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
 	      {&_VP3Dds, &_perInstance3Dds, &_emptyds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      settings::MULTISAMPLING, true, swapchain->offscreenExtent,
-	      VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
+	      VK_CULL_MODE_BACK_BIT,
+	      Vertex3D::attributeDescriptions(),
 	      Vertex3D::bindingDescriptions());
 
       part::create::GraphicsPipeline(
-	      manager->deviceState.device, &_pipelineAnim3D, swapchain->getMaxMsaaSamples(),
-	      swapchain->offscreenRenderPass,
+	      manager->deviceState.device, &_pipelineAnim3D,
+	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
 	      {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, settings::MULTISAMPLING, true, swapchain->offscreenExtent,
-	      VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
+	      VK_CULL_MODE_BACK_BIT,
+	      VertexAnim3D::attributeDescriptions(),
 	      VertexAnim3D::bindingDescriptions());
 
       part::create::GraphicsPipeline(
@@ -228,15 +233,16 @@ Render::~Render()
 	      {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
 	      settings::MULTISAMPLING, true, swapchain->offscreenExtent,
-	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
+	      VK_CULL_MODE_BACK_BIT,
+	      Vertex2D::attributeDescriptions(),
 	      Vertex2D::bindingDescriptions());
 
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, swapchain->getMaxMsaaSamples(),
 	      swapchain->finalRenderPass,
-	      {&_offscreenTransformds, &_offscreends}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
-	      false, false, false, swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
-	      {});
+	      {&_offscreenTransformds, &_offscreends}, {},
+	      "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
+	      false, false, false, swapchain->swapchainExtent, VK_CULL_MODE_NONE, {}, {});
 
 
       float ratio = ((float)swapchain->offscreenExtent.width /
