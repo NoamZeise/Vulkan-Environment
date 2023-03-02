@@ -78,7 +78,7 @@ struct Binding {
   VkDescriptorType type;
 
   size_t setCount;
-  size_t dataStructSize;
+  size_t dataTypeSize;
   size_t binding = 0;
   size_t descriptorCount = 1;
   size_t arraySize = 1;
@@ -92,7 +92,8 @@ struct Binding {
   VkSampler *samplers;
   bool viewsPerSet = false;
 
-  void storeSetData(size_t frameIndex, void *data, size_t descriptorIndex, size_t arrayIndex, size_t dynamicOffsetIndex)
+  void storeSetData(size_t frameIndex, void *data, size_t descriptorIndex,
+		    size_t arrayIndex, size_t dynamicOffsetIndex)
   {
     if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
         type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
@@ -102,7 +103,7 @@ struct Binding {
 		   static_cast<char *>(pBuffer) + offset + dynamicOffsetIndex*setCount*bufferSize +
 		   ((frameIndex * bufferSize) + (descriptorIndex * arraySize * slotSize) +
 		    (arrayIndex * slotSize)),
-		   data, dataStructSize);
+		   data, dataTypeSize);
 	   else
 	       throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
 					"in non uniform or storage buffer!");
@@ -125,7 +126,7 @@ template <typename T> struct BindingAndData
     else
       binding.descriptorCount = dataCount;
     binding.setCount = setCount;
-    binding.dataStructSize = sizeof(T);
+    binding.dataTypeSize = sizeof(T);
     binding.type = type;
     binding.dynamicBufferCount = dynamicBufferCount;
     binding.imageViews = pImgViews;
@@ -155,6 +156,14 @@ template <typename T> struct BindingAndData
                       DescriptorSet *set, size_t dataCount, VkSampler *pSamplers) {
     setBufferProps(setCount, type, set, dataCount, 1, nullptr, pSamplers, false);
   }
+
+    /*
+      layout(set = 2, binding = 0) uniform myDynamic
+      {
+          mat4 someMat;
+	  Vec2 someVec;
+      } myDynamic;
+     */
 
   void setDynamicBufferProps(size_t setCount, VkDescriptorType type, DescriptorSet *set, size_t dataCount, size_t dynamicBufferCount)
   {

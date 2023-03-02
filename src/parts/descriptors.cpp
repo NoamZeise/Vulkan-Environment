@@ -183,7 +183,7 @@ size_t _createHostVisibleShaderBufferMemory(DeviceState base, std::vector<DS::Bi
 		else
 			alignment = physDevProps.limits.minUniformBufferOffsetAlignment;
 
-		ds[i]->slotSize = vkhelper::correctMemoryAlignment(ds[i]->dataStructSize, alignment);
+		ds[i]->slotSize = vkhelper::correctMemoryAlignment(ds[i]->dataTypeSize, alignment);
 		memorySize = vkhelper::correctMemoryAlignment(memorySize, alignment);
 
 		ds[i]->offset = memorySize;

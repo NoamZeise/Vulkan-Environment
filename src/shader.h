@@ -26,7 +26,7 @@ struct DescriptorBinding {
 
     size_t memoryOffset;
     VkDeviceSize slotSize;
-    void* pHostVisibleMemory;
+     void* pHostVisibleMemory;
 
     //only used by sampler and view descriptors types -can this be better abstracted???
     VkImageView *imageViews;
@@ -45,5 +45,43 @@ struct DescriptSet {
     DescriptorBinding* bindings;
     size_t bindingsCount;
 };
+
+
+
+#include <vector>
+
+/// Descriptor Of Shader Descriptors
+
+namespace descriptor {
+
+enum class ShaderStage {
+  Vertex,
+  Fragment,
+};
+
+enum class DescriptorType {
+  UniformBuffer,
+  UniformBufferDynamic,
+  StorageBuffer,
+  StorageBufferDynamic,
+  Sampler,
+  SampledImage,
+};
+
+struct Descriptor;
+  
+class Set {
+    std::vector<Descriptor> descriptors;
+    
+public:
+    Set() {}
+    /// order matters, must match shader
+    void AddDescriptor(ShaderStage shader, DescriptorType type,
+		       size_t typeSize, size_t arraySize);
+    void AddDescriptorDynamicWithArr(ShaderStage shader, DescriptorType type, size_t typeSize,
+				     size_t arraySize, size_t dynamicSize);
+};
+
+}
 
 #endif
