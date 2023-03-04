@@ -98,11 +98,7 @@ struct Binding {
         type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
         type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
         type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-#ifdef _MSC_VER
       std::memcpy(
-#else
-           memcpy(
-#endif
 		   static_cast<char *>(pBuffer) + offset + dynamicOffsetIndex*setCount*bufferSize +
 		   ((frameIndex * bufferSize) + (descriptorIndex * arraySize * slotSize) +
 		    (arrayIndex * slotSize)),

@@ -81,7 +81,7 @@ VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images,
 					     attachmentImagesMemorySize,
 					     &this->attachmentMemory,
 					     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				    attachmentImagesMemoryRequirements),
+					     attachmentImagesMemoryRequirements),
 	"Failed to create memory for swapchain frame attachment images"); 
     return result;
 }

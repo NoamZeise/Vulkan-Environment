@@ -170,11 +170,8 @@ void TextureLoader::endLoading()
 		}
 
 		memoryTypeBits |= memreq.memoryTypeBits;
-		textures[i].imageMemSize = memreq.size;
-
-		if (textures[i].imageMemSize %  memreq.alignment != 0)
-			textures[i].imageMemSize = textures[i].imageMemSize + memreq.alignment
-			- (textures[i].imageMemSize % memreq.alignment);
+		textures[i].imageMemSize = vkhelper::correctMemoryAlignment(
+			memreq.size, memreq.alignment);
 
 		finalMemSize += textures[i].imageMemSize;
 	}

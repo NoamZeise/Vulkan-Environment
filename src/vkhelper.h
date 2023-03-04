@@ -18,7 +18,7 @@ namespace vkhelper
   VkResult createMemory(VkDevice device, VkPhysicalDevice physicalDevice,
 			VkDeviceSize size, VkDeviceMemory* memory,
 			VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
-  VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment);
+  VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment);
   VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice,
 				 float maxLod, bool enableAnisotrophy,
 				 VkSamplerAddressMode addressMode);

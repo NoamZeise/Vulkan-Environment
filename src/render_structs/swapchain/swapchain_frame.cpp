@@ -50,8 +50,9 @@ VkImageView FrameData::getOffscreenImageView() {
     if(state != FrameDataState::SwapchainResourcesCreated || attachments.size() < 1)
 	throw std::runtime_error("tried to get swapchain image view from frame"
 				 " that hasn't finished being created!");
-    //first attachment is either colour or resolve, the one being sampled
-    //by the final render pass
+    // first attachment is either colour or resolve,
+    // it will always be the one being sampled
+    // by the final render pass
     return attachments[0].view;
 }
 

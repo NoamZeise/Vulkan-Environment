@@ -52,7 +52,7 @@ VkResult createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDevice
 	return vkAllocateMemory(device, &memInfo, nullptr, memory);
 }
 
-VkDeviceSize correctAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
+VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
 {
 	if (desiredSize % alignment != 0)
 		desiredSize = desiredSize + alignment - (desiredSize % alignment);

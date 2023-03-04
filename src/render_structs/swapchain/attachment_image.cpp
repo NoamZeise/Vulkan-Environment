@@ -2,6 +2,7 @@
 
 #include "../../parts/images.h"
 #include "../../parts/part_macros.h"
+#include "../../vkhelper.h"
 
 void AttachmentImage::Destroy(VkDevice device)
 {
@@ -26,7 +27,7 @@ VkResult AttachmentImage::CreateImage(VkDevice device,
 			desc.format,
 			desc.samples, 1));
     
-    *pMemoryRequirements += memReq.size;
+    *pMemoryRequirements += vkhelper::correctMemoryAlignment(memReq.size, memReq.alignment);
     *pMemoryFlagBits |= memReq.memoryTypeBits;
     return result;
 }
