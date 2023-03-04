@@ -11,7 +11,7 @@
 #include "parts/command.h"
 #include "pipeline.h"
 #include "vkhelper.h"
-
+#include "logger.h"
 
 #include <GLFW/glfw3.h>
 #include <cstring>
@@ -102,7 +102,8 @@ bool swapchainRecreationRequired(VkResult result) {
 
       if(result !=  VK_SUCCESS) {
 	  //TODO check if out of date and try recreate?
-	  throw std::runtime_error("failed to create swapchain resources");
+	  throw std::runtime_error(
+		  GET_ERR_STRING("failed to create swapchain resources", result));
       }
       
       size_t frameCount = swapchain->frameCount();
@@ -339,40 +340,21 @@ void Render::_resize()
   _updateViewProjectionMatrix();
 }
 
-std::string getVkErrorStr(VkResult result) {
-    switch(result) {
-    case VK_SUCCESS:
-	return "Success";
-    case VK_ERROR_INITIALIZATION_FAILED:
-	return "Initialization Failed";
-    case VK_ERROR_OUT_OF_DATE_KHR:
-	return "Out of date KHR";
-    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
-	return "Native window in use KHR";
-    case VK_ERROR_FRAGMENTATION:
-	return "Fragmentaion";
-    case VK_ERROR_INVALID_EXTERNAL_HANDLE:
-	return "Invalid External Handle";
-    default:
-	return "Unknown Error";
-    }
-}
-
 void Render::_startDraw()
 {
-    bool rebuilt_swapchain = false;
+    bool rebuiltSwapchain = false;
  START_DRAW: // retry start draw if out of date swapchain
     VkResult result =  swapchain->beginOffscreenRenderPass(&currentCommandBuffer);
     if(result != VK_SUCCESS) {
 	if(swapchainRecreationRequired(result)) {
 	    _resize();
-	    if(!rebuilt_swapchain) { //only try to rebuild once
-		rebuilt_swapchain = true;
+	    if(!rebuiltSwapchain) { //only try to rebuild once
+		rebuiltSwapchain = true;
 		goto START_DRAW;
 	    }
 	}
-	std::cerr << "Vulkan Error: " << getVkErrorStr(result) << std::endl;
-	throw std::runtime_error("failed to begin offscreen render pass!");
+	throw std::runtime_error(
+		GET_ERR_STRING("failed to begin offscreen render pass!", result));
     }
     _modelLoader->bindBuffers(currentCommandBuffer);
     _frameI  =  swapchain->getFrameIndex();
@@ -400,8 +382,8 @@ void Render::Begin3DDraw()
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
 {
   if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
-    std::cout << "WARNING: ran out of 3D instances!\n";
-    return;
+      LOG("WARNING: ran out of 3D instances!\n");
+      return;
   }
 
   if (_currentModel.ID != model.ID && _modelRuns != 0)
@@ -435,8 +417,8 @@ void Render::BeginAnim3DDraw()
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
 {
    if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
-     std::cout << "WARNING: Ran out of 3D Anim Instance models!\n";
-     return;
+       LOG("WARNING: Ran out of 3D Anim Instance models!\n");
+       return;
   }
 
   if (_currentModel.ID != model.ID && _modelRuns != 0)
@@ -454,8 +436,8 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
   }
   if(_bones.currentDynamicOffsetIndex >= MAX_ANIMATIONS_PER_FRAME)
   {
-    std::cout << "warning, too many animation calls!\n";
-    return;
+      LOG("warning, too many animation calls!\n");
+      return;
   }
   _bones.storeData(_frameI);
   uint32_t offset = static_cast<uint32_t>((_bones.currentDynamicOffsetIndex-1) * _bones.binding.bufferSize * _bones.binding.setCount);
@@ -499,8 +481,8 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
 {
   if (_current2DInstanceIndex >= MAX_2D_INSTANCE)
   {
-    std::cout << "WARNING: ran out of 2D instance models!\n";
-    return;
+      LOG("WARNING: ran out of 2D instance models!\n");
+      return;
   }
 
   _per2Dvert.data[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
@@ -565,7 +547,7 @@ void Render::_drawBatch()
 
 void Render::EndDraw(std::atomic<bool> &submit) {
   if (!_begunDraw)
-    throw std::runtime_error("start draw before ending it");
+    throw std::runtime_error("Tried to end draw before starting it");
 
   _begunDraw = false;
 
@@ -610,7 +592,8 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   if (swapchainRecreationRequired(result) || _framebufferResized) {
       _resize();
   } else if (result != VK_SUCCESS)
-    throw std::runtime_error("failed to present swapchain image to queue");
+      throw std::runtime_error(
+	      GET_ERR_STRING("failed to present swapchain image to queue", result));
 
   submit = true;
 }
