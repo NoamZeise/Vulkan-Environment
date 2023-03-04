@@ -81,6 +81,11 @@ Render::~Render()
   delete manager;
 }
 
+bool swapchainRecreationRequired(VkResult result) {
+    return result == VK_SUBOPTIMAL_KHR ||
+	result == VK_ERROR_OUT_OF_DATE_KHR;
+}
+
   void Render::_initFrameResources()
   {
       int winWidth, winHeight;
@@ -88,7 +93,7 @@ Render::~Render()
       VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
       if (_forceTargetResolution)
 	  offscreenBufferExtent = {(uint32_t)_targetResolution.x,
-				   (uint32_t)_targetResolution.y};
+	      (uint32_t)_targetResolution.y};
 
       VkExtent2D swapchainExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
       VkResult result = swapchain->InitFrameResources(swapchainExtent,
@@ -324,6 +329,7 @@ void Render::UseLoadedResources()
 
 void Render::_resize()
 {
+    _framebufferResized = false;
   vkDeviceWaitIdle(manager->deviceState.device);
 
   _destroyFrameResources();
@@ -333,10 +339,39 @@ void Render::_resize()
   _updateViewProjectionMatrix();
 }
 
+std::string getVkErrorStr(VkResult result) {
+    switch(result) {
+    case VK_SUCCESS:
+	return "Success";
+    case VK_ERROR_INITIALIZATION_FAILED:
+	return "Initialization Failed";
+    case VK_ERROR_OUT_OF_DATE_KHR:
+	return "Out of date KHR";
+    case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+	return "Native window in use KHR";
+    case VK_ERROR_FRAGMENTATION:
+	return "Fragmentaion";
+    case VK_ERROR_INVALID_EXTERNAL_HANDLE:
+	return "Invalid External Handle";
+    default:
+	return "Unknown Error";
+    }
+}
+
 void Render::_startDraw()
 {
+    bool rebuilt_swapchain = false;
+ START_DRAW: // retry start draw if out of date swapchain
     VkResult result =  swapchain->beginOffscreenRenderPass(&currentCommandBuffer);
     if(result != VK_SUCCESS) {
+	if(swapchainRecreationRequired(result)) {
+	    _resize();
+	    if(!rebuilt_swapchain) { //only try to rebuild once
+		rebuilt_swapchain = true;
+		goto START_DRAW;
+	    }
+	}
+	std::cerr << "Vulkan Error: " << getVkErrorStr(result) << std::endl;
 	throw std::runtime_error("failed to begin offscreen render pass!");
     }
     _modelLoader->bindBuffers(currentCommandBuffer);
@@ -572,10 +607,8 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   VkResult result = swapchain->endFinalRenderPass();
   
-  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR ||
-      _framebufferResized) {
-    _framebufferResized = false;
-    _resize();
+  if (swapchainRecreationRequired(result) || _framebufferResized) {
+      _resize();
   } else if (result != VK_SUCCESS)
     throw std::runtime_error("failed to present swapchain image to queue");
 
