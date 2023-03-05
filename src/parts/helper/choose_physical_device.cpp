@@ -32,10 +32,23 @@ bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
     return false;
 }
 
+
+struct PhysicalDeviceProps {
+    VkPhysicalDeviceProperties props;
+    VkPhysicalDeviceMemoryProperties mem;
+    PhysicalDeviceProps(VkPhysicalDevice device) {
+	vkGetPhysicalDeviceProperties(device, &this->props);
+	vkGetPhysicalDeviceMemoryProperties(device, &this->mem);
+    }
+    PhysicalDeviceProps() {}
+};
+
 std::string getPhysicalDeviceTypeStr(VkPhysicalDeviceType type);
 
-bool rankPhysicalDevices(VkPhysicalDeviceProperties bestProps,
-			 VkPhysicalDeviceProperties currentProps);
+void printPhysicalDeviceProps(VkPhysicalDeviceProperties props);
+
+bool rankPhysicalDevices(PhysicalDeviceProps bestProps,
+			 PhysicalDeviceProps currentProps);
     
 VkResult choosePhysicalDevice(VkInstance instance,
 			      VkSurfaceKHR surface,
@@ -56,16 +69,18 @@ VkResult choosePhysicalDevice(VkInstance instance,
     msgAndReturnOnErr(vkEnumeratePhysicalDevices(instance, &deviceCount, gpus.get()),
 		      "Failed to get device list!");
 
-    VkPhysicalDeviceProperties bestDeviceProperties;
+    PhysicalDeviceProps bestDeviceProperties;
     bool foundSuitable = false;
     for (size_t i = 0; i < deviceCount; i++) {
 
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(gpus.get()[i], &deviceProperties);
+	PhysicalDeviceProps deviceProperties(gpus.get()[i]);
+      
 
-	LOG("Candidate Physical Device Name: " << deviceProperties.deviceName);
-	std::string deviceType = getPhysicalDeviceTypeStr(deviceProperties.deviceType);
-	LOG("Type: " << deviceType);
+	//LOG("Candidate Physical Device Name: " << deviceProperties.deviceName);
+	//std::string deviceType = getPhysicalDeviceTypeStr(deviceProperties.deviceType);
+	//LOG("Type: " << deviceType);
+
+	printPhysicalDeviceProps(deviceProperties.props);
 	
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(gpus.get()[i], &queueFamilyCount, nullptr);
@@ -89,7 +104,7 @@ VkResult choosePhysicalDevice(VkInstance instance,
 	return VK_ERROR_FEATURE_NOT_PRESENT;
     }
 
-    LOG("Candidate chosen: " << bestDeviceProperties.deviceName);
+    LOG("Candidate chosen: " << bestDeviceProperties.props.deviceName);
     
     return result;
 }
@@ -111,6 +126,20 @@ std::string getPhysicalDeviceTypeStr(VkPhysicalDeviceType type) {
     return "None";
 }
 
+
+void printPhysicalDeviceProps(VkPhysicalDeviceProperties props) {
+    LOG("Candidate Physical Device Properties");
+    LOG(" > Name: " << props.deviceName);
+    LOG(" > Type: " << getPhysicalDeviceTypeStr(props.deviceType));
+    LOG(" > API ver: " << props.apiVersion);
+    LOG(" > DRIVER ver: " << props.driverVersion);
+    LOG(" > Max Descriptor Storage Buffers: " << props.limits.maxDescriptorSetStorageBuffers);
+    LOG(" > Max Descriptor Uniform Buffers: " << props.limits.maxDescriptorSetUniformBuffers);
+    LOG(" > Max Descriptor Input Attachments: " << props.limits.maxDescriptorSetInputAttachments);
+    LOG(" > Max Descriptor Sampled Images: " << props.limits.maxDescriptorSetSampledImages);
+}
+
+
 const size_t DEVICE_RANKING_COUNT = 6;
 const VkPhysicalDeviceType DEVICE_TYPE_RANKINGS[DEVICE_RANKING_COUNT] = {
     VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
@@ -128,9 +157,9 @@ size_t typeRank(VkPhysicalDeviceProperties bestProps) {
     return DEVICE_RANKING_COUNT;
 }
 
-bool rankPhysicalDevices(VkPhysicalDeviceProperties bestProps,
-			 VkPhysicalDeviceProperties currentProps) {
-    if(typeRank(currentProps) < typeRank(bestProps)) {
+bool rankPhysicalDevices(PhysicalDeviceProps bestProps,
+			 PhysicalDeviceProps currentProps) {
+    if(typeRank(currentProps.props) < typeRank(bestProps.props)) {
 	return true;
     }
     
