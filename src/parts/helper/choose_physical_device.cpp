@@ -9,46 +9,33 @@
 
 #include "../../logger.h"
 
-
-bool graphicsPresentSupported(VkPhysicalDevice candidate, VkQueueFamilyProperties queueProps, uint32_t queueId, VkSurfaceKHR surface) {
-    VkBool32 presentQueueSupported;
-    vkGetPhysicalDeviceSurfaceSupportKHR(candidate, queueId, surface, &presentQueueSupported);
-    return presentQueueSupported && queueProps.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-}
-
 bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
 			       VkSurfaceKHR surface,
 			       VkQueueFamilyProperties* queueFamilyProps,
 			       uint32_t queueFamilySize,
 			       uint32_t *pGraphicsPresentQueueID,
-			       const std::vector<const char*> &requestedExtensions) {
-    for (uint32_t j = 0; j < queueFamilySize; j++) {
-	if(checkRequestedExtensionsAreSupported(candidateDevice, requestedExtensions) &&
-	   graphicsPresentSupported(candidateDevice, queueFamilyProps[j], j, surface))  {
-	    *pGraphicsPresentQueueID = j;
-	    return true;
-	}
-    }
-    return false;
-}
+			       const std::vector<const char*> &requestedExtensions);
 
-
+VkDeviceSize deviceLocalMemory(VkPhysicalDeviceMemoryProperties &props);
+    
 struct PhysicalDeviceProps {
     VkPhysicalDeviceProperties props;
     VkPhysicalDeviceMemoryProperties mem;
+    VkDeviceSize deviceLocalSize = 0;
     PhysicalDeviceProps(VkPhysicalDevice device) {
 	vkGetPhysicalDeviceProperties(device, &this->props);
 	vkGetPhysicalDeviceMemoryProperties(device, &this->mem);
+	deviceLocalSize = deviceLocalMemory(this->mem);
     }
     PhysicalDeviceProps() {}
 };
 
 std::string getPhysicalDeviceTypeStr(VkPhysicalDeviceType type);
 
-void printPhysicalDeviceProps(VkPhysicalDeviceProperties props);
+void printDeviceDetails(PhysicalDeviceProps &props);
 
-bool rankPhysicalDevices(PhysicalDeviceProps bestProps,
-			 PhysicalDeviceProps currentProps);
+bool rankPhysicalDevices(PhysicalDeviceProps &bestProps,
+			 PhysicalDeviceProps &currentProps);
     
 VkResult choosePhysicalDevice(VkInstance instance,
 			      VkSurfaceKHR surface,
@@ -72,25 +59,16 @@ VkResult choosePhysicalDevice(VkInstance instance,
     PhysicalDeviceProps bestDeviceProperties;
     bool foundSuitable = false;
     for (size_t i = 0; i < deviceCount; i++) {
-
 	PhysicalDeviceProps deviceProperties(gpus.get()[i]);
-      
-
-	//LOG("Candidate Physical Device Name: " << deviceProperties.deviceName);
-	//std::string deviceType = getPhysicalDeviceTypeStr(deviceProperties.deviceType);
-	//LOG("Type: " << deviceType);
-
-	printPhysicalDeviceProps(deviceProperties.props);
+	printDeviceDetails(deviceProperties);
 	
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(gpus.get()[i], &queueFamilyCount, nullptr);
-	std::unique_ptr<VkQueueFamilyProperties>
-	    queueFamilies(new VkQueueFamilyProperties[queueFamilyCount]);
-	vkGetPhysicalDeviceQueueFamilyProperties(gpus.get()[i], &queueFamilyCount,
-						 queueFamilies.get());
+	std::unique_ptr<VkQueueFamilyProperties> queueFamilies(new VkQueueFamilyProperties[queueFamilyCount]);
+	vkGetPhysicalDeviceQueueFamilyProperties(gpus.get()[i], &queueFamilyCount, queueFamilies.get());
+	
 	if (getGraphicsPresentQueueID(gpus.get()[i], surface, queueFamilies.get(), queueFamilyCount,
 				      pGraphicsPresentQueueFamilyId, requestedExtensions)) {
-	    
 	    if(!foundSuitable || rankPhysicalDevices(bestDeviceProperties, deviceProperties)) {
 		*pPhysicalDevice = gpus.get()[i];
 		foundSuitable = true;
@@ -103,9 +81,7 @@ VkResult choosePhysicalDevice(VkInstance instance,
 		  "as well as the requested extensions");
 	return VK_ERROR_FEATURE_NOT_PRESENT;
     }
-
     LOG("Candidate chosen: " << bestDeviceProperties.props.deviceName);
-    
     return result;
 }
 
@@ -127,18 +103,35 @@ std::string getPhysicalDeviceTypeStr(VkPhysicalDeviceType type) {
 }
 
 
-void printPhysicalDeviceProps(VkPhysicalDeviceProperties props) {
-    LOG("Candidate Physical Device Properties");
-    LOG(" > Name: " << props.deviceName);
-    LOG(" > Type: " << getPhysicalDeviceTypeStr(props.deviceType));
-    LOG(" > API ver: " << props.apiVersion);
-    LOG(" > DRIVER ver: " << props.driverVersion);
-    LOG(" > Max Descriptor Storage Buffers: " << props.limits.maxDescriptorSetStorageBuffers);
-    LOG(" > Max Descriptor Uniform Buffers: " << props.limits.maxDescriptorSetUniformBuffers);
-    LOG(" > Max Descriptor Input Attachments: " << props.limits.maxDescriptorSetInputAttachments);
-    LOG(" > Max Descriptor Sampled Images: " << props.limits.maxDescriptorSetSampledImages);
+void printDeviceDetails(PhysicalDeviceProps &props) {
+    LOG("Candidate Physical Device Properties:");
+    LOG(" > Name = " << props.props.deviceName);
+    LOG(" > Type = " << getPhysicalDeviceTypeStr(props.props.deviceType));
+    LOG(" > Local Memory = " << props.deviceLocalSize);
 }
 
+bool graphicsPresentSupported(VkPhysicalDevice candidate, VkQueueFamilyProperties queueProps,
+			      uint32_t queueId, VkSurfaceKHR surface) {
+    VkBool32 presentQueueSupported;
+    vkGetPhysicalDeviceSurfaceSupportKHR(candidate, queueId, surface, &presentQueueSupported);
+    return presentQueueSupported && queueProps.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+}
+
+bool getGraphicsPresentQueueID(VkPhysicalDevice candidateDevice,
+			       VkSurfaceKHR surface,
+			       VkQueueFamilyProperties* queueFamilyProps,
+			       uint32_t queueFamilySize,
+			       uint32_t *pGraphicsPresentQueueID,
+			       const std::vector<const char*> &requestedExtensions) {
+    for (uint32_t j = 0; j < queueFamilySize; j++) {
+	if(checkRequestedExtensionsAreSupported(candidateDevice, requestedExtensions) &&
+	   graphicsPresentSupported(candidateDevice, queueFamilyProps[j], j, surface))  {
+	    *pGraphicsPresentQueueID = j;
+	    return true;
+	}
+    }
+    return false;
+}
 
 const size_t DEVICE_RANKING_COUNT = 6;
 const VkPhysicalDeviceType DEVICE_TYPE_RANKINGS[DEVICE_RANKING_COUNT] = {
@@ -150,18 +143,31 @@ const VkPhysicalDeviceType DEVICE_TYPE_RANKINGS[DEVICE_RANKING_COUNT] = {
 };
 
 // lower is better
-size_t typeRank(VkPhysicalDeviceProperties bestProps) { 
+size_t typeRank(VkPhysicalDeviceProperties &bestProps) { 
     for(size_t i = 0; i < DEVICE_RANKING_COUNT; i++) 
 	if(DEVICE_TYPE_RANKINGS[i] == bestProps.deviceType)
 	    return i;
     return DEVICE_RANKING_COUNT;
 }
 
-bool rankPhysicalDevices(PhysicalDeviceProps bestProps,
-			 PhysicalDeviceProps currentProps) {
-    if(typeRank(currentProps.props) < typeRank(bestProps.props)) {
-	return true;
+VkDeviceSize deviceLocalMemory(VkPhysicalDeviceMemoryProperties &props) {
+    VkDeviceSize size = 0;
+    for(int i = 0; i < props.memoryHeapCount; i++) {
+	if(props.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+	    size += props.memoryHeaps[i].size;
+	}
     }
-    
-    return false;
+    return size;
 }
+
+//true means that the current props are better than best props
+bool rankPhysicalDevices(PhysicalDeviceProps &bestProps,
+			 PhysicalDeviceProps &currentProps) {
+    if(typeRank(currentProps.props) > typeRank(bestProps.props))
+	return false;
+    if(currentProps.deviceLocalSize < bestProps.deviceLocalSize)
+       return false;
+    
+    return true;
+}
+
