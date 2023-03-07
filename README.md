@@ -39,6 +39,8 @@ There are some optional flags that can be set to change what is built:
 
 To get this project and it's submodules run `$ git clone <this repo> --recurse-submodules`
 
+GLFW requires the dependancies of your windowing system if you don't have those already, [detailed here](https://www.glfw.org/docs/latest/compile.html#compile_deps).
+
 ### Windows
 
 If using GNU compiler on window, you can use something like Msys2 and use `$ pacman -S mingw-w64-x86_64-freetype` to get freetype or if not using Msys2, or using microsoft's compiler [download freetype directly](https://freetype.org/download.html) and make sure your compiler can see the library file.  
