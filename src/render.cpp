@@ -20,7 +20,6 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <config.h>
 
 #include <glmhelper.h>
 
@@ -46,13 +45,9 @@ void checkVolk() {
 Render::Render(GLFWwindow *window, glm::vec2 target)
 {
     checkVolk();
-    vsync = settings::VSYNC;
-    srgb = settings::SRGB;
-    multisampling = settings::MULTISAMPLING;
     EnabledFeatures features;
-    features.sampleRateShading = settings::SAMPLE_SHADING;
+    features.sampleRateShading = renderConf.sample_shading;
     manager = new VulkanManager(window, features);
-    _forceTargetResolution = true;
     _targetResolution = target;
     swapchain = new Swapchain(manager->deviceState,  manager->windowSurface);
     _initStagingResourceManagers();
@@ -61,7 +56,8 @@ Render::Render(GLFWwindow *window, glm::vec2 target)
 void Render::_initStagingResourceManagers() {
   _stagingModelLoader = new Resource::ModelRender(manager->deviceState, manager->generalCommandPool);
   _stagingTextureLoader = new Resource::TextureLoader(manager->deviceState,
-						      manager->generalCommandPool);
+						      manager->generalCommandPool,
+						      renderConf);
   _stagingFontLoader = new Resource::FontLoader();
   _stagingTextureLoader->LoadTexture("textures/error.png");
 }
@@ -91,14 +87,14 @@ bool swapchainRecreationRequired(VkResult result) {
       int winWidth, winHeight;
       glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
       VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
-      if (_forceTargetResolution)
+      if (renderConf.force_target_resolution)
 	  offscreenBufferExtent = {(uint32_t)_targetResolution.x,
 	      (uint32_t)_targetResolution.y};
 
       VkExtent2D swapchainExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
       VkResult result = swapchain->InitFrameResources(swapchainExtent,
 						      offscreenBufferExtent,
-						      vsync, srgb, multisampling);
+						      renderConf);
 
       if(result !=  VK_SUCCESS) {
 	  //TODO check if out of date and try recreate?
@@ -175,7 +171,7 @@ bool swapchainRecreationRequired(VkResult result) {
 					VK_SHADER_STAGE_VERTEX_BIT);
 
   
-      _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+      _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, renderConf.texture_filter_nearest, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 
       _offscreenSampler.setSamplerBufferProps(
 	      frameCount, VK_DESCRIPTOR_TYPE_SAMPLER, &_offscreends, 1,
@@ -214,7 +210,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&_VP3Dds, &_perInstance3Dds, &_emptyds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
-	      settings::MULTISAMPLING, true, swapchain->offscreenExtent,
+	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
 	      Vertex3D::bindingDescriptions());
 
@@ -224,7 +220,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
-	      true, settings::MULTISAMPLING, true, swapchain->offscreenExtent,
+	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
 	      VertexAnim3D::bindingDescriptions());
 
@@ -233,7 +229,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      swapchain->offscreenRenderPass,
 	      {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
-	      settings::MULTISAMPLING, true, swapchain->offscreenExtent,
+	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
 	      Vertex2D::bindingDescriptions());
 
@@ -241,17 +237,20 @@ bool swapchainRecreationRequired(VkResult result) {
 	      manager->deviceState.device, &_pipelineFinal, swapchain->getMaxMsaaSamples(),
 	      swapchain->finalRenderPass,
 	      {&_offscreenTransformds, &_offscreends}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
-	      false, false, false, swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
+	      false, false, false, manager->deviceState.features.sampleRateShading,
+	      swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
 	      {});
 
 
       float ratio = ((float)swapchain->offscreenExtent.width /
 		     (float)swapchain->offscreenExtent.height) *
-	  ((float)swapchain->swapchainExtent.height / (float)swapchain->swapchainExtent.width);
-      _offscreenTransform.data[0] = glm::scale(glm::mat4(1.0f),
-					       glm::vec3(ratio < 1.0f ? ratio: 1.0f,
-							 ratio > 1.0f ? 1.0f / ratio : 1.0f,
-							 1.0f));
+	  ((float)swapchain->swapchainExtent.height /
+	   (float)swapchain->swapchainExtent.width);
+      _offscreenTransform.data[0] =
+	glm::scale(glm::mat4(1.0f),
+		   glm::vec3(ratio < 1.0f ? ratio: 1.0f,
+			     ratio > 1.0f ? 1.0f / ratio : 1.0f,
+			     1.0f));
   }
 
 void Render::_destroyFrameResources()
@@ -630,22 +629,22 @@ void Render::setLightDirection(glm::vec4 lightDir)
 }
 
 void Render::setForceTargetRes(bool force) {
-    if(_forceTargetResolution != force) {
-	_forceTargetResolution = force;
-	FramebufferResize();
+    if(renderConf.force_target_resolution != force) {
+      renderConf.force_target_resolution = force;
+      FramebufferResize();
     }
 }
-bool Render::isTargetResForced() { return _forceTargetResolution; }
+bool Render::isTargetResForced() { return renderConf.force_target_resolution; }
 void Render::setTargetResolution(glm::vec2 resolution) {
     _targetResolution = resolution;
-    _forceTargetResolution = true;
+    renderConf.force_target_resolution = true;
     FramebufferResize();
 }
 glm::vec2 Render::getTargetResolution() {
-    return _targetResolution;
+  return _targetResolution;
 }
 void Render::setVsync(bool vsync) {
-    this->vsync = vsync;
+    this->renderConf.vsync = vsync;
     FramebufferResize();
 }
 

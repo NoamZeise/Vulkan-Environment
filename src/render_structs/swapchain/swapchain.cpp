@@ -131,8 +131,7 @@ VkResult createRenderPass(
     return vkCreateRenderPass(device, &createInfo, nullptr, pRenderPass);
 }
 
-VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent,
-				       bool vsync, bool useSRGB, bool useMultisampling) {
+VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offscreenExtent, RenderConfig conf) {
     if(currentState != FrameState::NothingInitialized) {
 	std::cerr << "Error: "
 	    "tried to create frame resources when they already exist\n";
@@ -144,7 +143,8 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
     std::vector<VkImage> images = part::create::Swapchain(
 	    deviceState.device,
 	    deviceState.physicalDevice,
-	    windowSurface, windowExtent.width, windowExtent.height, vsync, useSRGB,
+	    windowSurface, windowExtent.width, windowExtent.height,
+	    conf.vsync, conf.srgb,
 	    &swapchain, &formatKHR, &swapchainExtent);
 
     VkFormat depthBufferFormat = getDepthBufferFormat(deviceState.physicalDevice);
@@ -153,7 +153,7 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 	return VK_ERROR_FORMAT_NOT_SUPPORTED;
     }
 
-    maxMsaaSamples = getMultisampleCount(deviceState, useMultisampling);
+    maxMsaaSamples = getMultisampleCount(deviceState, conf.multisampling);
 
     std::vector<AttachmentImageDescription> attachmentsDesc =
 	getOffscreenAttachmentImageDescriptions(maxMsaaSamples, formatKHR.format, depthBufferFormat);

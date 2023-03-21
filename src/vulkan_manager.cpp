@@ -1,5 +1,4 @@
 #include "vulkan_manager.h"
-#include "config.h"
 #include "parts/core.h"
 #include "parts/command.h"
 

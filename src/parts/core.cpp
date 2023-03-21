@@ -1,6 +1,5 @@
 #include  "core.h"
 #include <GLFW/glfw3.h>
-#include <config.h>
 
 #include <array>
 #include <set>

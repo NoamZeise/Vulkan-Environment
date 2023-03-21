@@ -20,7 +20,7 @@ namespace vkhelper
 			VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
   VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment);
   VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice,
-				 float maxLod, bool enableAnisotrophy,
+				 float maxLod, bool enableAnisotrophy, bool useNearestFilter,
 				 VkSamplerAddressMode addressMode);
   VkFormat findSupportedFormat(VkPhysicalDevice physicalDevice,
 			       const std::vector<VkFormat>& formats, VkImageTiling tiling,
