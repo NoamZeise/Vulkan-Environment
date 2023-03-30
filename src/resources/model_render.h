@@ -16,7 +16,7 @@
 #endif
 #include "texture_loader.h"
 #include "../render_structs/device_state.h"
-#include "../pipeline.h"
+#include "../pipeline_data.h"
 
 namespace Resource
 {

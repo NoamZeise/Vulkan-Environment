@@ -3,6 +3,7 @@
 
 #include <volk.h>
 #include "../device_state.h"
+#include "../../render_config.h"
 #include "attachment_image.h"
 
 #include <vector>
@@ -23,8 +24,7 @@ class Swapchain {
     /// the swapchain will be reused, while all the other resources are remade.
     VkResult InitFrameResources(VkExtent2D windowExtent,
 				VkExtent2D offscreenExtent,
-				bool vsync, bool useSRGB,
-				bool useMultisampling);
+				RenderConfig conf);
 
     void DestroyFrameResources();
 

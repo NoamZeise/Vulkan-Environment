@@ -5,7 +5,10 @@
 
 #include "../part_macros.h"
 #include <vector>
-#include <config.h>
+
+#ifndef NDEBUG 
+#define VKENV_DEBUG_ERROR_ONLY true
+#endif
 
 VkResult createDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -43,7 +46,7 @@ void populateDebugMessengerCreateInfo(
     VkDebugUtilsMessengerCreateInfoEXT *createInfo){
   // debug messenger settings
   createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  if (settings::ERROR_ONLY)
+  if(VKENV_DEBUG_ERROR_ONLY)
     createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
   else
     createInfo->messageSeverity =

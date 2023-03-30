@@ -20,7 +20,7 @@ namespace part
 			  std::vector<DS::DescriptorSet*> descriptorSets,
 			  std::vector<VkPushConstantRange> pushConstantsRanges,
 			  std::string vertexShaderPath, std::string fragmentShaderPath,
-			  bool useDepthTest, bool useMultisampling, bool useBlend,
+			  bool useDepthTest, bool useMultisampling, bool useBlend, bool useSampleShading,
 			  VkExtent2D extent, VkCullModeFlags cullMode,
 			  std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
 			  std::vector<VkVertexInputBindingDescription> vertexBindingDesc

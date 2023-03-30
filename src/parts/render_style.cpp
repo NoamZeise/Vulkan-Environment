@@ -1,6 +1,5 @@
 #include "render_style.h"
 
-#include <config.h>
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
@@ -18,7 +17,7 @@ void GraphicsPipeline(
     VkRenderPass renderPass, std::vector<DS::DescriptorSet*> descriptorSets,
     std::vector<VkPushConstantRange> pushConstantsRanges,
     std::string vertexShaderPath, std::string fragmentShaderPath,
-    bool useDepthTest, bool useMultisampling, bool useBlend,
+    bool useDepthTest, bool useMultisampling, bool useBlend, bool useSampleShading,
     VkExtent2D extent, VkCullModeFlags cullMode,
     std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
     std::vector<VkVertexInputBindingDescription> vertexBindingDesc) {
@@ -125,7 +124,7 @@ void GraphicsPipeline(
 
   if (useMultisampling) {
       multisampleInfo.rasterizationSamples = msaaSamples;
-    if (settings::SAMPLE_SHADING) {
+    if (useSampleShading) {
       multisampleInfo.minSampleShading = 1.0f;
       multisampleInfo.sampleShadingEnable = VK_TRUE;
     }

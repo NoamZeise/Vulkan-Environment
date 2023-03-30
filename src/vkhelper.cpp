@@ -1,7 +1,5 @@
 #include "vkhelper.h"
 
-#include <config.h>
-
 #include <stdexcept>
 
 namespace vkhelper
@@ -60,7 +58,7 @@ VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize align
 }
 
     VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice,
-				   float maxLod, bool enableAnisotrophy,
+				   float maxLod, bool enableAnisotrophy, bool useNearestFilter,
 				   VkSamplerAddressMode addressMode)
 {
   VkSampler sampler;
@@ -71,7 +69,7 @@ VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize align
   samplerInfo.addressModeU = addressMode;
   samplerInfo.addressModeV = samplerInfo.addressModeU;
   samplerInfo.addressModeW = samplerInfo.addressModeU;
-  if (settings::PIXELATED)
+  if (useNearestFilter)
   {
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_NEAREST;

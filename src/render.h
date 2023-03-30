@@ -21,6 +21,7 @@ namespace Resource {
 #include "render_structs/swapchain/swapchain.h"
 #include "pipeline.h"
 #include "vulkan_manager.h"
+#include "render_config.h"
 
 #include <atomic>
 
@@ -71,17 +72,15 @@ private:
   bool _framebufferResized = false;
 
   //render settings
-  bool _forceTargetResolution = false;
   glm::vec2 _targetResolution;
-    bool vsync;
-    bool srgb;
-    bool multisampling;
+  RenderConfig renderConf;
 
-    VulkanManager* manager;
-    
-    Swapchain *swapchain;
-    VkCommandBuffer currentCommandBuffer;
-
+  
+  VulkanManager* manager;
+  
+  Swapchain *swapchain;
+  VkCommandBuffer currentCommandBuffer;
+  
 
   Pipeline _pipeline3D;
   Pipeline _pipelineAnim3D;
