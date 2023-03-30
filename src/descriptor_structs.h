@@ -37,6 +37,10 @@ struct Frag2DData {
 };
 
 
+struct timeUbo {
+  float time;
+};
+
 
 struct lighting {
   lighting()

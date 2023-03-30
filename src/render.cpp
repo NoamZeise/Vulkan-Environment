@@ -113,6 +113,9 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::DescriptorSetLayout(manager->deviceState.device, &_VP3Dds, {&_VP3D.binding},
 					VK_SHADER_STAGE_VERTEX_BIT);
 
+      timeData.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &timeds);
+      part::create::DescriptorSetLayout(manager->deviceState.device, &timeds, {&timeData.binding},
+					VK_SHADER_STAGE_VERTEX_BIT);
 
       _VP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP2Dds);
       part::create::DescriptorSetLayout(manager->deviceState.device, &_VP2Dds, {&_VP2D.binding},
@@ -190,15 +193,16 @@ bool swapchainRecreationRequired(VkResult result) {
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&_VP3Dds, &_VP2Dds, &_perInstance3Dds, &_bonesds,
+	      {&_VP3Dds, &_VP2Dds, &_perInstance3Dds, &_bonesds, &timeds,
 	       &_per2DVertds, &_offscreenTransformds, &_lightingds,
 	       &_texturesds, &_per2Dfragds, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
 
+		  
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
-	      {&_VP3D.binding, &_VP2D.binding, &_perInstance.binding, &_bones.binding,
+	      {&_VP3D.binding, &timeData.binding, &_VP2D.binding, &_perInstance.binding, &_bones.binding,
 	       &_per2Dvert.binding, &_lighting.binding,
 	       &_offscreenTransform.binding,
 	       &_textureSampler.binding, &_textureViews.binding,
@@ -206,17 +210,19 @@ bool swapchainRecreationRequired(VkResult result) {
 	       &_offscreenSampler.binding, &_offscreenView.binding},
 	      &_shaderBuffer, &_shaderMemory);
 
+
       // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&_VP3Dds, &_perInstance3Dds, &_emptyds, &_texturesds, &_lightingds},
+	      {&_VP3Dds, &_perInstance3Dds, &timeds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
 	      Vertex3D::bindingDescriptions());
 
+	    
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
@@ -254,6 +260,8 @@ bool swapchainRecreationRequired(VkResult result) {
 		   glm::vec3(ratio < 1.0f ? ratio: 1.0f,
 			     ratio > 1.0f ? 1.0f / ratio : 1.0f,
 			     1.0f));
+
+      timeData.data[0].time = 0;
   }
 
 void Render::_destroyFrameResources()
@@ -265,6 +273,7 @@ void Render::_destroyFrameResources()
 
   _VP3Dds.destroySet(manager->deviceState.device);
   _VP2Dds.destroySet(manager->deviceState.device);
+  timeds.destroySet(manager->deviceState.device);
   _perInstance3Dds.destroySet(manager->deviceState.device);
   _per2DVertds.destroySet(manager->deviceState.device);
   _bonesds.destroySet(manager->deviceState.device);
@@ -375,6 +384,7 @@ void Render::Begin3DDraw()
   _renderState = RenderState::Draw3D;
 
   _VP3D.storeData(_frameI);
+  timeData.storeData(_frameI);
   _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
 

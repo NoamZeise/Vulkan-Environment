@@ -48,14 +48,12 @@ glm::mat4 calcView() {
     return glm::lookAt(camPos, camPos + front, glm::normalize(glm::cross(glm::normalize(glm::cross(front, glm::vec3(0.0f, 0.0f, 1.0f))), front)));
 }
 
-
 int main() {
     std::cout << "--- Vulkan Environment Demo ---\n";
-    if(!glfwInit())
-	{
-	    std::cerr << "Error: failed to initialise GLFW, aborting!\n";
-	    return -1;
-	}
+    if(!glfwInit()){
+      std::cerr << "Error: failed to initialise GLFW, aborting!\n";
+      return -1;
+    }
 
     // Vulkan Must be loaded before a window is created
     if(!vkenv::Render::LoadVulkan()) {
@@ -90,13 +88,18 @@ int main() {
 	std::atomic<bool> drawFinished;
 	auto start = std::chrono::high_resolution_clock::now();
 	long frameElapsed = 0;
+	float elapsedTime = 0;
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
 
 	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
 
-	    rot += 0.1f * frameElapsed;
+	    std::cout << elapsedTime << std::endl;
+	    render.setTime(elapsedTime);
 
+	    elapsedTime += frameElapsed / 1000.0f;
+	    rot += 0.1f * frameElapsed;
+	    
 	    currentWolfAnimation.Update((float)frameElapsed);
 
 	    render.Begin2DDraw();

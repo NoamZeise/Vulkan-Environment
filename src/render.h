@@ -18,6 +18,7 @@ namespace Resource {
 } // namespace Resource
 
 
+
 #include "render_structs/swapchain/swapchain.h"
 #include "pipeline.h"
 #include "vulkan_manager.h"
@@ -36,7 +37,7 @@ public:
   Render(GLFWwindow *window, glm::vec2 target);
   ~Render();
   static bool LoadVulkan();
-
+  
   Resource::Texture LoadTexture(std::string filepath);
   Resource::Font LoadFont(std::string filepath);
   Resource::Model LoadModel(std::string filepath);
@@ -67,6 +68,10 @@ public:
   void setTargetResolution(glm::vec2 resolution);
   glm::vec2 getTargetResolution();
   void setVsync(bool vsync);
+
+  void setTime(float time) {
+    timeData.data[0].time = time;
+  }
     
 private:
   bool _framebufferResized = false;
@@ -95,6 +100,7 @@ private:
 
   DS::DescriptorSet _VP3Dds;
   DS::DescriptorSet _VP2Dds;
+  DS::DescriptorSet timeds;
   DS::DescriptorSet _perInstance3Dds;
   DS::DescriptorSet _bonesds;
   DS::DescriptorSet _per2DVertds;
@@ -108,6 +114,7 @@ private:
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP3D;
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP2D;
   DS::BindingAndData<DS::ShaderStructs::PerFrame3D> _perInstance;
+  DS::BindingAndData<DS::ShaderStructs::timeUbo> timeData;
   DS::BindingAndData<DS::ShaderStructs::Bones> _bones;
   DS::BindingAndData<glm::mat4> _per2Dvert;
   DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
