@@ -6,16 +6,18 @@
 
 #include <iostream>
 
-#define returnOnErr(result_expr)					       \
-  result = result_expr;                                                        \
-  if (result != VK_SUCCESS)                                                    \
-    return result;
+#include "../logger.h"
 
-#define msgAndReturnOnErr(result_expr, msg)                                    \
-  result = result_expr;                                                        \
-  if (result != VK_SUCCESS) {					               \
-    std::cerr << "Error: " << msg << std::endl;                                \
-    return result;                                                             \
+#define returnOnErr(result_expr)					\
+    result = result_expr;						\
+  if (result != VK_SUCCESS)						\
+      return result;
+
+#define msgAndReturnOnErr(result_expr, msg)				\
+    result = result_expr;						\
+  if (result != VK_SUCCESS) {						\
+      LOG_ERR_TYPE(msg, result);					\
+      return result;							\
   }
 
 #endif
