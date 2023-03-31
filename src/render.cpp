@@ -109,16 +109,17 @@ bool swapchainRecreationRequired(VkResult result) {
 
       /// vertex descripor sets
 
-      descriptor::Set VP3D("VP3D Set");
-      VP3D.AddDescriptor("VP struct", descriptor::ShaderStage::Vertex,
+      descriptor::Set VP3DHL("VP3D Set", descriptor::ShaderStage::Vertex);
+      VP3DHL.AddDescriptor("VP struct",
 			 descriptor::DescriptorType::UniformBuffer,
 			 sizeof(DS::ShaderStructs::viewProjection), 1);
-      ds3D.push_back(VP3D);
+      //ds3D.push_back(VP3D);
 
-
-      _VP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP3Dds);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_VP3Dds, {&_VP3D.binding},
-					VK_SHADER_STAGE_VERTEX_BIT);
+      VP3D = new DescSet(VP3DHL, frameCount, manager->deviceState.device);
+      
+      //_VP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP3Dds);
+      // part::create::DescriptorSetLayout(manager->deviceState.device, &_VP3Dds, {&_VP3D.binding},
+      //				VK_SHADER_STAGE_VERTEX_BIT);
 
       timeData.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &timeds);
       part::create::DescriptorSetLayout(manager->deviceState.device, &timeds, {&timeData.binding},
@@ -200,7 +201,7 @@ bool swapchainRecreationRequired(VkResult result) {
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&_VP3Dds, &_VP2Dds, &_perInstance3Dds, &_bonesds, &timeds,
+	      {&VP3D->set, &_VP2Dds, &_perInstance3Dds, &_bonesds, &timeds,
 	       &_per2DVertds, &_offscreenTransformds, &_lightingds,
 	       &_texturesds, &_per2Dfragds, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
@@ -209,7 +210,7 @@ bool swapchainRecreationRequired(VkResult result) {
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
-	      {&_VP3D.binding, &timeData.binding, &_VP2D.binding, &_perInstance.binding, &_bones.binding,
+	      {&VP3D->bindings[0], &timeData.binding, &_VP2D.binding, &_perInstance.binding, &_bones.binding,
 	       &_per2Dvert.binding, &_lighting.binding,
 	       &_offscreenTransform.binding,
 	       &_textureSampler.binding, &_textureViews.binding,
@@ -222,7 +223,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&_VP3Dds, &_perInstance3Dds, &timeds, &_texturesds, &_lightingds},
+	      {&VP3D->set, &_perInstance3Dds, &timeds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -233,7 +234,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&_VP3Dds, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
+	      {&VP3D->set, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -278,7 +279,9 @@ void Render::_destroyFrameResources()
 
   vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
 
-  _VP3Dds.destroySet(manager->deviceState.device);
+  //_VP3Dds.destroySet(manager->deviceState.device);
+  delete VP3D;
+  VP3D = nullptr;
   _VP2Dds.destroySet(manager->deviceState.device);
   timeds.destroySet(manager->deviceState.device);
   _perInstance3Dds.destroySet(manager->deviceState.device);
@@ -390,7 +393,8 @@ void Render::Begin3DDraw()
     _drawBatch();
   _renderState = RenderState::Draw3D;
 
-  _VP3D.storeData(_frameI);
+  //_VP3D.storeData(_frameI);
+  VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
   timeData.storeData(_frameI);
   _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
@@ -427,7 +431,8 @@ void Render::BeginAnim3DDraw()
     _drawBatch();
   _renderState = RenderState::DrawAnim3D;
 
-  _VP3D.storeData(_frameI);
+  //_VP3D.storeData(_frameI);
+  VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
   _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
   _pipelineAnim3D.begin(currentCommandBuffer, _frameI);
@@ -618,12 +623,12 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 }
 
 void Render::_updateViewProjectionMatrix() {
-  _VP3D.data[0].proj =
+  VP3DData.proj =
       glm::perspective(glm::radians(_projectionFov),
                        ((float)swapchain->offscreenExtent.width) /
                            ((float)swapchain->offscreenExtent.height),
                        0.1f, 1000.0f);
-  _VP3D.data[0].proj[1][1] *=
+  VP3DData.proj[1][1] *=
       -1; // opengl has inversed y axis, so need to correct
 }
 
@@ -631,7 +636,7 @@ void Render::_updateViewProjectionMatrix() {
 void Render::FramebufferResize() { _framebufferResized = true; }
 
 void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
-  _VP3D.data[0].view = view;
+  VP3DData.view = view;
   _projectionFov = fov;
   _lighting.data[0].camPos = camPos;
   _updateViewProjectionMatrix();

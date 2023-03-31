@@ -28,6 +28,7 @@ namespace Resource {
 
 
 #include "shader.h"
+#include "shader_internal.h"
 #include <vector>
 
 namespace vkenv {
@@ -102,7 +103,6 @@ private:
 
   VkDescriptorPool _descPool;
 
-  DS::DescriptorSet _VP3Dds;
   DS::DescriptorSet _VP2Dds;
   DS::DescriptorSet timeds;
   DS::DescriptorSet _perInstance3Dds;
@@ -115,7 +115,10 @@ private:
   DS::DescriptorSet _offscreends;
   DS::DescriptorSet _emptyds;
 
-  DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP3D;
+  DescSet *VP3D;
+ DS::ShaderStructs::viewProjection VP3DData;
+
+  
   DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP2D;
   DS::BindingAndData<DS::ShaderStructs::PerFrame3D> _perInstance;
   DS::BindingAndData<DS::ShaderStructs::timeUbo> timeData;
@@ -130,7 +133,7 @@ private:
   DS::BindingAndData<bool> _offscreenView;
   VkSampler _offscreenTextureSampler;
 
-  std::vector<descriptor::Set> ds3D;
+  //std::vector<descriptor::Set> ds3D;
   
   Resource::TextureLoader *_stagingTextureLoader;
   Resource::ModelRender *_stagingModelLoader;

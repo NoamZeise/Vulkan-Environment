@@ -9,9 +9,12 @@
 #include <vector>
 
 struct DescSet {
+  DescSet(descriptor::Set set, size_t frameCount, VkDevice device);
+  ~DescSet();
+  descriptor::Set highLevelSet;
   DS::DescriptorSet set;
   std::vector<DS::Binding> bindings;
-  DescSet(descriptor::Set set, size_t frameCount, VkDevice device);
+  VkDevice device;
 };
 
 #endif
