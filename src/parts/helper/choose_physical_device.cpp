@@ -56,6 +56,8 @@ VkResult choosePhysicalDevice(VkInstance instance,
     msgAndReturnOnErr(vkEnumeratePhysicalDevices(instance, &deviceCount, gpus.get()),
 		      "Failed to get device list!");
 
+    LOG("Finding Suitable Physical Device:");
+    LOG_LINE();
     PhysicalDeviceProps bestDeviceProperties;
     bool foundSuitable = false;
     for (size_t i = 0; i < deviceCount; i++) {
@@ -108,6 +110,7 @@ void printDeviceDetails(PhysicalDeviceProps &props) {
     LOG(" > Name = " << props.props.deviceName);
     LOG(" > Type = " << getPhysicalDeviceTypeStr(props.props.deviceType));
     LOG(" > Local Memory = " << props.deviceLocalSize);
+    LOG_LINE();
 }
 
 bool graphicsPresentSupported(VkPhysicalDevice candidate, VkQueueFamilyProperties queueProps,
