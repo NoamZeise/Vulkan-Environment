@@ -4,12 +4,12 @@
 namespace descriptor {
 
     Descriptor::Descriptor(std::string name, ShaderStage shader, DescriptorType type,
-			   size_t typeSize, size_t dataSize, size_t dynamicSize) {
+			   size_t typeSize, size_t dataArraySize, size_t dynamicSize) {
       this->name = name;
       this->stage = shader;
       this->type = type;
       this->dataTypeSize = typeSize;
-      this->dataArraySize = dataSize;
+      this->dataArraySize = dataArraySize;
       this->dynamicBufferSize = dynamicSize;
     }
 
@@ -32,6 +32,12 @@ namespace descriptor {
 					   arrSizeVal,
 					   dynSizeVal));
       
+  }
+  
+  void Set::AddSingleArrayStructDescriptor(std::string name, ShaderStage shader,
+					   DescriptorType type, size_t typeSize, size_t arraySize) {
+    AddDescriptor(name, shader, type, typeSize, arraySize);
+    descriptors.back().isSingleStructArray = true;
   }
 
   void Set::AddDescriptorDynamicWithArr(std::string name, ShaderStage shader, DescriptorType type, size_t typeSize, size_t arraySize, size_t dynamicSize) {

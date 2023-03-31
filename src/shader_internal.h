@@ -8,7 +8,10 @@
 
 #include <vector>
 
-void processDescriptorSet(descriptor::Set set, size_t frameCount, VkDevice device);
-			  
+struct DescSet {
+  DS::DescriptorSet set;
+  std::vector<DS::Binding> bindings;
+  DescSet(descriptor::Set set, size_t frameCount, VkDevice device);
+};
 
 #endif

@@ -114,7 +114,7 @@ bool swapchainRecreationRequired(VkResult result) {
 			 descriptor::DescriptorType::UniformBuffer,
 			 sizeof(DS::ShaderStructs::viewProjection), 1);
       ds3D.push_back(VP3D);
-      
+
 
       _VP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP3Dds);
       part::create::DescriptorSetLayout(manager->deviceState.device, &_VP3Dds, {&_VP3D.binding},

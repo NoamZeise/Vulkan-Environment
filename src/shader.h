@@ -79,9 +79,10 @@ enum class DescriptorType {
     // single struct array member size or array of descriptors size or sampler/view count
     size_t dataArraySize;
     size_t dynamicBufferSize;
+    bool isSingleArrayStruct = false;
 
     Descriptor(std::string name, ShaderStage shader, DescriptorType type, size_t typeSize,
-	       size_t dataSize, size_t dynamicSize);
+	       size_t dataArraySize, size_t dynamicSize);
   };
 
   
@@ -93,6 +94,8 @@ struct Set {
     /// order matters, must match shader
   void AddDescriptor(std::string name, ShaderStage shader, DescriptorType type,
 		       size_t typeSize, size_t arraySize);
+  void AddSingleArrayStructDescriptor(std::string name, ShaderStage shader, DescriptorType type,
+		     size_t typeSize, size_t arraySize);
   void AddDescriptorDynamicWithArr(std::string name, ShaderStage shader, DescriptorType type,
 				   size_t typeSize,
 				   size_t arraySize, size_t dynamicSize);
