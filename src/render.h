@@ -26,6 +26,10 @@ namespace Resource {
 
 #include <atomic>
 
+
+#include "shader.h"
+#include <vector>
+
 namespace vkenv {
 
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
@@ -126,6 +130,8 @@ private:
   DS::BindingAndData<bool> _offscreenView;
   VkSampler _offscreenTextureSampler;
 
+  std::vector<descriptor::Set> ds3D;
+  
   Resource::TextureLoader *_stagingTextureLoader;
   Resource::ModelRender *_stagingModelLoader;
   Resource::FontLoader *_stagingFontLoader;    

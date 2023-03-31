@@ -49,8 +49,11 @@ struct DescriptSet {
 
 
 #include <vector>
+#include <string>
 
-/// Descriptor Of Shader Descriptors
+/// Specify Shader Descriptors
+
+
 
 namespace descriptor {
 
@@ -68,18 +71,31 @@ enum class DescriptorType {
   SampledImage,
 };
 
-struct Descriptor;
+  struct Descriptor {
+    std::string name;
+    ShaderStage stage;
+    DescriptorType type;
+    size_t dataTypeSize;
+    // single struct array member size or array of descriptors size or sampler/view count
+    size_t dataArraySize;
+    size_t dynamicBufferSize;
+
+    Descriptor(std::string name, ShaderStage shader, DescriptorType type, size_t typeSize,
+	       size_t dataSize, size_t dynamicSize);
+  };
+
   
-class Set {
-    std::vector<Descriptor> descriptors;
-    
-public:
-    Set() {}
+struct Set {
+  std::vector<Descriptor> descriptors;
+  std::string name;
+  
+  Set(std::string name) { this->name = name;}
     /// order matters, must match shader
-    void AddDescriptor(ShaderStage shader, DescriptorType type,
+  void AddDescriptor(std::string name, ShaderStage shader, DescriptorType type,
 		       size_t typeSize, size_t arraySize);
-    void AddDescriptorDynamicWithArr(ShaderStage shader, DescriptorType type, size_t typeSize,
-				     size_t arraySize, size_t dynamicSize);
+  void AddDescriptorDynamicWithArr(std::string name, ShaderStage shader, DescriptorType type,
+				   size_t typeSize,
+				   size_t arraySize, size_t dynamicSize);
 };
 
 }

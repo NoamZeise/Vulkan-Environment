@@ -94,7 +94,6 @@ int main() {
 
 	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
 
-	    std::cout << elapsedTime << std::endl;
 	    render.setTime(elapsedTime);
 
 	    elapsedTime += frameElapsed / 1000.0f;
