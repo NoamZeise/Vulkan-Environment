@@ -214,8 +214,7 @@ namespace Resource
     region.imageOffset = { 0, 0, 0 };
     bufferOffset = 0;
     VkDeviceSize finalMemoryOffset = 0;
-    for (int i = 0; i < textures.size(); i++)
-      {
+    for (int i = 0; i < textures.size(); i++) {
 	vkBindImageMemory(base.device, textures[i].image, memory, finalMemoryOffset);
 	finalMemoryOffset += textures[i].imageMemSize;
 

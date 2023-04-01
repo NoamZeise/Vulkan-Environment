@@ -7,11 +7,7 @@
 
 const char* getVkResultStr(VkResult result);
 
-#ifndef NDEBUG
 #define LOG(msg) std::cout << msg << std::endl;
-#else
-#define LOG(msg)
-#endif
 
 #define LOG_LINE() LOG("---------------------");
 

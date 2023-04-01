@@ -26,8 +26,13 @@ VkResult AttachmentImage::CreateImage(VkDevice device,
 			extent,
 			desc.format,
 			desc.samples, 1));
-    
+    std::cout << "mem offset: " << *pMemoryRequirements << std::endl;
     *pMemoryRequirements += vkhelper::correctMemoryAlignment(memReq.size, memReq.alignment);
+    std::cout << "size to add: " << memReq.size << std::endl;
+    std::cout << "alignment: " << memReq.alignment << std::endl;
+    std::cout << "corrected: " << vkhelper::correctMemoryAlignment(memReq.size, memReq.alignment)
+	      << std::endl;
+    std::cout << "new mem offset: " << *pMemoryRequirements << std::endl << std::endl;
     *pMemoryFlagBits |= memReq.memoryTypeBits;
     return result;
 }
