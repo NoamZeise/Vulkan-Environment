@@ -171,7 +171,7 @@ size_t typeRank(VkPhysicalDeviceProperties &bestProps) {
 
 VkDeviceSize deviceLocalMemory(VkPhysicalDeviceMemoryProperties &props) {
     VkDeviceSize size = 0;
-    for(int i = 0; i < props.memoryHeapCount; i++) {
+    for(size_t i = 0; i < props.memoryHeapCount; i++) {
 	if(props.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
 	    size += props.memoryHeaps[i].size;
 	}
