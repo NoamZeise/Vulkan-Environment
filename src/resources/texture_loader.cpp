@@ -172,9 +172,9 @@ namespace Resource
 	}
 
 	memoryTypeBits |= memreq.memoryTypeBits;
-	textures[i].imageMemSize = vkhelper::correctMemoryAlignment(
-								    memreq.size, memreq.alignment);
-
+	finalMemSize = vkhelper::correctMemoryAlignment(finalMemSize, memreq.alignment);
+	textures[i].imageMemOffset = finalMemSize;
+	textures[i].imageMemSize = vkhelper::correctMemoryAlignment(memreq.size, memreq.alignment);
 	finalMemSize += textures[i].imageMemSize;
       }
     //create device local memory for permanent storage of images
@@ -213,10 +213,8 @@ namespace Resource
     region.imageSubresource.layerCount = 1;
     region.imageOffset = { 0, 0, 0 };
     bufferOffset = 0;
-    VkDeviceSize finalMemoryOffset = 0;
     for (int i = 0; i < textures.size(); i++) {
-	vkBindImageMemory(base.device, textures[i].image, memory, finalMemoryOffset);
-	finalMemoryOffset += textures[i].imageMemSize;
+	vkBindImageMemory(base.device, textures[i].image, memory, textures[i].imageMemOffset);
 
 	barrier.image = textures[i].image;
 	barrier.subresourceRange.levelCount = textures[i].mipLevels;

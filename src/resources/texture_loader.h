@@ -52,6 +52,7 @@ namespace Resource
       VkImageView view;
       uint32_t mipLevels;
       VkDeviceSize imageMemSize;
+      VkDeviceSize imageMemOffset;
     };
 
     VkImageView _getImageView(uint32_t texID);
