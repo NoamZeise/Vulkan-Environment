@@ -146,9 +146,11 @@ bool swapchainRecreationRequired(VkResult result) {
       vert2D_Set.AddSingleArrayStructDescriptor("vert struct", descriptor::DescriptorType::StorageBuffer,
 			       sizeof(glm::mat4), MAX_2D_INSTANCE);
       perFrame2DVert = new DescSet(vert2D_Set, frameCount, manager->deviceState.device);
-      
-      _offscreenTransform.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_offscreenTransformds);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_offscreenTransformds, {&_offscreenTransform.binding}, VK_SHADER_STAGE_VERTEX_BIT);
+
+      descriptor::Set offscreenView_Set("Offscreen Transform", descriptor::ShaderStage::Vertex);
+      offscreenView_Set.AddDescriptor("data", descriptor::DescriptorType::UniformBuffer,
+				      sizeof(glm::mat4), 1);
+      offscreenTransform = new DescSet(offscreenView_Set, frameCount, manager->deviceState.device);
 
       // fragment descriptor sets
 
@@ -168,7 +170,6 @@ bool swapchainRecreationRequired(VkResult result) {
 	      manager->deviceState.device, &_texturesds,
 	      {&_textureSampler.binding, &_textureViews.binding},
 	      VK_SHADER_STAGE_FRAGMENT_BIT);
-
 
       descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
       frag2D_Set.AddSingleArrayStructDescriptor(
@@ -204,7 +205,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
 	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set,
-	       &perFrame2DVert->set, &_offscreenTransformds, &lighting->set,
+	       &perFrame2DVert->set, &offscreenTransform->set, &lighting->set,
 	       &_texturesds, &perFrame2DFrag->set, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
 
@@ -215,7 +216,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&VP3D->bindings[0], &time->bindings[0], &VP2D->bindings[0],
 	       &perFrame3D->bindings[0], &bones->bindings[0],
 	       &perFrame2DVert->bindings[0], &lighting->bindings[0],
-	       &_offscreenTransform.binding,
+	       &offscreenTransform->bindings[0],
 	       &_textureSampler.binding, &_textureViews.binding,
 	       &perFrame2DFrag->bindings[0],
 	       &_offscreenSampler.binding, &_offscreenView.binding},
@@ -257,7 +258,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, swapchain->getMaxMsaaSamples(),
 	      swapchain->finalRenderPass,
-	      {&_offscreenTransformds, &_offscreends}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
+	      {&offscreenTransform->set, &_offscreends}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
 	      false, false, false, manager->deviceState.features.sampleRateShading,
 	      swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
 	      {});
@@ -267,11 +268,10 @@ bool swapchainRecreationRequired(VkResult result) {
 		     (float)swapchain->offscreenExtent.height) *
 	  ((float)swapchain->swapchainExtent.height /
 	   (float)swapchain->swapchainExtent.width);
-      _offscreenTransform.data[0] =
-	glm::scale(glm::mat4(1.0f),
-		   glm::vec3(ratio < 1.0f ? ratio: 1.0f,
-			     ratio > 1.0f ? 1.0f / ratio : 1.0f,
-			     1.0f));
+      offscreenTransformData = glm::scale(glm::mat4(1.0f),
+					  glm::vec3(ratio < 1.0f ? ratio: 1.0f,
+						    ratio > 1.0f ? 1.0f / ratio : 1.0f,
+						    1.0f));
 
       timeData.time = 0;
   }
@@ -295,7 +295,8 @@ void Render::_destroyFrameResources()
   perFrame2DVert = nullptr;
   delete bones;
   bones = nullptr;
-  _offscreenTransformds.destroySet(manager->deviceState.device);
+  delete offscreenTransform;
+  offscreenTransform = nullptr;
   delete lighting;
   lighting = nullptr;
   _texturesds.destroySet(manager->deviceState.device);
@@ -617,7 +618,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   
   swapchain->endOffscreenRenderPassAndBeginFinal();
 
-  _offscreenTransform.storeData(_frameI);
+  offscreenTransform->bindings[0].storeSetData(_frameI, &offscreenTransformData, 0, 0, 0);
 
   _pipelineFinal.begin(currentCommandBuffer, _frameI);
 

@@ -124,10 +124,11 @@ private:
     DS::ShaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
     DescSet *lighting;
     DS::ShaderStructs::Lighting lightingData;
+    DescSet *offscreenTransform;
+    glm::mat4 offscreenTransformData;
 
   DS::BindingAndData<bool> _textureViews;
   DS::BindingAndData<bool> _textureSampler;
-  DS::BindingAndData<glm::mat4> _offscreenTransform;
   DS::BindingAndData<bool> _offscreenSampler;
   DS::BindingAndData<bool> _offscreenView;
   VkSampler _offscreenTextureSampler;
