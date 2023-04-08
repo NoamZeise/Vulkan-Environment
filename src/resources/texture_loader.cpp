@@ -10,6 +10,10 @@
 #include "../vkhelper.h"
 #include "../parts/images.h"
 
+
+
+#include "../logger.h"
+
 namespace Resource
 {
 
@@ -58,9 +62,8 @@ namespace Resource
 	  }
       }
 
-#ifndef NDEBUG
-    std::cout << "loading texture: " << path;
-#endif
+    LOG("loading texture: " << path);
+
     texToLoad.push_back({ std::string(path.c_str()) });
     TempTexture* tex = &texToLoad.back();
     tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);
@@ -75,9 +78,9 @@ namespace Resource
       tex->format = VK_FORMAT_R8G8B8A8_SRGB;
     else
       tex->format = VK_FORMAT_R8G8B8A8_UNORM;
-#ifndef NDEBUG
-    std::cout << "  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1) << std::endl;
-#endif
+
+    LOG("  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1));
+
     return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), path);
   }
 
@@ -111,9 +114,13 @@ namespace Resource
       throw std::runtime_error("not enough storage for textures");
     textures.resize(texToLoad.size());
 
+    LOG("end texture load, loading " << texToLoad.size() << " textures to GPU")
+
     VkDeviceSize totalFilesize = 0;
     for (const auto& tex : texToLoad)
       totalFilesize += tex.fileSize;
+
+    LOG("creating staging buffer for textures " << totalFilesize << " bytes");
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
@@ -124,8 +131,6 @@ namespace Resource
     vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
     void* pMem;
     vkMapMemory(base.device, stagingMemory, 0, totalFilesize, 0, &pMem);
-
-    //all during loop:
 
     //move image pixel data to buffer
     VkDeviceSize finalMemSize = 0;
@@ -177,6 +182,9 @@ namespace Resource
 	textures[i].imageMemSize = vkhelper::correctMemoryAlignment(memreq.size, memreq.alignment);
 	finalMemSize += textures[i].imageMemSize;
       }
+
+    LOG("successfully copied textures to staging buffer\n"
+	"creating final memory buffer " << finalMemSize << " bytes");
     //create device local memory for permanent storage of images
     vkhelper::createMemory(base.device, base.physicalDevice, finalMemSize, &memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
 
@@ -213,6 +221,7 @@ namespace Resource
     region.imageSubresource.layerCount = 1;
     region.imageOffset = { 0, 0, 0 };
     bufferOffset = 0;
+
     for (int i = 0; i < textures.size(); i++) {
 	vkBindImageMemory(base.device, textures[i].image, memory, textures[i].imageMemOffset);
 
@@ -232,15 +241,24 @@ namespace Resource
 
     if (vkEndCommandBuffer(tempCmdBuffer) != VK_SUCCESS)
       throw std::runtime_error("failed to end command buffer");
+
+
+    LOG("transitioning textures to final format in final buffer");
+    
     VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &tempCmdBuffer;
+    
     vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(base.queue.graphicsPresentQueue);
+
+    LOG("finished moving textures to final buffer");
 
     vkUnmapMemory(base.device, stagingMemory);
     vkDestroyBuffer(base.device, stagingBuffer, nullptr);
     vkFreeMemory(base.device, stagingMemory, nullptr);
+
+    LOG("creating texture mip maps");
 
     vkResetCommandPool(base.device, pool, 0);
     vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
@@ -289,7 +307,7 @@ namespace Resource
 	    blit.dstSubresource.layerCount = 1;
 
 	    vkCmdBlitImage(tempCmdBuffer, tex.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			   tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+			   tex.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR); 
 
 	    //change previous image layout to shader read only
 	    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -321,6 +339,8 @@ namespace Resource
     vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(base.queue.graphicsPresentQueue);
 
+    LOG("finished creating mip maps");
+    
     //create image views
     for (size_t i = 0; i < textures.size(); i++)
       {
@@ -344,6 +364,8 @@ namespace Resource
 						    useNearestTextureFilter,
 						    VK_SAMPLER_ADDRESS_MODE_REPEAT);
 
+    LOG("finished creating image views and texture samplers");
+
     vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
 
     for(uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
@@ -352,6 +374,8 @@ namespace Resource
       }
 
     texToLoad.clear();
+
+    LOG("finished loading textures");
   }
 
   VkImageView TextureLoader::_getImageView(uint32_t texID)
