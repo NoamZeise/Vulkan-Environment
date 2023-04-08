@@ -5,10 +5,10 @@
 
 #include <vector>
 
-
 DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
   this->highLevelSet = set;
   this->device = device;
+
   std::vector<DS::Binding*> bindingRef;
   for(auto& desc: set.descriptors) {
     DS::Binding binding;

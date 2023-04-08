@@ -84,6 +84,9 @@ bool swapchainRecreationRequired(VkResult result) {
 
   void Render::_initFrameResources()
   {
+      
+      LOG("Creating Swapchain");
+	    
       int winWidth, winHeight;
       glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
       VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
@@ -104,38 +107,35 @@ bool swapchainRecreationRequired(VkResult result) {
       
       size_t frameCount = swapchain->frameCount();
       
+
+      LOG("Creating Descriptor Sets");
       
       /// set shader  descripor sets
 
-      /// vertex descripor sets
-
-      descriptor::Set VP3DHL("VP3D Set", descriptor::ShaderStage::Vertex);
-      VP3DHL.AddDescriptor("VP struct",
-			 descriptor::DescriptorType::UniformBuffer,
-			 sizeof(DS::ShaderStructs::viewProjection), 1);
-      //ds3D.push_back(VP3D);
-
-      VP3D = new DescSet(VP3DHL, frameCount, manager->deviceState.device);
+      descriptor::Descriptor viewProjectionBinding("view projection struct",
+						   descriptor::DescriptorType::UniformBuffer,
+						   sizeof(DS::ShaderStructs::viewProjection), 1);
       
-      //_VP3D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP3Dds);
-      // part::create::DescriptorSetLayout(manager->deviceState.device, &_VP3Dds, {&_VP3D.binding},
-      //				VK_SHADER_STAGE_VERTEX_BIT);
+      /// vertex descripor sets
+      descriptor::Set VP3D_Set("VP3D", descriptor::ShaderStage::Vertex);
+      VP3D_Set.AddDescriptor(viewProjectionBinding);
+      VP3D = new DescSet(VP3D_Set, frameCount, manager->deviceState.device);
 
+      descriptor::Set VP2D_Set("VP2D", descriptor::ShaderStage::Vertex);
+      VP2D_Set.AddDescriptor(viewProjectionBinding);
+      VP2D = new DescSet(VP2D_Set, frameCount, manager->deviceState.device);
+
+      
       timeData.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &timeds);
       part::create::DescriptorSetLayout(manager->deviceState.device, &timeds, {&timeData.binding},
 					VK_SHADER_STAGE_VERTEX_BIT);
 
-      _VP2D.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_VP2Dds);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_VP2Dds, {&_VP2D.binding},
-					VK_SHADER_STAGE_VERTEX_BIT);
-
-      _perInstance.setSingleStructArrayBufferProps(
-	      frameCount, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &_perInstance3Dds,
-	      MAX_3D_INSTANCE);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_perInstance3Dds,
-					{&_perInstance.binding},
-					VK_SHADER_STAGE_VERTEX_BIT);
-
+      descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
+      PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array", descriptor::DescriptorType::StorageBuffer,
+				   sizeof(DS::ShaderStructs::PerFrame3D), MAX_3D_INSTANCE);
+      perFrame3D = new DescSet(PerFrame3D_Set, frameCount, manager->deviceState.device);
+      
+      
       _bones.setDynamicBufferProps(frameCount,
 				   VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 				   &_bonesds, 1, MAX_ANIMATIONS_PER_FRAME);
@@ -197,11 +197,14 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&_offscreenSampler.binding, &_offscreenView.binding},
 	      VK_SHADER_STAGE_FRAGMENT_BIT);
 
+      
+      LOG("Creating Descriptor pool and memory for set bindings");
+
       // create descripor pool
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&VP3D->set, &_VP2Dds, &_perInstance3Dds, &_bonesds, &timeds,
+	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &_bonesds, &timeds,
 	       &_per2DVertds, &_offscreenTransformds, &_lightingds,
 	       &_texturesds, &_per2Dfragds, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
@@ -210,7 +213,7 @@ bool swapchainRecreationRequired(VkResult result) {
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
-	      {&VP3D->bindings[0], &timeData.binding, &_VP2D.binding, &_perInstance.binding, &_bones.binding,
+	      {&VP3D->bindings[0], &timeData.binding, &VP2D->bindings[0], &perFrame3D->bindings[0], &_bones.binding,
 	       &_per2Dvert.binding, &_lighting.binding,
 	       &_offscreenTransform.binding,
 	       &_textureSampler.binding, &_textureViews.binding,
@@ -218,12 +221,13 @@ bool swapchainRecreationRequired(VkResult result) {
 	       &_offscreenSampler.binding, &_offscreenView.binding},
 	      &_shaderBuffer, &_shaderMemory);
 
+      LOG("Creating Graphics Pipelines");
 
       // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &_perInstance3Dds, &timeds, &_texturesds, &_lightingds},
+	      {&VP3D->set, &perFrame3D->set, &timeds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -234,7 +238,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &_perInstance3Dds, &_bonesds, &_texturesds, &_lightingds},
+	      {&VP3D->set, &perFrame3D->set, &_bonesds, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -244,7 +248,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline2D, swapchain->getMaxMsaaSamples(),
 	      swapchain->offscreenRenderPass,
-	      {&_VP2Dds, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
+	      {&VP2D->set, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
@@ -279,12 +283,13 @@ void Render::_destroyFrameResources()
 
   vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
 
-  //_VP3Dds.destroySet(manager->deviceState.device);
   delete VP3D;
   VP3D = nullptr;
-  _VP2Dds.destroySet(manager->deviceState.device);
+  delete VP2D;
+  VP2D = nullptr;
   timeds.destroySet(manager->deviceState.device);
-  _perInstance3Dds.destroySet(manager->deviceState.device);
+  delete perFrame3D;
+  perFrame3D = nullptr;
   _per2DVertds.destroySet(manager->deviceState.device);
   _bonesds.destroySet(manager->deviceState.device);
   _offscreenTransformds.destroySet(manager->deviceState.device);
@@ -358,7 +363,7 @@ void Render::_resize()
   _initFrameResources();
   
   vkDeviceWaitIdle(manager->deviceState.device);
-  _updateViewProjectionMatrix();
+  _update3DProjectionMatrix();
 }
 
 void Render::_startDraw()
@@ -393,7 +398,6 @@ void Render::Begin3DDraw()
     _drawBatch();
   _renderState = RenderState::Draw3D;
 
-  //_VP3D.storeData(_frameI);
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
   timeData.storeData(_frameI);
   _lighting.data[0].direction = _lightDirection;
@@ -413,8 +417,8 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
     _drawBatch();
 
   _currentModel = model;
-  _perInstance.data[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
-  _perInstance.data[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
+  perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
+  perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
   _modelRuns++;
 
   if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
@@ -431,7 +435,6 @@ void Render::BeginAnim3DDraw()
     _drawBatch();
   _renderState = RenderState::DrawAnim3D;
 
-  //_VP3D.storeData(_frameI);
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
   _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
@@ -449,8 +452,8 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
     _drawBatch();
 
   _currentModel = model;
-  _perInstance.data[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
-  _perInstance.data[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
+  perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
+  perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
   _modelRuns++;
 
   auto bones = animation->getCurrentBones();
@@ -491,12 +494,12 @@ void Render::Begin2DDraw()
   } else {
     correction = xCorrection;
   }
-  _VP2D.data[0].proj = glm::ortho(
+  VP2DData.proj = glm::ortho(
       0.0f, (float)swapchain->offscreenExtent.width*_scale2D / correction, 0.0f,
       (float)swapchain->offscreenExtent.height*_scale2D / correction, -10.0f, 10.0f);
-  _VP2D.data[0].view = glm::mat4(1.0f);
+  VP2DData.view = glm::mat4(1.0f);
 
-  _VP2D.storeData(_frameI);
+  VP2D->bindings[0].storeSetData(_frameI, &VP2DData, 0, 0, 0);
 
   _pipeline2D.begin(currentCommandBuffer, _frameI);
 }
@@ -589,7 +592,9 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   }
 
   for (size_t i = 0; i < _current3DInstanceIndex; i++)
-    _perInstance.storeData(_frameI, 0, i);
+      perFrame3D->bindings[0].storeSetData(_frameI, &perFrame3DData[i], 0, i, 0);
+      //  perFrame3D->bindings[0].storeData(_frameI, 0, i);
+  
   _current3DInstanceIndex = 0;
 
 
@@ -622,7 +627,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   submit = true;
 }
 
-void Render::_updateViewProjectionMatrix() {
+void Render::_update3DProjectionMatrix() {
   VP3DData.proj =
       glm::perspective(glm::radians(_projectionFov),
                        ((float)swapchain->offscreenExtent.width) /
@@ -639,12 +644,12 @@ void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) 
   VP3DData.view = view;
   _projectionFov = fov;
   _lighting.data[0].camPos = camPos;
-  _updateViewProjectionMatrix();
+  _update3DProjectionMatrix();
 }
 
 void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale)
 {
-  _VP2D.data[0].view = view;
+  VP2DData.view = view;
   _scale2D = scale;
 }
 

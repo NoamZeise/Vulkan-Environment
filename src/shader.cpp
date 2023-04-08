@@ -11,32 +11,39 @@ namespace descriptor {
   Descriptor::Descriptor(std::string name, DescriptorType type,
 			 size_t typeSize, size_t dataArraySize, size_t dynamicSize,
 			 void* pSamplerOrImageViews) {
-    this->name = name;
-    this->type = type;
-    this->dataTypeSize = typeSize;
-    this->dataArraySize = dataArraySize;
-    this->dynamicBufferSize = dynamicSize;
-    this->pSamplerOrImageViews = pSamplerOrImageViews;
-    }
+      init(name, type, typeSize, dataArraySize, dynamicSize, pSamplerOrImageViews);
+  }
 
+  Descriptor::Descriptor(std::string name, DescriptorType type, size_t typeSize, size_t arraySize) {
+      size_t arrSizeVal = 1;
+      size_t dynSizeVal = 1;
+      if(type == DescriptorType::UniformBufferDynamic ||
+	 type == DescriptorType::StorageBufferDynamic) {
+	  dynSizeVal = arraySize;
+      } else {
+	  arrSizeVal = arraySize;
+      }
+      init(name, type, typeSize, arrSizeVal, dynSizeVal, nullptr);
+  }
+
+  void Descriptor::init(std::string name, DescriptorType type, size_t typeSize,
+			      size_t dataArraySize, size_t dynamicSize,
+			      void* pSamplerOrImageViews) {
+      this->name = name;
+      this->type = type;
+      this->dataTypeSize = typeSize;
+      this->dataArraySize = dataArraySize;
+      this->dynamicBufferSize = dynamicSize;
+      this->pSamplerOrImageViews = pSamplerOrImageViews;
+  }
+
+  void Set::AddDescriptor(Descriptor descriptor) {
+      descriptors.push_back(descriptor);
+  }
   
   void Set::AddDescriptor(std::string name, DescriptorType type,
 			  size_t typeSize, size_t arraySize) {
-    size_t arrSizeVal = 1;
-    size_t dynSizeVal = 1;
-    if(type == DescriptorType::UniformBufferDynamic ||
-       type == DescriptorType::StorageBufferDynamic) {
-      dynSizeVal = arraySize;
-    } else {
-      arrSizeVal = arraySize;
-    }
-    this->descriptors.push_back(
-				Descriptor(name,
-					   type,
-					   typeSize,
-					   arrSizeVal,
-					   dynSizeVal,
-					   nullptr));
+      AddDescriptor(Descriptor(name, type, typeSize, arraySize));
   }
   
   void Set::AddSingleArrayStructDescriptor(std::string name,

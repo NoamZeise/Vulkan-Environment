@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 
+#include "../logger.h"
 
 namespace part
 {
@@ -35,8 +36,9 @@ void GraphicsPipeline(
 
   for (size_t i = 0; i < descriptorSets.size(); i++)
   {
-      if(descriptorSets[i] != nullptr)
+      if(descriptorSets[i] != nullptr) {
 	  descriptorSetLayouts[i] = descriptorSets[i]->layout;
+      }
       else
 	  throw std::runtime_error("Descriptor Set was null");
   }

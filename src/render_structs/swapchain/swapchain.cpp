@@ -258,7 +258,11 @@ VkResult Swapchain::beginOffscreenRenderPass(VkCommandBuffer *pCmdBuff) {
     result = vkAcquireNextImageKHR(deviceState.device, swapchain, UINT64_MAX, currentImgAquireSem,
 				   nullptr, &frameIndex);
     if(result != VK_SUCCESS) {
-	imageAquireSemaphores.push_back(currentImgAquireSem);
+	/*VkSemaphoreSignalInfo info { VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO };
+	info.value = VK_FALSE;
+	info.semaphore = currentImgAquireSem;
+	vkSignalSemaphore(deviceState.device, &info);
+	imageAquireSemaphores.push_back(currentImgAquireSem);*/
 	return result;
     }
 

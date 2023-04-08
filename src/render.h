@@ -103,9 +103,7 @@ private:
 
   VkDescriptorPool _descPool;
 
-  DS::DescriptorSet _VP2Dds;
   DS::DescriptorSet timeds;
-  DS::DescriptorSet _perInstance3Dds;
   DS::DescriptorSet _bonesds;
   DS::DescriptorSet _per2DVertds;
   DS::DescriptorSet _lightingds;
@@ -115,12 +113,13 @@ private:
   DS::DescriptorSet _offscreends;
   DS::DescriptorSet _emptyds;
 
-  DescSet *VP3D;
- DS::ShaderStructs::viewProjection VP3DData;
+    DescSet *VP3D;
+    DS::ShaderStructs::viewProjection VP3DData;
+    DescSet *VP2D;
+    DS::ShaderStructs::viewProjection VP2DData;
+    DescSet *perFrame3D;
+    DS::ShaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
 
-  
-  DS::BindingAndData<DS::ShaderStructs::viewProjection> _VP2D;
-  DS::BindingAndData<DS::ShaderStructs::PerFrame3D> _perInstance;
   DS::BindingAndData<DS::ShaderStructs::timeUbo> timeData;
   DS::BindingAndData<DS::ShaderStructs::Bones> _bones;
   DS::BindingAndData<glm::mat4> _per2Dvert;
@@ -172,7 +171,7 @@ private:
   void _destroyFrameResources();
   void _startDraw();
   void _resize();
-  void _updateViewProjectionMatrix();
+  void _update3DProjectionMatrix();
   void _drawBatch();
 };
 
