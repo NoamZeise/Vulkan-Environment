@@ -75,7 +75,7 @@ public:
   void setVsync(bool vsync);
 
   void setTime(float time) {
-    timeData.data[0].time = time;
+    timeData.time = time;
   }
     
 private:
@@ -103,11 +103,8 @@ private:
 
   VkDescriptorPool _descPool;
 
-  DS::DescriptorSet timeds;
-  DS::DescriptorSet _per2DVertds;
   DS::DescriptorSet _lightingds;
   DS::DescriptorSet _texturesds;
-  DS::DescriptorSet _per2Dfragds;
   DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
   DS::DescriptorSet _emptyds;
@@ -118,16 +115,18 @@ private:
     DS::ShaderStructs::viewProjection VP2DData;
     DescSet *perFrame3D;
     DS::ShaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
-
     DescSet *bones;
     size_t currentBonesDynamicOffset;
+    DescSet *time;
+    DS::ShaderStructs::timeUbo timeData;
+    DescSet *perFrame2DVert;
+    glm::mat4 perFrame2DVertData[MAX_2D_INSTANCE];
+    DescSet *perFrame2DFrag;
+    DS::ShaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
 
-  DS::BindingAndData<DS::ShaderStructs::timeUbo> timeData;
-  DS::BindingAndData<glm::mat4> _per2Dvert;
   DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<bool> _textureViews;
   DS::BindingAndData<bool> _textureSampler;
-  DS::BindingAndData<DS::ShaderStructs::Frag2DData> _per2Dfrag;
   DS::BindingAndData<glm::mat4> _offscreenTransform;
   DS::BindingAndData<bool> _offscreenSampler;
   DS::BindingAndData<bool> _offscreenView;

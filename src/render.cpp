@@ -125,10 +125,11 @@ bool swapchainRecreationRequired(VkResult result) {
       VP2D_Set.AddDescriptor(viewProjectionBinding);
       VP2D = new DescSet(VP2D_Set, frameCount, manager->deviceState.device);
 
+      descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
+      Time_Set.AddDescriptor("Time Struct", descriptor::DescriptorType::UniformBuffer,
+			     sizeof(DS::ShaderStructs::timeUbo), 1);
+      time = new DescSet(Time_Set, frameCount, manager->deviceState.device);
       
-      timeData.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &timeds);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &timeds, {&timeData.binding},
-					VK_SHADER_STAGE_VERTEX_BIT);
 
       descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
       PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array", descriptor::DescriptorType::StorageBuffer,
@@ -141,13 +142,11 @@ bool swapchainRecreationRequired(VkResult result) {
 			      sizeof(DS::ShaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
       bones = new DescSet(bones_Set, frameCount, manager->deviceState.device);
 
-      _per2Dvert.setSingleStructArrayBufferProps(frameCount,
-						 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						 &_per2DVertds, MAX_2D_INSTANCE);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_per2DVertds,
-					{&_per2Dvert.binding},
-					VK_SHADER_STAGE_VERTEX_BIT);
-
+      descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
+      vert2D_Set.AddSingleArrayStructDescriptor("vert struct", descriptor::DescriptorType::StorageBuffer,
+			       sizeof(glm::mat4), MAX_2D_INSTANCE);
+      perFrame2DVert = new DescSet(vert2D_Set, frameCount, manager->deviceState.device);
+      
       _offscreenTransform.setBufferProps(frameCount,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &_offscreenTransformds);
       part::create::DescriptorSetLayout(manager->deviceState.device, &_offscreenTransformds, {&_offscreenTransform.binding}, VK_SHADER_STAGE_VERTEX_BIT);
 
@@ -170,12 +169,13 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&_textureSampler.binding, &_textureViews.binding},
 	      VK_SHADER_STAGE_FRAGMENT_BIT);
 
-      _per2Dfrag.setSingleStructArrayBufferProps(frameCount,
-						 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-						 &_per2Dfragds, MAX_2D_INSTANCE);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_per2Dfragds,
-					{&_per2Dfrag.binding},
-					VK_SHADER_STAGE_FRAGMENT_BIT);
+
+      descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
+      frag2D_Set.AddSingleArrayStructDescriptor(
+	      "Per frag struct",
+	      descriptor::DescriptorType::StorageBuffer,
+	      sizeof(DS::ShaderStructs::Frag2DData), MAX_2D_INSTANCE);
+      perFrame2DFrag = new DescSet(frag2D_Set, frameCount, manager->deviceState.device);
 
       part::create::DescriptorSetLayout(manager->deviceState.device, &_emptyds,
 					{},
@@ -203,21 +203,21 @@ bool swapchainRecreationRequired(VkResult result) {
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &timeds,
-	       &_per2DVertds, &_offscreenTransformds, &_lightingds,
-	       &_texturesds, &_per2Dfragds, &_offscreends},
+	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set,
+	       &perFrame2DVert->set, &_offscreenTransformds, &_lightingds,
+	       &_texturesds, &perFrame2DFrag->set, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
 
 		  
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
-	      {&VP3D->bindings[0], &timeData.binding, &VP2D->bindings[0],
+	      {&VP3D->bindings[0], &time->bindings[0], &VP2D->bindings[0],
 	       &perFrame3D->bindings[0], &bones->bindings[0],
-	       &_per2Dvert.binding, &_lighting.binding,
+	       &perFrame2DVert->bindings[0], &_lighting.binding,
 	       &_offscreenTransform.binding,
 	       &_textureSampler.binding, &_textureViews.binding,
-	       &_per2Dfrag.binding,
+	       &perFrame2DFrag->bindings[0],
 	       &_offscreenSampler.binding, &_offscreenView.binding},
 	      &_shaderBuffer, &_shaderMemory);
 
@@ -227,7 +227,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &timeds, &_texturesds, &_lightingds},
+	      {&VP3D->set, &perFrame3D->set, &time->set, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -248,7 +248,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline2D, swapchain->getMaxMsaaSamples(),
 	      swapchain->offscreenRenderPass,
-	      {&VP2D->set, &_per2DVertds, &_texturesds, &_per2Dfragds}, {},
+	      {&VP2D->set, &perFrame2DVert->set, &_texturesds, &perFrame2DFrag->set}, {},
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
@@ -273,7 +273,7 @@ bool swapchainRecreationRequired(VkResult result) {
 			     ratio > 1.0f ? 1.0f / ratio : 1.0f,
 			     1.0f));
 
-      timeData.data[0].time = 0;
+      timeData.time = 0;
   }
 
 void Render::_destroyFrameResources()
@@ -287,16 +287,19 @@ void Render::_destroyFrameResources()
   VP3D = nullptr;
   delete VP2D;
   VP2D = nullptr;
-  timeds.destroySet(manager->deviceState.device);
+  delete time;
+  time = nullptr;
   delete perFrame3D;
   perFrame3D = nullptr;
-  _per2DVertds.destroySet(manager->deviceState.device);
+  delete perFrame2DVert;
+  perFrame2DVert = nullptr;
   delete bones;
   bones = nullptr;
   _offscreenTransformds.destroySet(manager->deviceState.device);
   _lightingds.destroySet(manager->deviceState.device);
   _texturesds.destroySet(manager->deviceState.device);
-  _per2Dfragds.destroySet(manager->deviceState.device);
+  delete perFrame2DFrag;
+  perFrame2DFrag = nullptr;
   _offscreends.destroySet(manager->deviceState.device);
   _emptyds.destroySet(manager->deviceState.device);
 
@@ -400,7 +403,7 @@ void Render::Begin3DDraw()
   _renderState = RenderState::Draw3D;
 
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
-  timeData.storeData(_frameI);
+  time->bindings[0].storeSetData(_frameI, &timeData, 0, 0, 0);
   _lighting.data[0].direction = _lightDirection;
   _lighting.storeData(_frameI);
 
@@ -469,7 +472,9 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
       return;
   }
   bones->bindings[0].storeSetData(_frameI, &bonesData, 0, 0, currentBonesDynamicOffset);
-  uint32_t offset = static_cast<uint32_t>((currentBonesDynamicOffset) * bones->bindings[0].bufferSize * bones->bindings[0].setCount);
+  uint32_t offset = static_cast<uint32_t>((currentBonesDynamicOffset) *
+					  bones->bindings[0].bufferSize *
+					  bones->bindings[0].setCount);
   _pipelineAnim3D.bindDynamicDS(currentCommandBuffer, &bones->set, _frameI,  offset);
   _drawBatch();
   currentBonesDynamicOffset++;
@@ -515,10 +520,10 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
       return;
   }
 
-  _per2Dvert.data[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].colour = colour;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
-  _per2Dfrag.data[_current2DInstanceIndex + _instance2Druns].texID = (uint32_t)texture.ID;
+   perFrame2DVertData[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
+   perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
+   perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
+   perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texID = (uint32_t)texture.ID;
   _instance2Druns++;
 
   if (_current2DInstanceIndex + _instance2Druns == MAX_2D_INSTANCE)
@@ -603,8 +608,8 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   for (size_t i = 0; i < _current2DInstanceIndex; i++)
   {
-    _per2Dvert.storeData(_frameI, 0, i);
-    _per2Dfrag.storeData(_frameI, 0, i);
+      perFrame2DVert->bindings[0].storeSetData(_frameI, &perFrame2DVertData[i], 0, i, 0);
+      perFrame2DFrag->bindings[0].storeSetData(_frameI, &perFrame2DFragData[i], 0, i, 0);	  
   }
   _current2DInstanceIndex = 0;
 
