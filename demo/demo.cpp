@@ -77,6 +77,7 @@ int main() {
 	std::vector<Resource::ModelAnimation> wolfAnimations;
 	Resource::Model animatedWolf = render.LoadAnimatedModel("models/wolf.fbx", &wolfAnimations);
 	Resource::ModelAnimation currentWolfAnimation = wolfAnimations[0];
+	Resource::ModelAnimation otherWolfAnimation = wolfAnimations[1];
 
 	render.LoadResourcesToGPU();
 	render.UseLoadedResources();
@@ -100,6 +101,7 @@ int main() {
 	    rot += 0.1f * frameElapsed;
 	    
 	    currentWolfAnimation.Update((float)frameElapsed);
+	    otherWolfAnimation.Update((float)frameElapsed);
 
 	    render.Begin2DDraw();
 	
@@ -133,7 +135,18 @@ int main() {
 	    auto wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
 	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
 	    
-	
+
+	    wolfMat =
+		glm::scale(
+			glm::rotate(
+				glm::mat4(1.0f),
+				glm::radians(90.0f),
+				glm::vec3(3.0f, -0.8f, 0.5f)),
+			glm::vec3(2.0f, 2.0f, 2.0f)
+			    );
+	    wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
+	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &otherWolfAnimation);
+	    
 	    drawFinished = false;
 	    render.EndDraw(drawFinished);
 
@@ -148,7 +161,7 @@ int main() {
 	}
     }
     catch (const std::exception &e) {
-	std::cerr << "Exception Occured during render: " << e.what() << std::endl;
+	std::cerr << "Exception occured during render: " << e.what() << std::endl;
     }
 
     glfwDestroyWindow(window);

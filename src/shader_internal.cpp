@@ -25,12 +25,14 @@ DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
       binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       break;
     case descriptor::DescriptorType::UniformBufferDynamic:
+      this->set.dynamicBuffer = true;
       binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
       break;
     case descriptor::DescriptorType::StorageBuffer:
       binding.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       break;
     case descriptor::DescriptorType::StorageBufferDynamic:
+      this->set.dynamicBuffer = true;
       binding.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
       break;
     case descriptor::DescriptorType::Sampler:

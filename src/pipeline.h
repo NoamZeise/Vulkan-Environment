@@ -35,7 +35,8 @@ public:
     vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
   }
 
-  void bindDynamicDS(VkCommandBuffer cmdBuff, DS::DescriptorSet *ds, size_t frameIndex, uint32_t dynOffset)
+  void bindDynamicDS(VkCommandBuffer cmdBuff, DS::DescriptorSet *ds, size_t frameIndex,
+		     uint32_t dynOffset)
   {
     for (size_t i = 0; i < descriptorSets.size(); i++)
       if(descriptorSets[i]->dynamicBuffer)

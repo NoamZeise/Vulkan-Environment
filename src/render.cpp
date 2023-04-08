@@ -135,12 +135,11 @@ bool swapchainRecreationRequired(VkResult result) {
 				   sizeof(DS::ShaderStructs::PerFrame3D), MAX_3D_INSTANCE);
       perFrame3D = new DescSet(PerFrame3D_Set, frameCount, manager->deviceState.device);
       
-      
-      _bones.setDynamicBufferProps(frameCount,
-				   VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-				   &_bonesds, 1, MAX_ANIMATIONS_PER_FRAME);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_bonesds, {&_bones.binding},
-					VK_SHADER_STAGE_VERTEX_BIT);
+
+      descriptor::Set bones_Set("Bones Animation", descriptor::ShaderStage::Vertex);
+      bones_Set.AddDescriptor("bones", descriptor::DescriptorType::UniformBufferDynamic,
+			      sizeof(DS::ShaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
+      bones = new DescSet(bones_Set, frameCount, manager->deviceState.device);
 
       _per2Dvert.setSingleStructArrayBufferProps(frameCount,
 						 VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -204,7 +203,7 @@ bool swapchainRecreationRequired(VkResult result) {
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &_bonesds, &timeds,
+	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &timeds,
 	       &_per2DVertds, &_offscreenTransformds, &_lightingds,
 	       &_texturesds, &_per2Dfragds, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
@@ -213,7 +212,8 @@ bool swapchainRecreationRequired(VkResult result) {
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
-	      {&VP3D->bindings[0], &timeData.binding, &VP2D->bindings[0], &perFrame3D->bindings[0], &_bones.binding,
+	      {&VP3D->bindings[0], &timeData.binding, &VP2D->bindings[0],
+	       &perFrame3D->bindings[0], &bones->bindings[0],
 	       &_per2Dvert.binding, &_lighting.binding,
 	       &_offscreenTransform.binding,
 	       &_textureSampler.binding, &_textureViews.binding,
@@ -238,7 +238,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &_bonesds, &_texturesds, &_lightingds},
+	      {&VP3D->set, &perFrame3D->set, &bones->set, &_texturesds, &_lightingds},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -291,7 +291,8 @@ void Render::_destroyFrameResources()
   delete perFrame3D;
   perFrame3D = nullptr;
   _per2DVertds.destroySet(manager->deviceState.device);
-  _bonesds.destroySet(manager->deviceState.device);
+  delete bones;
+  bones = nullptr;
   _offscreenTransformds.destroySet(manager->deviceState.device);
   _lightingds.destroySet(manager->deviceState.device);
   _texturesds.destroySet(manager->deviceState.device);
@@ -384,7 +385,7 @@ void Render::_startDraw()
     }
     _modelLoader->bindBuffers(currentCommandBuffer);
     _frameI  =  swapchain->getFrameIndex();
-    _bones.currentDynamicOffsetIndex = 0;
+    currentBonesDynamicOffset = 0;
     _begunDraw = true;
 }
 
@@ -456,20 +457,22 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::ma
   perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
   _modelRuns++;
 
-  auto bones = animation->getCurrentBones();
-  for(int i = 0; i < bones->size() && i < 50; i++)
+  auto animBones = animation->getCurrentBones();
+  DS::ShaderStructs::Bones bonesData;
+  for(int i = 0; i < animBones->size() && i < 50; i++)
   {
-    _bones.data[0].mat[i] = bones->at(i);
+      bonesData.mat[i] = animBones->at(i);
   }
-  if(_bones.currentDynamicOffsetIndex >= MAX_ANIMATIONS_PER_FRAME)
+  if(currentBonesDynamicOffset >= MAX_ANIMATIONS_PER_FRAME)
   {
       LOG("warning, too many animation calls!\n");
       return;
   }
-  _bones.storeData(_frameI);
-  uint32_t offset = static_cast<uint32_t>((_bones.currentDynamicOffsetIndex-1) * _bones.binding.bufferSize * _bones.binding.setCount);
-  _pipelineAnim3D.bindDynamicDS(currentCommandBuffer, &_bonesds, _frameI,  offset);
-   _drawBatch();
+  bones->bindings[0].storeSetData(_frameI, &bonesData, 0, 0, currentBonesDynamicOffset);
+  uint32_t offset = static_cast<uint32_t>((currentBonesDynamicOffset) * bones->bindings[0].bufferSize * bones->bindings[0].setCount);
+  _pipelineAnim3D.bindDynamicDS(currentCommandBuffer, &bones->set, _frameI,  offset);
+  _drawBatch();
+  currentBonesDynamicOffset++;
 }
 
 void Render::Begin2DDraw()

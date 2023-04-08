@@ -104,7 +104,6 @@ private:
   VkDescriptorPool _descPool;
 
   DS::DescriptorSet timeds;
-  DS::DescriptorSet _bonesds;
   DS::DescriptorSet _per2DVertds;
   DS::DescriptorSet _lightingds;
   DS::DescriptorSet _texturesds;
@@ -120,8 +119,10 @@ private:
     DescSet *perFrame3D;
     DS::ShaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
 
+    DescSet *bones;
+    size_t currentBonesDynamicOffset;
+
   DS::BindingAndData<DS::ShaderStructs::timeUbo> timeData;
-  DS::BindingAndData<DS::ShaderStructs::Bones> _bones;
   DS::BindingAndData<glm::mat4> _per2Dvert;
   DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<bool> _textureViews;
