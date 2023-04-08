@@ -152,12 +152,12 @@ bool swapchainRecreationRequired(VkResult result) {
 
       // fragment descriptor sets
 
-      _lighting.setBufferProps(frameCount, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-			       &_lightingds);
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_lightingds,
-					{&_lighting.binding},
-					VK_SHADER_STAGE_FRAGMENT_BIT);
-
+      descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
+      lighting_Set.AddDescriptor("Lighting properties", descriptor::DescriptorType::UniformBuffer,
+				 sizeof(DS::ShaderStructs::Lighting), 1);
+      lighting = new DescSet(lighting_Set, frameCount, manager->deviceState.device);
+      
+      
       _textureSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
 					    &_texturesds, 1,
 					    _textureLoader->getSamplerP());
@@ -204,7 +204,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
 	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set,
-	       &perFrame2DVert->set, &_offscreenTransformds, &_lightingds,
+	       &perFrame2DVert->set, &_offscreenTransformds, &lighting->set,
 	       &_texturesds, &perFrame2DFrag->set, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
 
@@ -214,7 +214,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      manager->deviceState,
 	      {&VP3D->bindings[0], &time->bindings[0], &VP2D->bindings[0],
 	       &perFrame3D->bindings[0], &bones->bindings[0],
-	       &perFrame2DVert->bindings[0], &_lighting.binding,
+	       &perFrame2DVert->bindings[0], &lighting->bindings[0],
 	       &_offscreenTransform.binding,
 	       &_textureSampler.binding, &_textureViews.binding,
 	       &perFrame2DFrag->bindings[0],
@@ -227,7 +227,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &time->set, &_texturesds, &_lightingds},
+	      {&VP3D->set, &perFrame3D->set, &time->set, &_texturesds, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -238,7 +238,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &bones->set, &_texturesds, &_lightingds},
+	      {&VP3D->set, &perFrame3D->set, &bones->set, &_texturesds, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -296,7 +296,8 @@ void Render::_destroyFrameResources()
   delete bones;
   bones = nullptr;
   _offscreenTransformds.destroySet(manager->deviceState.device);
-  _lightingds.destroySet(manager->deviceState.device);
+  delete lighting;
+  lighting = nullptr;
   _texturesds.destroySet(manager->deviceState.device);
   delete perFrame2DFrag;
   perFrame2DFrag = nullptr;
@@ -404,8 +405,7 @@ void Render::Begin3DDraw()
 
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
   time->bindings[0].storeSetData(_frameI, &timeData, 0, 0, 0);
-  _lighting.data[0].direction = _lightDirection;
-  _lighting.storeData(_frameI);
+  lighting->bindings[0].storeSetData(_frameI, &lightingData, 0, 0, 0);
 
   _pipeline3D.begin(currentCommandBuffer, _frameI);
 }
@@ -440,8 +440,7 @@ void Render::BeginAnim3DDraw()
   _renderState = RenderState::DrawAnim3D;
 
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
-  _lighting.data[0].direction = _lightDirection;
-  _lighting.storeData(_frameI);
+  lighting->bindings[0].storeSetData(_frameI, &lightingData, 0, 0, 0);
   _pipelineAnim3D.begin(currentCommandBuffer, _frameI);
 }
 
@@ -651,7 +650,7 @@ void Render::FramebufferResize() { _framebufferResized = true; }
 void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
   VP3DData.view = view;
   _projectionFov = fov;
-  _lighting.data[0].camPos = camPos;
+  lightingData.camPos = camPos;
   _update3DProjectionMatrix();
 }
 
@@ -663,7 +662,7 @@ void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale)
 
 void Render::setLightDirection(glm::vec4 lightDir)
 {
-  _lightDirection = lightDir;
+  lightingData.direction = lightDir;
 }
 
 void Render::setForceTargetRes(bool force) {

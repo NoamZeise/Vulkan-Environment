@@ -107,6 +107,8 @@ int main() {
 	
 	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
 
+	    render.DrawQuad(Resource::Texture(), glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
+
 	    render.Begin3DDraw();
 
 	    auto monkeyMat =

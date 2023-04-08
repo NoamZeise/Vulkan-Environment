@@ -103,7 +103,6 @@ private:
 
   VkDescriptorPool _descPool;
 
-  DS::DescriptorSet _lightingds;
   DS::DescriptorSet _texturesds;
   DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
@@ -123,8 +122,9 @@ private:
     glm::mat4 perFrame2DVertData[MAX_2D_INSTANCE];
     DescSet *perFrame2DFrag;
     DS::ShaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
+    DescSet *lighting;
+    DS::ShaderStructs::Lighting lightingData;
 
-  DS::BindingAndData<DS::ShaderStructs::lighting> _lighting;
   DS::BindingAndData<bool> _textureViews;
   DS::BindingAndData<bool> _textureSampler;
   DS::BindingAndData<glm::mat4> _offscreenTransform;
@@ -154,7 +154,6 @@ private:
   VkSemaphore _imgAquireSem;
   float _projectionFov = 45.0f;
   float _scale2D = 1.0f;
-  glm::vec4 _lightDirection = glm::vec4(0.3f, 0.3f, -0.5f, 0.0f);
 
   unsigned int _modelRuns = 0;
   unsigned int _current3DInstanceIndex = 0;
