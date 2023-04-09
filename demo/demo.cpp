@@ -11,7 +11,7 @@
 glm::vec3 camPos = glm::vec3(-350.0f, 10.0f, 0.0f);
 float yaw = -5.0f;
 float pitch = -5.0f;
-bool resize = true;
+bool resize = false;
 bool vsyncToggle = false;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
@@ -33,7 +33,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if(key == GLFW_KEY_RIGHT) camPos.y -= 1.0f;
     if(key == GLFW_KEY_SPACE) camPos.z += 1.0f;
     if(key == GLFW_KEY_LEFT_SHIFT) camPos.z -= 1.0f;
-    if(key == GLFW_KEY_V) vsyncToggle = true;
+    if(key == GLFW_KEY_V && action == GLFW_PRESS) vsyncToggle = true;
 }
 
 void error_callback(int error, const char *description) {
@@ -160,6 +160,7 @@ int main() {
 	    render.EndDraw(drawFinished);
 
 	    if(resize) {
+		
 		resize = false;
 		render.FramebufferResize();
 	    }

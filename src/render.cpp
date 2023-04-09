@@ -378,6 +378,7 @@ void Render::_startDraw()
     VkResult result =  swapchain->beginOffscreenRenderPass(&currentCommandBuffer);
     if(result != VK_SUCCESS) {
 	if(swapchainRecreationRequired(result)) {
+	    LOG("recreation required");
 	    _resize();
 
 	    if(!rebuiltSwapchain) { //only try to rebuild once
@@ -627,6 +628,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   VkResult result = swapchain->endFinalRenderPass();
   
   if (swapchainRecreationRequired(result) || _framebufferResized) {
+      LOG("end of draw, resize or recreation required");
       _resize();
   } else if (result != VK_SUCCESS)
       throw std::runtime_error(
@@ -671,6 +673,7 @@ void Render::setForceTargetRes(bool force) {
       renderConf.force_target_resolution = force;
       renderConfChanged = true;
       FramebufferResize();
+      LOG("set force target: " << force);
     }
 }
 bool Render::isTargetResForced() { return renderConf.force_target_resolution; }
@@ -679,6 +682,7 @@ void Render::setTargetResolution(glm::vec2 resolution) {
     renderConf.force_target_resolution = true;
     renderConfChanged = true;
     FramebufferResize();
+    LOG("set target res");
 }
 glm::vec2 Render::getTargetResolution() {
   return _targetResolution;
@@ -687,6 +691,7 @@ void Render::setVsync(bool vsync) {
     this->renderConf.vsync = vsync;
     renderConfChanged = true;
     FramebufferResize();
+    LOG("set vsync");
 }
 
 bool Render::getVsync() {
