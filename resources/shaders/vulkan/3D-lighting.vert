@@ -1,10 +1,14 @@
 #version 450
 
-layout(set = 0, binding = 0) uniform UniformBufferObject
+layout(set = 0, binding = 0) uniform ViewProj
 {
     mat4 view;
     mat4 proj;
 } ubo;
+
+layout(set = 0, binding = 1) uniform time {
+  float time;
+} timeUbo;
 
 struct Obj3DPerFrame
 {
@@ -16,10 +20,6 @@ layout(std140, set = 1, binding = 0) readonly buffer PerInstanceData
 {
     Obj3DPerFrame data[];
 } pid;
-
-layout(set = 2, binding = 0) uniform time {
-  float time;
-} timeUbo;
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;

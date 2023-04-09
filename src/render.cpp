@@ -118,8 +118,12 @@ bool swapchainRecreationRequired(VkResult result) {
 	      "view projection struct",
 	      descriptor::Type::UniformBuffer,
 	      sizeof(DS::ShaderStructs::viewProjection), 1);
+      descriptor::Descriptor timeBinding(
+	      "Time Struct", descriptor::Type::UniformBuffer,
+	      sizeof(DS::ShaderStructs::timeUbo), 1);
       descriptor::Set VP3D_Set("VP3D", descriptor::ShaderStage::Vertex);
       VP3D_Set.AddDescriptor(viewProjectionBinding);
+      VP3D_Set.AddDescriptor(timeBinding);
       VP3D = new DescSet(VP3D_Set, frameCount, manager->deviceState.device);
 
       descriptor::Set VP2D_Set("VP2D", descriptor::ShaderStage::Vertex);
@@ -129,7 +133,6 @@ bool swapchainRecreationRequired(VkResult result) {
       descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
       Time_Set.AddDescriptor("Time Struct", descriptor::Type::UniformBuffer,
 			     sizeof(DS::ShaderStructs::timeUbo), 1);
-      time = new DescSet(Time_Set, frameCount, manager->deviceState.device);
       
 
       descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
@@ -200,7 +203,7 @@ bool swapchainRecreationRequired(VkResult result) {
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set, &emptyDS->set,
+	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &emptyDS->set,
 	       &perFrame2DVert->set, &offscreenTransform->set, &lighting->set,
 	       &textures->set, &perFrame2DFrag->set, &offscreenTex->set},
 	      static_cast<uint32_t>(frameCount));
@@ -208,7 +211,7 @@ bool swapchainRecreationRequired(VkResult result) {
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
-	      {&VP3D->bindings[0], &time->bindings[0], &VP2D->bindings[0],
+	      {&VP3D->bindings[0], &VP3D->bindings[1], &VP2D->bindings[0],
 	       &perFrame3D->bindings[0], &bones->bindings[0],
 	       &perFrame2DVert->bindings[0], &lighting->bindings[0],
 	       &offscreenTransform->bindings[0],
@@ -223,7 +226,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &time->set, &textures->set, &lighting->set},
+	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -282,8 +285,6 @@ void Render::_destroyFrameResources()
   VP3D = nullptr;
   delete VP2D;
   VP2D = nullptr;
-  delete time;
-  time = nullptr;
   delete perFrame3D;
   perFrame3D = nullptr;
   delete perFrame2DVert;
@@ -406,7 +407,7 @@ void Render::Begin3DDraw()
   _renderState = RenderState::Draw3D;
 
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
-  time->bindings[0].storeSetData(_frameI, &timeData, 0, 0, 0);
+  VP3D->bindings[1].storeSetData(_frameI, &timeData, 0, 0, 0);
   lighting->bindings[0].storeSetData(_frameI, &lightingData, 0, 0, 0);
 
   _pipeline3D.begin(currentCommandBuffer, _frameI);
@@ -434,7 +435,7 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 void Render::BeginAnim3DDraw()
 {
   if (!_begunDraw)
-    _startDraw();
+    _startDraw();  VP3D->bindings[1].storeSetData(_frameI, &timeData, 0, 0, 0);
   if (_modelRuns > 0)
     _drawBatch();
   if (_instance2Druns > 0)
@@ -442,6 +443,7 @@ void Render::BeginAnim3DDraw()
   _renderState = RenderState::DrawAnim3D;
 
   VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
+  VP3D->bindings[1].storeSetData(_frameI, &timeData, 0, 0, 0);
   lighting->bindings[0].storeSetData(_frameI, &lightingData, 0, 0, 0);
   _pipelineAnim3D.begin(currentCommandBuffer, _frameI);
 }

@@ -104,7 +104,8 @@ const int MAX_2D_INSTANCE = 20;
       VkBuffer _shaderBuffer;
 
       VkDescriptorPool _descPool;
-    
+
+      DS::ShaderStructs::timeUbo timeData;
       DescSet *VP3D;
       DS::ShaderStructs::viewProjection VP3DData;
       DescSet *VP2D;
@@ -113,8 +114,6 @@ const int MAX_2D_INSTANCE = 20;
       DS::ShaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
       DescSet *bones;
       size_t currentBonesDynamicOffset;
-      DescSet *time;
-      DS::ShaderStructs::timeUbo timeData;
       DescSet *perFrame2DVert;
       glm::mat4 perFrame2DVertData[MAX_2D_INSTANCE];
       DescSet *perFrame2DFrag;
