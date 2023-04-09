@@ -103,7 +103,6 @@ private:
 
   VkDescriptorPool _descPool;
 
-  DS::DescriptorSet _texturesds;
   DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
   DS::DescriptorSet _emptyds;
@@ -126,9 +125,8 @@ private:
     DS::ShaderStructs::Lighting lightingData;
     DescSet *offscreenTransform;
     glm::mat4 offscreenTransformData;
+    DescSet *textures;
 
-  DS::BindingAndData<bool> _textureViews;
-  DS::BindingAndData<bool> _textureSampler;
   DS::BindingAndData<bool> _offscreenSampler;
   DS::BindingAndData<bool> _offscreenView;
   VkSampler _offscreenTextureSampler;

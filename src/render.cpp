@@ -159,18 +159,14 @@ bool swapchainRecreationRequired(VkResult result) {
 				 sizeof(DS::ShaderStructs::Lighting), 1);
       lighting = new DescSet(lighting_Set, frameCount, manager->deviceState.device);
       
-      
-      _textureSampler.setSamplerBufferProps(frameCount, VK_DESCRIPTOR_TYPE_SAMPLER,
-					    &_texturesds, 1,
-					    _textureLoader->getSamplerP());
-      _textureViews.setImageViewBufferProps(
-	      frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &_texturesds,
-	      Resource::MAX_TEXTURES_SUPPORTED, _textureLoader->getImageViewsP());
-      part::create::DescriptorSetLayout(
-	      manager->deviceState.device, &_texturesds,
-	      {&_textureSampler.binding, &_textureViews.binding},
-	      VK_SHADER_STAGE_FRAGMENT_BIT);
 
+
+      descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
+      texture_Set.AddSamplerDescriptor("sampler", 1, _textureLoader->getSamplerP());
+      texture_Set.AddImageViewDescriptor("views", Resource::MAX_TEXTURES_SUPPORTED,
+					 _textureLoader->getImageViewsP());
+      textures = new DescSet(texture_Set, frameCount, manager->deviceState.device);
+      
       descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
       frag2D_Set.AddSingleArrayStructDescriptor(
 	      "Per frag struct",
@@ -206,10 +202,9 @@ bool swapchainRecreationRequired(VkResult result) {
 	      manager->deviceState.device, &_descPool,
 	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set,
 	       &perFrame2DVert->set, &offscreenTransform->set, &lighting->set,
-	       &_texturesds, &perFrame2DFrag->set, &_offscreends},
+	       &textures->set, &perFrame2DFrag->set, &_offscreends},
 	      static_cast<uint32_t>(frameCount));
-
-		  
+      
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
 	      manager->deviceState,
@@ -217,7 +212,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	       &perFrame3D->bindings[0], &bones->bindings[0],
 	       &perFrame2DVert->bindings[0], &lighting->bindings[0],
 	       &offscreenTransform->bindings[0],
-	       &_textureSampler.binding, &_textureViews.binding,
+	       &textures->bindings[0], &textures->bindings[1],
 	       &perFrame2DFrag->bindings[0],
 	       &_offscreenSampler.binding, &_offscreenView.binding},
 	      &_shaderBuffer, &_shaderMemory);
@@ -228,7 +223,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &time->set, &_texturesds, &lighting->set},
+	      {&VP3D->set, &perFrame3D->set, &time->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -239,7 +234,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
 	      swapchain->getMaxMsaaSamples(), swapchain->offscreenRenderPass,
-	      {&VP3D->set, &perFrame3D->set, &bones->set, &_texturesds, &lighting->set},
+	      {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
@@ -249,7 +244,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline2D, swapchain->getMaxMsaaSamples(),
 	      swapchain->offscreenRenderPass,
-	      {&VP2D->set, &perFrame2DVert->set, &_texturesds, &perFrame2DFrag->set}, {},
+	      {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set}, {},
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
 	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
@@ -278,6 +273,7 @@ bool swapchainRecreationRequired(VkResult result) {
 
 void Render::_destroyFrameResources()
 {
+  LOG("Destroying frame resources");
   vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
   vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
 
@@ -299,7 +295,8 @@ void Render::_destroyFrameResources()
   offscreenTransform = nullptr;
   delete lighting;
   lighting = nullptr;
-  _texturesds.destroySet(manager->deviceState.device);
+  delete textures;
+  textures = nullptr;
   delete perFrame2DFrag;
   perFrame2DFrag = nullptr;
   _offscreends.destroySet(manager->deviceState.device);
@@ -362,6 +359,7 @@ void Render::UseLoadedResources()
 
 void Render::_resize()
 {
+    LOG("resizing");
     _framebufferResized = false;
   vkDeviceWaitIdle(manager->deviceState.device);
 
@@ -380,6 +378,7 @@ void Render::_startDraw()
     if(result != VK_SUCCESS) {
 	if(swapchainRecreationRequired(result)) {
 	    _resize();
+
 	    if(!rebuiltSwapchain) { //only try to rebuild once
 		rebuiltSwapchain = true;
 		goto START_DRAW;

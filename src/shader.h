@@ -67,6 +67,8 @@ namespace descriptor {
 				       size_t typeSize, size_t arraySize, size_t dynamicSize);
       void AddSamplerDescriptor(std::string name, size_t samplerCount, void* pSamplers);
       void AddImageViewDescriptor(std::string name, size_t viewCount, void* pImageViews);
+
+      void logDetails();
   };
 
 }

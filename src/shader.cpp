@@ -74,7 +74,7 @@ namespace descriptor {
 					   DescriptorType::Sampler,
 					   0,
 					   samplerCount,
-					   0,
+					   1,
 					   pSamplers));
   }
 
@@ -84,7 +84,15 @@ namespace descriptor {
 					   DescriptorType::SampledImage,
 					   0,
 					   viewCount,
-					   0,
+					   1,
 					   pImageViews));
+  }
+
+  void Set::logDetails() {
+      LOG("Set name: " << this->name);
+      for(int i = 0; i < this->descriptors.size(); i++) {
+	  LOG("binding " << i << "\nname: " <<
+	      this->descriptors[i].name);
+      }
   }
 }

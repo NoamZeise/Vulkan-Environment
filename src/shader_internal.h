@@ -15,6 +15,8 @@ struct DescSet {
   DS::DescriptorSet set;
   std::vector<DS::Binding> bindings;
   VkDevice device;
+
+  void printDetails();
 };
 
 #endif
