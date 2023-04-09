@@ -11,7 +11,7 @@
 
 #include <stdint.h>
 #include <vector>
-#include "descriptor_structs.h"
+#include "shader_internal.h"
 
 class Pipeline
 {

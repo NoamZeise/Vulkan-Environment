@@ -1,10 +1,9 @@
 #include "shader_internal.h"
 
-#include "descriptor_structs.h"
 #include "parts/descriptors.h"
 #include "logger.h"
-
-#include <vector>
+#include <cstring>
+#include <stdexcept>
 
 DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
   this->highLevelSet = set;
@@ -86,4 +85,25 @@ void DescSet::printDetails() {
 	    << "\nset count: " << this->bindings[i].setCount
 	    << "\ndesc count: " << this->bindings[i].descriptorCount);
     }
+}
+
+namespace DS {
+  void DescriptorSet::destroySet(VkDevice device) {
+      vkDestroyDescriptorSetLayout(device, layout, nullptr);
+  }
+  void Binding::storeSetData(size_t frameIndex, void *data, size_t descriptorIndex,
+			     size_t arrayIndex, size_t dynamicOffsetIndex) {
+      if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+	  type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+	  type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+	  type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+	  std::memcpy(
+		  static_cast<char *>(pBuffer) + offset + dynamicOffsetIndex*setCount*bufferSize +
+		  ((frameIndex * bufferSize) + (descriptorIndex * arraySize * slotSize) +
+		   (arrayIndex * slotSize)),
+		  data, dataTypeSize);
+      else
+	  throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
+				   "in non uniform or storage buffer!");
+  }
 }

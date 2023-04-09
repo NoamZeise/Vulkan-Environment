@@ -3,7 +3,7 @@
 
 #include "../pipeline.h"
 #include "../render_structs/swapchain/swapchain.h"
-#include "../descriptor_structs.h"
+#include "../shader_internal.h"
 #include "framebuffer.h"
 #include <volk.h>
 

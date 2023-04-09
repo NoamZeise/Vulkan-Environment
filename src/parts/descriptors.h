@@ -2,11 +2,9 @@
 #define PARTS_DESCRIPTORS_H
 
 #include <volk.h>
-
+#include "../shader_internal.h"
 #include <vector>
 
-#include "../descriptor_structs.h"
-//#include "../render_structs.h"
 struct DeviceState;
 
 namespace part

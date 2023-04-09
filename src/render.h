@@ -17,18 +17,15 @@ namespace Resource {
     class TextureLoader;
 } // namespace Resource
 
-
-
 #include "render_structs/swapchain/swapchain.h"
 #include "pipeline.h"
 #include "vulkan_manager.h"
 #include "render_config.h"
-
-#include <atomic>
-
-
 #include "shader.h"
 #include "shader_internal.h"
+#include "shader_structs.h"
+
+#include <atomic>
 #include <vector>
 
 namespace vkenv {
@@ -54,12 +51,16 @@ const int MAX_2D_INSTANCE = 20;
       void BeginAnim3DDraw();
       void Begin2DDraw();
       void DrawModel(    Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
-      void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix, Resource::ModelAnimation *animation);
-      void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset);
+      void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
+			 Resource::ModelAnimation *animation);
+      void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour,
+		    glm::vec4 texOffset);
       void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour);
       void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix);
-      void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
-      void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour);
+      void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size,
+		      float depth, glm::vec4 colour, float rotate);
+      void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size,
+		      float depth, glm::vec4 colour);
       float MeasureString(Resource::Font font, std::string text, float size);
       void EndDraw(std::atomic<bool> &submit);
 
@@ -105,21 +106,21 @@ const int MAX_2D_INSTANCE = 20;
 
       VkDescriptorPool _descPool;
 
-      DS::ShaderStructs::timeUbo timeData;
+      shaderStructs::timeUbo timeData;
       DescSet *VP3D;
-      DS::ShaderStructs::viewProjection VP3DData;
+      shaderStructs::viewProjection VP3DData;
       DescSet *VP2D;
-      DS::ShaderStructs::viewProjection VP2DData;
+      shaderStructs::viewProjection VP2DData;
       DescSet *perFrame3D;
-      DS::ShaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
+      shaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
       DescSet *bones;
       size_t currentBonesDynamicOffset;
       DescSet *perFrame2DVert;
       glm::mat4 perFrame2DVertData[MAX_2D_INSTANCE];
       DescSet *perFrame2DFrag;
-      DS::ShaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
+      shaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
       DescSet *lighting;
-      DS::ShaderStructs::Lighting lightingData;
+      shaderStructs::Lighting lightingData;
       DescSet *offscreenTransform;
       glm::mat4 offscreenTransformData;
       DescSet *textures;
@@ -127,6 +128,8 @@ const int MAX_2D_INSTANCE = 20;
       DescSet *offscreenTex;
       bool samplerCreated = false;
       VkSampler _offscreenTextureSampler;
+
+      std::vector<DescSet*> descriptorSets;
 
       //std::vector<descriptor::Set> ds3D;
   

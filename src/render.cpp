@@ -1,14 +1,13 @@
 #include "render.h"
 
-#include "descriptor_structs.h"
 #include "parts/render_style.h"
 #include "resources/model_render.h"
 #include "resources/font_loader.h"
 #include "resources/texture_loader.h"
 #include "parts/core.h"
 #include "parts/swapchain.h"
-#include "parts/descriptors.h"
 #include "parts/command.h"
+#include "parts/descriptors.h"
 #include "pipeline.h"
 #include "vkhelper.h"
 #include "logger.h"
@@ -117,10 +116,10 @@ bool swapchainRecreationRequired(VkResult result) {
       descriptor::Descriptor viewProjectionBinding(
 	      "view projection struct",
 	      descriptor::Type::UniformBuffer,
-	      sizeof(DS::ShaderStructs::viewProjection), 1);
+	      sizeof(shaderStructs::viewProjection), 1);
       descriptor::Descriptor timeBinding(
 	      "Time Struct", descriptor::Type::UniformBuffer,
-	      sizeof(DS::ShaderStructs::timeUbo), 1);
+	      sizeof(shaderStructs::timeUbo), 1);
       descriptor::Set VP3D_Set("VP3D", descriptor::ShaderStage::Vertex);
       VP3D_Set.AddDescriptor(viewProjectionBinding);
       VP3D_Set.AddDescriptor(timeBinding);
@@ -132,19 +131,19 @@ bool swapchainRecreationRequired(VkResult result) {
 
       descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
       Time_Set.AddDescriptor("Time Struct", descriptor::Type::UniformBuffer,
-			     sizeof(DS::ShaderStructs::timeUbo), 1);
+			     sizeof(shaderStructs::timeUbo), 1);
       
 
       descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
       PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
 						    descriptor::Type::StorageBuffer,
-				   sizeof(DS::ShaderStructs::PerFrame3D), MAX_3D_INSTANCE);
+				   sizeof(shaderStructs::PerFrame3D), MAX_3D_INSTANCE);
       perFrame3D = new DescSet(PerFrame3D_Set, frameCount, manager->deviceState.device);
       
 
       descriptor::Set bones_Set("Bones Animation", descriptor::ShaderStage::Vertex);
       bones_Set.AddDescriptor("bones", descriptor::Type::UniformBufferDynamic,
-			      sizeof(DS::ShaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
+			      sizeof(shaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
       bones = new DescSet(bones_Set, frameCount, manager->deviceState.device);
 
       descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
@@ -162,7 +161,7 @@ bool swapchainRecreationRequired(VkResult result) {
 
       descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
       lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
-				 sizeof(DS::ShaderStructs::Lighting), 1);
+				 sizeof(shaderStructs::Lighting), 1);
       lighting = new DescSet(lighting_Set, frameCount, manager->deviceState.device);
       
 
@@ -178,7 +177,7 @@ bool swapchainRecreationRequired(VkResult result) {
       frag2D_Set.AddSingleArrayStructDescriptor(
 	      "Per frag struct",
 	      descriptor::Type::StorageBuffer,
-	      sizeof(DS::ShaderStructs::Frag2DData), MAX_2D_INSTANCE);
+	      sizeof(shaderStructs::Frag2DData), MAX_2D_INSTANCE);
       perFrame2DFrag = new DescSet(frag2D_Set, frameCount, manager->deviceState.device);
 
       emptyDS = new DescSet(
@@ -188,7 +187,12 @@ bool swapchainRecreationRequired(VkResult result) {
       if(renderConfChanged) {
 	  if(samplerCreated)
 	      vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
-	  _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, renderConf.texture_filter_nearest, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+	  _offscreenTextureSampler = vkhelper::createTextureSampler(
+		  manager->deviceState.device,
+		  manager->deviceState.physicalDevice, 1.0f,
+		  false,
+		  renderConf.texture_filter_nearest,
+		  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 	  samplerCreated = true;
       }
       descriptor::Set offscreen_Set("offscren texture", descriptor::ShaderStage::Fragment);
@@ -197,27 +201,32 @@ bool swapchainRecreationRequired(VkResult result) {
 					   1, swapchain->getOffscreenViews());
       offscreenTex = new DescSet(offscreen_Set, frameCount, manager->deviceState.device);
 
-      LOG("Creating Descriptor pool and memory for set bindings");
 
+
+      descriptorSets = {
+	  VP3D, VP2D, perFrame3D, bones, emptyDS, perFrame2DVert,
+	  perFrame2DFrag, offscreenTransform, lighting,
+	  textures, offscreenTex};
+      
+      LOG("Creating Descriptor pool and memory for set bindings");
+      
       // create descripor pool
 
+      std::vector<DS::DescriptorSet* > sets(descriptorSets.size());
+      std::vector<DS::Binding*> bindings;
+      for(int i = 0; i < sets.size(); i++) {
+	  sets[i] = &descriptorSets[i]->set;
+	  for(int j = 0; j < descriptorSets[i]->bindings.size(); j++)
+	      bindings.push_back(&descriptorSets[i]->bindings[j]);
+      }
+      
       part::create::DescriptorPoolAndSet(
-	      manager->deviceState.device, &_descPool,
-	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &emptyDS->set,
-	       &perFrame2DVert->set, &offscreenTransform->set, &lighting->set,
-	       &textures->set, &perFrame2DFrag->set, &offscreenTex->set},
+	      manager->deviceState.device, &_descPool, sets,
 	      static_cast<uint32_t>(frameCount));
       
       // create memory mapped buffer for all descriptor set bindings
       part::create::PrepareShaderBufferSets(
-	      manager->deviceState,
-	      {&VP3D->bindings[0], &VP3D->bindings[1], &VP2D->bindings[0],
-	       &perFrame3D->bindings[0], &bones->bindings[0],
-	       &perFrame2DVert->bindings[0], &lighting->bindings[0],
-	       &offscreenTransform->bindings[0],
-	       &textures->bindings[0], &textures->bindings[1],
-	       &perFrame2DFrag->bindings[0],
-	       &offscreenTex->bindings[0], &offscreenTex->bindings[1]},
+	      manager->deviceState, bindings,
 	      &_shaderBuffer, &_shaderMemory);
 
       LOG("Creating Graphics Pipelines");
@@ -229,7 +238,8 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
-	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
+	      renderConf.multisampling, true,
+	      manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
 	      Vertex3D::bindingDescriptions());
 
@@ -240,7 +250,8 @@ bool swapchainRecreationRequired(VkResult result) {
 	      {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
-	      true, renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
+	      true, renderConf.multisampling, true,
+	      manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
 	      VertexAnim3D::bindingDescriptions());
 
@@ -249,17 +260,18 @@ bool swapchainRecreationRequired(VkResult result) {
 	      swapchain->offscreenRenderPass,
 	      {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set}, {},
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
-	      renderConf.multisampling, true, manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
+	      renderConf.multisampling, true,
+	      manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
 	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
 	      Vertex2D::bindingDescriptions());
 
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, swapchain->getMaxMsaaSamples(),
 	      swapchain->finalRenderPass,
-	      {&offscreenTransform->set, &offscreenTex->set}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
+	      {&offscreenTransform->set, &offscreenTex->set}, {},
+	      "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
 	      false, false, false, manager->deviceState.features.sampleRateShading,
-	      swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
-	      {});
+	      swapchain->swapchainExtent, VK_CULL_MODE_NONE, {}, {});
 
       renderConfChanged = false;
 
@@ -267,11 +279,12 @@ bool swapchainRecreationRequired(VkResult result) {
 		     (float)swapchain->offscreenExtent.height) *
 	  ((float)swapchain->swapchainExtent.height /
 	   (float)swapchain->swapchainExtent.width);
-      offscreenTransformData = glm::scale(glm::mat4(1.0f),
-					  glm::vec3(ratio < 1.0f ? ratio: 1.0f,
-						    ratio > 1.0f ? 1.0f / ratio : 1.0f,
-						    1.0f));
-
+      offscreenTransformData = glm::scale(
+	      glm::mat4(1.0f),
+	      glm::vec3(ratio < 1.0f ? ratio: 1.0f,
+			ratio > 1.0f ? 1.0f / ratio : 1.0f,
+			1.0f));
+      
       timeData.time = 0;
   }
 
@@ -280,30 +293,8 @@ void Render::_destroyFrameResources()
   LOG("Destroying frame resources");
   vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
   vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
-
-  delete VP3D;
-  VP3D = nullptr;
-  delete VP2D;
-  VP2D = nullptr;
-  delete perFrame3D;
-  perFrame3D = nullptr;
-  delete perFrame2DVert;
-  perFrame2DVert = nullptr;
-  delete bones;
-  bones = nullptr;
-  delete offscreenTransform;
-  offscreenTransform = nullptr;
-  delete lighting;
-  lighting = nullptr;
-  delete textures;
-  textures = nullptr;
-  delete perFrame2DFrag;
-  perFrame2DFrag = nullptr;
-  delete offscreenTex;
-  offscreenTex = nullptr;
-  delete emptyDS;
-  emptyDS = nullptr;
-
+  for(int i = 0; i < descriptorSets.size(); i++)
+      delete descriptorSets[i];
   vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
 
   _pipeline3D.destroy(manager->deviceState.device);
@@ -329,8 +320,7 @@ Resource::Font Render::LoadFont(std::string filepath) {
 
 Resource::Model Render::LoadAnimatedModel(
     std::string filepath,
-    std::vector<Resource::ModelAnimation> *pGetAnimations)
-{
+    std::vector<Resource::ModelAnimation> *pGetAnimations) {
   return _stagingModelLoader->loadModel(filepath, _stagingTextureLoader, pGetAnimations);
 }
 
@@ -363,13 +353,13 @@ void Render::_resize()
 {
     LOG("resizing");
     _framebufferResized = false;
-  vkDeviceWaitIdle(manager->deviceState.device);
+    vkDeviceWaitIdle(manager->deviceState.device);
 
-  _destroyFrameResources();
-  _initFrameResources();
-  
-  vkDeviceWaitIdle(manager->deviceState.device);
-  _update3DProjectionMatrix();
+    _destroyFrameResources();
+    _initFrameResources();
+    
+    vkDeviceWaitIdle(manager->deviceState.device);
+    _update3DProjectionMatrix();
 }
 
 void Render::_startDraw()
@@ -448,39 +438,37 @@ void Render::BeginAnim3DDraw()
   _pipelineAnim3D.begin(currentCommandBuffer, _frameI);
 }
 
-void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat, Resource::ModelAnimation *animation)
-{
-   if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
-       LOG("WARNING: Ran out of 3D Anim Instance models!\n");
-       return;
-  }
+void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
+			   glm::mat4 normalMat, Resource::ModelAnimation *animation) {
+    if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
+	LOG("WARNING: Ran out of 3D Anim Instance models!\n");
+	return;
+    }
+    
+    if (_currentModel.ID != model.ID && _modelRuns != 0)
+	_drawBatch();
 
-  if (_currentModel.ID != model.ID && _modelRuns != 0)
+    _currentModel = model;
+    perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
+    perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
+    _modelRuns++;
+
+    auto animBones = animation->getCurrentBones();
+    shaderStructs::Bones bonesData;
+    for(int i = 0; i < animBones->size() && i < 50; i++) {
+	bonesData.mat[i] = animBones->at(i);
+    }
+    if(currentBonesDynamicOffset >= MAX_ANIMATIONS_PER_FRAME) {
+	LOG("warning, too many animation calls!\n");
+	return;
+    }
+    bones->bindings[0].storeSetData(_frameI, &bonesData, 0, 0, currentBonesDynamicOffset);
+    uint32_t offset = static_cast<uint32_t>((currentBonesDynamicOffset) *
+					    bones->bindings[0].bufferSize *
+					    bones->bindings[0].setCount);
+    _pipelineAnim3D.bindDynamicDS(currentCommandBuffer, &bones->set, _frameI,  offset);
     _drawBatch();
-
-  _currentModel = model;
-  perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
-  perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
-  _modelRuns++;
-
-  auto animBones = animation->getCurrentBones();
-  DS::ShaderStructs::Bones bonesData;
-  for(int i = 0; i < animBones->size() && i < 50; i++)
-  {
-      bonesData.mat[i] = animBones->at(i);
-  }
-  if(currentBonesDynamicOffset >= MAX_ANIMATIONS_PER_FRAME)
-  {
-      LOG("warning, too many animation calls!\n");
-      return;
-  }
-  bones->bindings[0].storeSetData(_frameI, &bonesData, 0, 0, currentBonesDynamicOffset);
-  uint32_t offset = static_cast<uint32_t>((currentBonesDynamicOffset) *
-					  bones->bindings[0].bufferSize *
-					  bones->bindings[0].setCount);
-  _pipelineAnim3D.bindDynamicDS(currentCommandBuffer, &bones->set, _frameI,  offset);
-  _drawBatch();
-  currentBonesDynamicOffset++;
+    currentBonesDynamicOffset++;
 }
 
 void Render::Begin2DDraw()
@@ -493,13 +481,12 @@ void Render::Begin2DDraw()
     _drawBatch();
   _renderState = RenderState::Draw2D;
 
-  float correction;
   float deviceRatio = (float)swapchain->offscreenExtent.width /
                   (float)swapchain->offscreenExtent.height;
   float virtualRatio = _targetResolution.x / _targetResolution.y;
   float xCorrection = swapchain->offscreenExtent.width / _targetResolution.x;
   float yCorrection = swapchain->offscreenExtent.height / _targetResolution.y;
-
+  float correction;
   if (virtualRatio < deviceRatio) {
     correction = yCorrection;
   } else {
@@ -522,7 +509,6 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
       LOG("WARNING: ran out of 2D instance models!\n");
       return;
   }
-
    perFrame2DVertData[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
@@ -545,13 +531,12 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix) {
 void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
 {
   auto draws = _fontLoader->DrawString(font, text, position, size, depth, colour, rotate);
-  for (const auto &draw : draws)
-  {
+  for (const auto &draw : draws) {
     DrawQuad(draw.tex, draw.model, draw.colour, draw.texOffset);
   }
 }
-void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour)
-{
+void Render::DrawString(Resource::Font font, std::string text,
+			glm::vec2 position, float size, float depth, glm::vec4 colour) {
   DrawString(font, text, position, size, depth, colour, 0.0);
 }
 
@@ -560,27 +545,25 @@ float Render::MeasureString(Resource::Font font, std::string text, float size)
   return _fontLoader->MeasureString(font, text, size);
 }
 
-void Render::_drawBatch()
-{
-  switch(_renderState)
-  {
-       case RenderState::DrawAnim3D:
-       case RenderState::Draw3D:
-         _modelLoader->drawModel(currentCommandBuffer,
-                            _pipeline3D.layout, _currentModel, _modelRuns,
-                            _current3DInstanceIndex);
-      _current3DInstanceIndex += _modelRuns;
-      _modelRuns = 0;
-      break;
+void Render::_drawBatch() {
+    switch(_renderState) {
+    case RenderState::DrawAnim3D:
+    case RenderState::Draw3D:
+	_modelLoader->drawModel(currentCommandBuffer,
+				_pipeline3D.layout, _currentModel, _modelRuns,
+				_current3DInstanceIndex);
+	_current3DInstanceIndex += _modelRuns;
+	_modelRuns = 0;
+	break;
     case RenderState::Draw2D:
-      _modelLoader->drawQuad(currentCommandBuffer,
-                           _pipeline3D.layout, 0, _instance2Druns,
-                           _current2DInstanceIndex, _currentColour,
-                           _currentTexOffset);
-      _current2DInstanceIndex += _instance2Druns;
-      _instance2Druns = 0;
-      break;
-  }
+	_modelLoader->drawQuad(currentCommandBuffer,
+			       _pipeline3D.layout, 0, _instance2Druns,
+			       _current2DInstanceIndex, _currentColour,
+			       _currentTexOffset);
+	_current2DInstanceIndex += _instance2Druns;
+	_instance2Druns = 0;
+	break;
+    }
 }
 
 void Render::EndDraw(std::atomic<bool> &submit) {
@@ -604,29 +587,20 @@ void Render::EndDraw(std::atomic<bool> &submit) {
 
   for (size_t i = 0; i < _current3DInstanceIndex; i++)
       perFrame3D->bindings[0].storeSetData(_frameI, &perFrame3DData[i], 0, i, 0);
-      //  perFrame3D->bindings[0].storeData(_frameI, 0, i);
-  
   _current3DInstanceIndex = 0;
 
-
-  for (size_t i = 0; i < _current2DInstanceIndex; i++)
-  {
+  for (size_t i = 0; i < _current2DInstanceIndex; i++) {
       perFrame2DVert->bindings[0].storeSetData(_frameI, &perFrame2DVertData[i], 0, i, 0);
       perFrame2DFrag->bindings[0].storeSetData(_frameI, &perFrame2DFragData[i], 0, i, 0);	  
   }
   _current2DInstanceIndex = 0;
 
-
   //FINAL RENDER  PASS
   
   swapchain->endOffscreenRenderPassAndBeginFinal();
-
   offscreenTransform->bindings[0].storeSetData(_frameI, &offscreenTransformData, 0, 0, 0);
-
   _pipelineFinal.begin(currentCommandBuffer, _frameI);
-
   vkCmdDraw(currentCommandBuffer, 3, 1, 0, 0);
-
   VkResult result = swapchain->endFinalRenderPass();
   
   if (swapchainRecreationRequired(result) || _framebufferResized) {
@@ -650,7 +624,9 @@ void Render::_update3DProjectionMatrix() {
 }
 
 //recreates frame resources, so any state change for rendering will be updated on next draw if this is called
-void Render::FramebufferResize() { _framebufferResized = true; }
+void Render::FramebufferResize() {
+    _framebufferResized = true;
+}
 
 void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
   VP3DData.view = view;
