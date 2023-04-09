@@ -73,6 +73,7 @@ Render::~Render()
   delete _fontLoader;
   delete _stagingFontLoader;
   _destroyFrameResources();
+  vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
   delete swapchain;
   delete manager;
 }
@@ -111,12 +112,12 @@ bool swapchainRecreationRequired(VkResult result) {
       LOG("Creating Descriptor Sets");
       
       /// set shader  descripor sets
-
-      descriptor::Descriptor viewProjectionBinding("view projection struct",
-						   descriptor::DescriptorType::UniformBuffer,
-						   sizeof(DS::ShaderStructs::viewProjection), 1);
       
       /// vertex descripor sets
+      descriptor::Descriptor viewProjectionBinding(
+	      "view projection struct",
+	      descriptor::Type::UniformBuffer,
+	      sizeof(DS::ShaderStructs::viewProjection), 1);
       descriptor::Set VP3D_Set("VP3D", descriptor::ShaderStage::Vertex);
       VP3D_Set.AddDescriptor(viewProjectionBinding);
       VP3D = new DescSet(VP3D_Set, frameCount, manager->deviceState.device);
@@ -126,36 +127,38 @@ bool swapchainRecreationRequired(VkResult result) {
       VP2D = new DescSet(VP2D_Set, frameCount, manager->deviceState.device);
 
       descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
-      Time_Set.AddDescriptor("Time Struct", descriptor::DescriptorType::UniformBuffer,
+      Time_Set.AddDescriptor("Time Struct", descriptor::Type::UniformBuffer,
 			     sizeof(DS::ShaderStructs::timeUbo), 1);
       time = new DescSet(Time_Set, frameCount, manager->deviceState.device);
       
 
       descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
-      PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array", descriptor::DescriptorType::StorageBuffer,
+      PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
+						    descriptor::Type::StorageBuffer,
 				   sizeof(DS::ShaderStructs::PerFrame3D), MAX_3D_INSTANCE);
       perFrame3D = new DescSet(PerFrame3D_Set, frameCount, manager->deviceState.device);
       
 
       descriptor::Set bones_Set("Bones Animation", descriptor::ShaderStage::Vertex);
-      bones_Set.AddDescriptor("bones", descriptor::DescriptorType::UniformBufferDynamic,
+      bones_Set.AddDescriptor("bones", descriptor::Type::UniformBufferDynamic,
 			      sizeof(DS::ShaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
       bones = new DescSet(bones_Set, frameCount, manager->deviceState.device);
 
       descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
-      vert2D_Set.AddSingleArrayStructDescriptor("vert struct", descriptor::DescriptorType::StorageBuffer,
+      vert2D_Set.AddSingleArrayStructDescriptor("vert struct",
+						descriptor::Type::StorageBuffer,
 			       sizeof(glm::mat4), MAX_2D_INSTANCE);
       perFrame2DVert = new DescSet(vert2D_Set, frameCount, manager->deviceState.device);
 
       descriptor::Set offscreenView_Set("Offscreen Transform", descriptor::ShaderStage::Vertex);
-      offscreenView_Set.AddDescriptor("data", descriptor::DescriptorType::UniformBuffer,
+      offscreenView_Set.AddDescriptor("data", descriptor::Type::UniformBuffer,
 				      sizeof(glm::mat4), 1);
       offscreenTransform = new DescSet(offscreenView_Set, frameCount, manager->deviceState.device);
 
       // fragment descriptor sets
 
       descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
-      lighting_Set.AddDescriptor("Lighting properties", descriptor::DescriptorType::UniformBuffer,
+      lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
 				 sizeof(DS::ShaderStructs::Lighting), 1);
       lighting = new DescSet(lighting_Set, frameCount, manager->deviceState.device);
       
@@ -163,7 +166,7 @@ bool swapchainRecreationRequired(VkResult result) {
 
       descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
       texture_Set.AddSamplerDescriptor("sampler", 1, _textureLoader->getSamplerP());
-      texture_Set.AddImageViewDescriptor("views", descriptor::DescriptorType::SampledImage,
+      texture_Set.AddImageViewDescriptor("views", descriptor::Type::SampledImage,
 					 Resource::MAX_TEXTURES_SUPPORTED,
 					 _textureLoader->getImageViewsP());
       textures = new DescSet(texture_Set, frameCount, manager->deviceState.device);
@@ -171,7 +174,7 @@ bool swapchainRecreationRequired(VkResult result) {
       descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
       frag2D_Set.AddSingleArrayStructDescriptor(
 	      "Per frag struct",
-	      descriptor::DescriptorType::StorageBuffer,
+	      descriptor::Type::StorageBuffer,
 	      sizeof(DS::ShaderStructs::Frag2DData), MAX_2D_INSTANCE);
       perFrame2DFrag = new DescSet(frag2D_Set, frameCount, manager->deviceState.device);
 
@@ -179,11 +182,15 @@ bool swapchainRecreationRequired(VkResult result) {
 	      descriptor::Set("Empty", descriptor::ShaderStage::Vertex),
 	      frameCount, manager->deviceState.device);
       
-  
-      _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, renderConf.texture_filter_nearest, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+      if(renderConfChanged) {
+	  if(samplerCreated)
+	      vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
+	  _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, renderConf.texture_filter_nearest, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+	  samplerCreated = true;
+      }
       descriptor::Set offscreen_Set("offscren texture", descriptor::ShaderStage::Fragment);
       offscreen_Set.AddSamplerDescriptor("sampler", 1, &_offscreenTextureSampler);
-      offscreen_Set.AddImageViewDescriptor("frame", descriptor::DescriptorType::SampledImagePerSet,
+      offscreen_Set.AddImageViewDescriptor("frame", descriptor::Type::SampledImagePerSet,
 					   1, swapchain->getOffscreenViews());
       offscreenTex = new DescSet(offscreen_Set, frameCount, manager->deviceState.device);
 
@@ -251,6 +258,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
 	      {});
 
+      renderConfChanged = false;
 
       float ratio = ((float)swapchain->offscreenExtent.width /
 		     (float)swapchain->offscreenExtent.height) *
@@ -269,8 +277,6 @@ void Render::_destroyFrameResources()
   LOG("Destroying frame resources");
   vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
   vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
-
-  vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
 
   delete VP3D;
   VP3D = nullptr;
@@ -663,6 +669,7 @@ void Render::setLightDirection(glm::vec4 lightDir)
 void Render::setForceTargetRes(bool force) {
     if(renderConf.force_target_resolution != force) {
       renderConf.force_target_resolution = force;
+      renderConfChanged = true;
       FramebufferResize();
     }
 }
@@ -670,6 +677,7 @@ bool Render::isTargetResForced() { return renderConf.force_target_resolution; }
 void Render::setTargetResolution(glm::vec2 resolution) {
     _targetResolution = resolution;
     renderConf.force_target_resolution = true;
+    renderConfChanged = true;
     FramebufferResize();
 }
 glm::vec2 Render::getTargetResolution() {
@@ -677,7 +685,12 @@ glm::vec2 Render::getTargetResolution() {
 }
 void Render::setVsync(bool vsync) {
     this->renderConf.vsync = vsync;
+    renderConfChanged = true;
     FramebufferResize();
+}
+
+bool Render::getVsync() {
+    return this->renderConf.vsync;
 }
 
 }//namespace

@@ -23,7 +23,7 @@ namespace descriptor {
       Fragment,
   };
 
-  enum class DescriptorType {
+  enum class Type {
       UniformBuffer,
       UniformBufferDynamic,
       StorageBuffer,
@@ -35,7 +35,7 @@ namespace descriptor {
 
   struct Descriptor {
       std::string name;
-      DescriptorType type;
+      Type type;
       size_t dataTypeSize;
       // single struct array member size or array of descriptors size or sampler/view count
       size_t dataArraySize;
@@ -43,12 +43,12 @@ namespace descriptor {
       bool isSingleArrayStruct = false;
       void* pSamplerOrImageViews;
 
-      Descriptor(std::string name, DescriptorType type, size_t typeSize,
+      Descriptor(std::string name, Type type, size_t typeSize,
 		 size_t dataArraySize, size_t dynamicSize, void* pSamplerOrImageViews);
-      Descriptor(std::string name, DescriptorType type, size_t typeSize, size_t arraySize);
+      Descriptor(std::string name, Type type, size_t typeSize, size_t arraySize);
 
   private:
-      void init(std::string name, DescriptorType type, size_t typeSize,
+      void init(std::string name, Type type, size_t typeSize,
 		 size_t dataArraySize, size_t dynamicSize, void* pSamplerOrImageViews);
   };
 
@@ -62,12 +62,12 @@ namespace descriptor {
       Set(){};
       /// adding order matters, must match shader
       void AddDescriptor(Descriptor descriptor);
-      void AddDescriptor(std::string name, DescriptorType type, size_t typeSize, size_t arraySize);
-      void AddSingleArrayStructDescriptor(std::string name, DescriptorType type, size_t typeSize, size_t arraySize);
-      void AddDescriptorDynamicWithArr(std::string name, DescriptorType type,
+      void AddDescriptor(std::string name, Type type, size_t typeSize, size_t arraySize);
+      void AddSingleArrayStructDescriptor(std::string name, Type type, size_t typeSize, size_t arraySize);
+      void AddDescriptorDynamicWithArr(std::string name, Type type,
 				       size_t typeSize, size_t arraySize, size_t dynamicSize);
       void AddSamplerDescriptor(std::string name, size_t samplerCount, void* pSamplers);
-      void AddImageViewDescriptor(std::string name, DescriptorType type, size_t viewCount, void* pImageViews);
+      void AddImageViewDescriptor(std::string name, Type type, size_t viewCount, void* pImageViews);
 
       void logDetails();
   };

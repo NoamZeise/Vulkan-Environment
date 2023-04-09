@@ -12,6 +12,7 @@ glm::vec3 camPos = glm::vec3(-350.0f, 10.0f, 0.0f);
 float yaw = -5.0f;
 float pitch = -5.0f;
 bool resize = true;
+bool vsyncToggle = false;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     resize = true;
@@ -32,6 +33,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if(key == GLFW_KEY_RIGHT) camPos.y -= 1.0f;
     if(key == GLFW_KEY_SPACE) camPos.z += 1.0f;
     if(key == GLFW_KEY_LEFT_SHIFT) camPos.z -= 1.0f;
+    if(key == GLFW_KEY_V) vsyncToggle = true;
 }
 
 void error_callback(int error, const char *description) {
@@ -92,6 +94,11 @@ int main() {
 	float elapsedTime = 0;
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
+
+	    if(vsyncToggle) {
+		render.setVsync(!render.getVsync());
+		vsyncToggle = false;
+	    }
 
 	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
 

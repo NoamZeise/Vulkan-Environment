@@ -23,27 +23,27 @@ DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
     binding.samplers = nullptr;
     binding.dataTypeSize = desc.dataTypeSize;
     switch(desc.type) {
-    case descriptor::DescriptorType::UniformBuffer:
+    case descriptor::Type::UniformBuffer:
       binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       break;
-    case descriptor::DescriptorType::UniformBufferDynamic:
+    case descriptor::Type::UniformBufferDynamic:
       this->set.dynamicBuffer = true;
       binding.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
       break;
-    case descriptor::DescriptorType::StorageBuffer:
+    case descriptor::Type::StorageBuffer:
       binding.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       break;
-    case descriptor::DescriptorType::StorageBufferDynamic:
+    case descriptor::Type::StorageBufferDynamic:
       this->set.dynamicBuffer = true;
       binding.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
       break;
-    case descriptor::DescriptorType::Sampler:
+    case descriptor::Type::Sampler:
       binding.type = VK_DESCRIPTOR_TYPE_SAMPLER;
       binding.samplers = (VkSampler*)desc.pSamplerOrImageViews;
       break;
-    case descriptor::DescriptorType::SampledImagePerSet:
+    case descriptor::Type::SampledImagePerSet:
 	binding.viewsPerSet = true;
-    case descriptor::DescriptorType::SampledImage:
+    case descriptor::Type::SampledImage:
       binding.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
       binding.imageViews = (VkImageView*)desc.pSamplerOrImageViews;
       break;

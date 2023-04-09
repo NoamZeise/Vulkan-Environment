@@ -8,17 +8,17 @@ namespace descriptor {
     this->shaderStage = shaderStage;
   }
   
-  Descriptor::Descriptor(std::string name, DescriptorType type,
+  Descriptor::Descriptor(std::string name, Type type,
 			 size_t typeSize, size_t dataArraySize, size_t dynamicSize,
 			 void* pSamplerOrImageViews) {
       init(name, type, typeSize, dataArraySize, dynamicSize, pSamplerOrImageViews);
   }
 
-  Descriptor::Descriptor(std::string name, DescriptorType type, size_t typeSize, size_t arraySize) {
+  Descriptor::Descriptor(std::string name, Type type, size_t typeSize, size_t arraySize) {
       size_t arrSizeVal = 1;
       size_t dynSizeVal = 1;
-      if(type == DescriptorType::UniformBufferDynamic ||
-	 type == DescriptorType::StorageBufferDynamic) {
+      if(type == Type::UniformBufferDynamic ||
+	 type == Type::StorageBufferDynamic) {
 	  dynSizeVal = arraySize;
       } else {
 	  arrSizeVal = arraySize;
@@ -26,7 +26,7 @@ namespace descriptor {
       init(name, type, typeSize, arrSizeVal, dynSizeVal, nullptr);
   }
 
-  void Descriptor::init(std::string name, DescriptorType type, size_t typeSize,
+  void Descriptor::init(std::string name, Type type, size_t typeSize,
 			      size_t dataArraySize, size_t dynamicSize,
 			      void* pSamplerOrImageViews) {
       this->name = name;
@@ -41,20 +41,20 @@ namespace descriptor {
       descriptors.push_back(descriptor);
   }
   
-  void Set::AddDescriptor(std::string name, DescriptorType type,
+  void Set::AddDescriptor(std::string name, Type type,
 			  size_t typeSize, size_t arraySize) {
       AddDescriptor(Descriptor(name, type, typeSize, arraySize));
   }
   
   void Set::AddSingleArrayStructDescriptor(std::string name,
-					   DescriptorType type, size_t typeSize, size_t arraySize) {
+					   Type type, size_t typeSize, size_t arraySize) {
     AddDescriptor(name, type, typeSize, arraySize);
     descriptors.back().isSingleArrayStruct = true;
   }
 
-  void Set::AddDescriptorDynamicWithArr(std::string name, DescriptorType type, size_t typeSize, size_t arraySize, size_t dynamicSize) {
-    if(type != DescriptorType::StorageBufferDynamic &&
-       type != DescriptorType::UniformBufferDynamic) {
+  void Set::AddDescriptorDynamicWithArr(std::string name, Type type, size_t typeSize, size_t arraySize, size_t dynamicSize) {
+    if(type != Type::StorageBufferDynamic &&
+       type != Type::UniformBufferDynamic) {
       LOG_ERROR("Tried to add non dynamic descriptor type with"
 		"Set::AddDescriptorDynamicWithArr");
       throw std::runtime_error("failed to add descriptor to set");
@@ -71,16 +71,16 @@ namespace descriptor {
   void Set::AddSamplerDescriptor(std::string name, size_t samplerCount, void* pSamplers) {
     this->descriptors.push_back(
 	    Descriptor(name,
-		       DescriptorType::Sampler,
+		       Type::Sampler,
 		       0,
 		       samplerCount,
 		       1,
 		       pSamplers));
   }
 
-  void Set::AddImageViewDescriptor(std::string name, DescriptorType type, size_t viewCount, void* pImageViews) {
-      if(type != DescriptorType::SampledImage &&
-	 type != DescriptorType::SampledImagePerSet) {
+  void Set::AddImageViewDescriptor(std::string name, Type type, size_t viewCount, void* pImageViews) {
+      if(type != Type::SampledImage &&
+	 type != Type::SampledImagePerSet) {
 	  throw std::runtime_error("Tried to add image view to Descriptor Set that isn't"
 				   "sampled image or sampled image set");
       }
