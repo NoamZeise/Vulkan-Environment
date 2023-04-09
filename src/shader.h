@@ -30,6 +30,7 @@ namespace descriptor {
       StorageBufferDynamic,
       Sampler,
       SampledImage,
+      SampledImagePerSet, // ie different samplers for each desc set
   };
 
   struct Descriptor {
@@ -66,7 +67,7 @@ namespace descriptor {
       void AddDescriptorDynamicWithArr(std::string name, DescriptorType type,
 				       size_t typeSize, size_t arraySize, size_t dynamicSize);
       void AddSamplerDescriptor(std::string name, size_t samplerCount, void* pSamplers);
-      void AddImageViewDescriptor(std::string name, size_t viewCount, void* pImageViews);
+      void AddImageViewDescriptor(std::string name, DescriptorType type, size_t viewCount, void* pImageViews);
 
       void logDetails();
   };

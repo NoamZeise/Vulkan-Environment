@@ -105,7 +105,6 @@ private:
 
   DS::DescriptorSet _offscreenTransformds;
   DS::DescriptorSet _offscreends;
-  DS::DescriptorSet _emptyds;
 
     DescSet *VP3D;
     DS::ShaderStructs::viewProjection VP3DData;
@@ -126,10 +125,9 @@ private:
     DescSet *offscreenTransform;
     glm::mat4 offscreenTransformData;
     DescSet *textures;
-
-  DS::BindingAndData<bool> _offscreenSampler;
-  DS::BindingAndData<bool> _offscreenView;
-  VkSampler _offscreenTextureSampler;
+    DescSet *emptyDS;
+    DescSet *offscreenTex;
+    VkSampler _offscreenTextureSampler;
 
   //std::vector<descriptor::Set> ds3D;
   

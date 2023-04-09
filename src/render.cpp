@@ -163,7 +163,8 @@ bool swapchainRecreationRequired(VkResult result) {
 
       descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
       texture_Set.AddSamplerDescriptor("sampler", 1, _textureLoader->getSamplerP());
-      texture_Set.AddImageViewDescriptor("views", Resource::MAX_TEXTURES_SUPPORTED,
+      texture_Set.AddImageViewDescriptor("views", descriptor::DescriptorType::SampledImage,
+					 Resource::MAX_TEXTURES_SUPPORTED,
 					 _textureLoader->getImageViewsP());
       textures = new DescSet(texture_Set, frameCount, manager->deviceState.device);
       
@@ -174,35 +175,27 @@ bool swapchainRecreationRequired(VkResult result) {
 	      sizeof(DS::ShaderStructs::Frag2DData), MAX_2D_INSTANCE);
       perFrame2DFrag = new DescSet(frag2D_Set, frameCount, manager->deviceState.device);
 
-      part::create::DescriptorSetLayout(manager->deviceState.device, &_emptyds,
-					{},
-					VK_SHADER_STAGE_VERTEX_BIT);
-
+      emptyDS = new DescSet(
+	      descriptor::Set("Empty", descriptor::ShaderStage::Vertex),
+	      frameCount, manager->deviceState.device);
+      
   
       _offscreenTextureSampler = vkhelper::createTextureSampler(manager->deviceState.device, manager->deviceState.physicalDevice, 1.0f, false, renderConf.texture_filter_nearest, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-      _offscreenSampler.setSamplerBufferProps(
-	      frameCount, VK_DESCRIPTOR_TYPE_SAMPLER, &_offscreends, 1,
-	      &_offscreenTextureSampler);
-      
-      std::vector<VkImageView> offscreenViews = swapchain->getOffscreenViews();
-      _offscreenView.setPerFrameImageViewBufferProps(
-	      frameCount, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, &_offscreends,
-	      offscreenViews.data());
-      part::create::DescriptorSetLayout(
-	      manager->deviceState.device, &_offscreends,
-	      {&_offscreenSampler.binding, &_offscreenView.binding},
-	      VK_SHADER_STAGE_FRAGMENT_BIT);
+      descriptor::Set offscreen_Set("offscren texture", descriptor::ShaderStage::Fragment);
+      offscreen_Set.AddSamplerDescriptor("sampler", 1, &_offscreenTextureSampler);
+      offscreen_Set.AddImageViewDescriptor("frame", descriptor::DescriptorType::SampledImagePerSet,
+					   1, swapchain->getOffscreenViews());
+      offscreenTex = new DescSet(offscreen_Set, frameCount, manager->deviceState.device);
 
-      
       LOG("Creating Descriptor pool and memory for set bindings");
 
       // create descripor pool
 
       part::create::DescriptorPoolAndSet(
 	      manager->deviceState.device, &_descPool,
-	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set,
+	      {&VP3D->set, &VP2D->set, &perFrame3D->set, &bones->set, &time->set, &emptyDS->set,
 	       &perFrame2DVert->set, &offscreenTransform->set, &lighting->set,
-	       &textures->set, &perFrame2DFrag->set, &_offscreends},
+	       &textures->set, &perFrame2DFrag->set, &offscreenTex->set},
 	      static_cast<uint32_t>(frameCount));
       
       // create memory mapped buffer for all descriptor set bindings
@@ -214,7 +207,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	       &offscreenTransform->bindings[0],
 	       &textures->bindings[0], &textures->bindings[1],
 	       &perFrame2DFrag->bindings[0],
-	       &_offscreenSampler.binding, &_offscreenView.binding},
+	       &offscreenTex->bindings[0], &offscreenTex->bindings[1]},
 	      &_shaderBuffer, &_shaderMemory);
 
       LOG("Creating Graphics Pipelines");
@@ -253,7 +246,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, swapchain->getMaxMsaaSamples(),
 	      swapchain->finalRenderPass,
-	      {&offscreenTransform->set, &_offscreends}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
+	      {&offscreenTransform->set, &offscreenTex->set}, {}, "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
 	      false, false, false, manager->deviceState.features.sampleRateShading,
 	      swapchain->swapchainExtent, VK_CULL_MODE_NONE, {},
 	      {});
@@ -299,8 +292,10 @@ void Render::_destroyFrameResources()
   textures = nullptr;
   delete perFrame2DFrag;
   perFrame2DFrag = nullptr;
-  _offscreends.destroySet(manager->deviceState.device);
-  _emptyds.destroySet(manager->deviceState.device);
+  delete offscreenTex;
+  offscreenTex = nullptr;
+  delete emptyDS;
+  emptyDS = nullptr;
 
   vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
 

@@ -41,6 +41,8 @@ DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
       binding.type = VK_DESCRIPTOR_TYPE_SAMPLER;
       binding.samplers = (VkSampler*)desc.pSamplerOrImageViews;
       break;
+    case descriptor::DescriptorType::SampledImagePerSet:
+	binding.viewsPerSet = true;
     case descriptor::DescriptorType::SampledImage:
       binding.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
       binding.imageViews = (VkImageView*)desc.pSamplerOrImageViews;
@@ -54,13 +56,13 @@ DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
   VkShaderStageFlagBits stage;
   switch(set.shaderStage) {
   case descriptor::ShaderStage::Vertex:
-    stage = VK_SHADER_STAGE_VERTEX_BIT;
-    break;
+      stage = VK_SHADER_STAGE_VERTEX_BIT;
+      break;
   case descriptor::ShaderStage::Fragment:
-    stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    break;
+      stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+      break;
   default:
-    throw std::runtime_error("Unrecognised shader stage in DescSet constructor");
+      throw std::runtime_error("Unrecognised shader stage in DescSet constructor");
   }
   //until ds are moved all to new system, just pass ref as before
   std::vector<DS::Binding*> bindingRef(bindings.size());

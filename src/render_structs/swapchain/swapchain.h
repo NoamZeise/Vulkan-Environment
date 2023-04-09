@@ -37,7 +37,7 @@ class Swapchain {
     VkSampleCountFlagBits  getMaxMsaaSamples() { return maxMsaaSamples; }
 
     size_t frameCount();
-    std::vector<VkImageView> getOffscreenViews();
+    VkImageView* getOffscreenViews();
     uint32_t getFrameIndex();
 
     VkRenderPass offscreenRenderPass;
@@ -56,6 +56,7 @@ class Swapchain {
     VkDeviceMemory attachmentMemory = VK_NULL_HANDLE;
     std::vector<VkClearValue> attachmentClearValues;
     std::vector<FrameData*> frames;
+    std::vector<VkImageView> offscreenImageViews;
 
     uint32_t frameIndex = 0;
     std::vector<VkSemaphore> imageAquireSemaphores;

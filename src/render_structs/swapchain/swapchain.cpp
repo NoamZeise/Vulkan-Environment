@@ -27,12 +27,8 @@ Swapchain::~Swapchain() {
     vkDestroySwapchainKHR(deviceState.device, swapchain, nullptr);
 }
 
-std::vector<VkImageView> Swapchain::getOffscreenViews() {
-    std::vector<VkImageView> views(frameCount());
-    for(size_t i = 0; i < views.size(); i++) {
-	views[i] = frames[i]->getOffscreenImageView();
-    }
-    return views;
+VkImageView* Swapchain::getOffscreenViews() {
+    return offscreenImageViews.data();
 }
 
 size_t Swapchain::frameCount() { return frames.size(); }
@@ -192,10 +188,12 @@ VkResult Swapchain::InitFrameResources(VkExtent2D windowExtent, VkExtent2D offsc
 				       &finalRenderPass),
     		      "Failed to create final Render Pass");
 
-    
+
+    offscreenImageViews.clear();
     for(FrameData *f: frames) {
 	f->CreateFramebuffers(offscreenRenderPass, offscreenExtent,
 			      finalRenderPass, swapchainExtent);
+	offscreenImageViews.push_back(f->getOffscreenImageView());
     }
 
     currentState = FrameState::FrameResourcesCreated;

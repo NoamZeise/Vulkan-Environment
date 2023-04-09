@@ -1,9 +1,5 @@
 #include "descriptors.h"
-
-
 #include "../vkhelper.h"
-
-#include "../logger.h"
 
 namespace part
 {
@@ -48,86 +44,83 @@ void DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<D
   }
 }
 
-  void PrepareShaderBufferSets(DeviceState base, std::vector<DS::Binding*> bind, VkBuffer* buffer, VkDeviceMemory* memory)
-  {
+  void PrepareShaderBufferSets(DeviceState base, std::vector<DS::Binding*> bind, VkBuffer* buffer, VkDeviceMemory* memory) {
       size_t memSize = _createHostVisibleShaderBufferMemory(base, bind, buffer, memory);
 
       vkBindBufferMemory(base.device, *buffer, *memory, 0);
       void* pointer;
       vkMapMemory(base.device, *memory, 0, memSize, 0, &pointer);
 
-      for (size_t bindingI = 0; bindingI < bind.size(); bindingI++)
-	  {
-	      bind[bindingI]->pBuffer = nullptr;
+      for (size_t bindingI = 0; bindingI < bind.size(); bindingI++){
+	  bind[bindingI]->pBuffer = nullptr;
 
-	      std::vector<VkWriteDescriptorSet> writes(bind[bindingI]->setCount, {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
-	      std::vector<VkDescriptorBufferInfo> buffInfos;
-	      std::vector<VkDescriptorImageInfo> imageInfos;
-	      if( bind[bindingI]->type ==  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
-		  bind[bindingI]->type == 	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-		  bind[bindingI]->type == 	VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
-		  bind[bindingI]->type == 	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-		  )
-		  {
-		      buffInfos.resize(bind[bindingI]->setCount * bind[bindingI]->descriptorCount);
-		      bind[bindingI]->pBuffer = pointer;
-		  }
-	      if(bind[bindingI]->type == VK_DESCRIPTOR_TYPE_SAMPLER ||
-		 bind[bindingI]->type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
-		  imageInfos.resize(bind[bindingI]->setCount * bind[bindingI]->descriptorCount);
+	  std::vector<VkWriteDescriptorSet> writes(bind[bindingI]->setCount, {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+	  std::vector<VkDescriptorBufferInfo> buffInfos;
+	  std::vector<VkDescriptorImageInfo> imageInfos;
+	  if( bind[bindingI]->type ==  VK_DESCRIPTOR_TYPE_STORAGE_BUFFER ||
+	      bind[bindingI]->type == 	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+	      bind[bindingI]->type == 	VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC ||
+	      bind[bindingI]->type == 	VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+	      )
+	      {
+		  buffInfos.resize(bind[bindingI]->setCount * bind[bindingI]->descriptorCount);
+		  bind[bindingI]->pBuffer = pointer;
+	      }
+	  if(bind[bindingI]->type == VK_DESCRIPTOR_TYPE_SAMPLER ||
+	     bind[bindingI]->type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
+	      imageInfos.resize(bind[bindingI]->setCount * bind[bindingI]->descriptorCount);
 
-	      size_t buffIndex = 0;
-	      for (size_t i = 0; i < bind[bindingI]->setCount; i++)
-		  {
-		      writes[i].dstSet = bind[bindingI]->ds->sets[i];
-		      writes[i].dstBinding = static_cast<uint32_t>(bind[bindingI]->binding);
-		      writes[i].dstArrayElement = 0;
-		      writes[i].descriptorCount = static_cast<uint32_t>(bind[bindingI]->descriptorCount);
-		      writes[i].descriptorType = bind[bindingI]->type;
-		      switch(bind[bindingI]->type)
-			  {
-			  case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-			  case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-			  case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-			  case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-			      for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++)
-				  {
-				      buffInfos[buffIndex].buffer = *buffer;
-				      buffInfos[buffIndex].offset = bind[bindingI]->offset +
-					  (bind[bindingI]->bufferSize * i) +
-					  (bind[bindingI]->arraySize * bind[bindingI]->slotSize * j);
-				      buffInfos[buffIndex].range = bind[bindingI]->slotSize * bind[bindingI]->arraySize;
-				      buffIndex++;
-				  }
-			      writes[i].pBufferInfo = buffInfos.data() + (i * bind[bindingI]->descriptorCount);
-			      break;
-			  case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-			      for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++)
-				  {
-				      size_t imageIndex = (bind[bindingI]->descriptorCount * i) + j;
-				      imageInfos[imageIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				      //each set has different image views (eg per frame)
-				      if(bind[bindingI]->viewsPerSet)
-					  imageInfos[imageIndex].imageView = *(bind[bindingI]->imageViews + i);
-				      else
-					  imageInfos[imageIndex].imageView = *(bind[bindingI]->imageViews + j);
-				  }
-			      writes[i].pImageInfo = imageInfos.data() + (i * bind[bindingI]->descriptorCount);
-			      break;
-			  case VK_DESCRIPTOR_TYPE_SAMPLER:
-			      for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++)
-				  {
-				      size_t imageIndex = (bind[bindingI]->descriptorCount * i) + j;
-				      imageInfos[imageIndex].sampler = *(bind[bindingI]->samplers + j);
-				  }
-			      writes[i].pImageInfo = imageInfos.data() + (i * bind[bindingI]->descriptorCount);
-			      break;
-			  default:
-			      throw std::runtime_error("descriptor type not recognized, in prepare shader buffer sets");
-			  }
+	  size_t buffIndex = 0;
+	  for (size_t i = 0; i < bind[bindingI]->setCount; i++) {
+	      writes[i].dstSet = bind[bindingI]->ds->sets[i];
+	      writes[i].dstBinding = static_cast<uint32_t>(bind[bindingI]->binding);
+	      writes[i].dstArrayElement = 0;
+	      writes[i].descriptorCount = static_cast<uint32_t>(bind[bindingI]->descriptorCount);
+	      writes[i].descriptorType = bind[bindingI]->type;
+	      switch(bind[bindingI]->type) {
+	      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+	      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+	      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+	      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+		  for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++) {
+		      buffInfos[buffIndex].buffer = *buffer;
+		      buffInfos[buffIndex].offset = bind[bindingI]->offset +
+			  (bind[bindingI]->bufferSize * i) +
+			  (bind[bindingI]->arraySize * bind[bindingI]->slotSize * j);
+		      buffInfos[buffIndex].range = bind[bindingI]->slotSize * bind[bindingI]->arraySize;
+		      buffIndex++;
 		  }
-	      vkUpdateDescriptorSets(base.device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+		  writes[i].pBufferInfo = buffInfos.data() + (i * bind[bindingI]->descriptorCount);
+		  break;
+	      case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+		  for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++) {
+		      size_t imageIndex = (bind[bindingI]->descriptorCount * i) + j;
+		      imageInfos[imageIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		      //each set has different image views (eg per frame)
+		      if(bind[bindingI]->viewsPerSet)
+			  imageInfos[imageIndex].imageView = *(bind[bindingI]->imageViews +
+							       (i * bind[bindingI]->descriptorCount)
+							       + j);
+		      else
+			  imageInfos[imageIndex].imageView = *(bind[bindingI]->imageViews + j);
+		  }
+		  writes[i].pImageInfo = imageInfos.data() + (i * bind[bindingI]->descriptorCount);
+		  break;
+	      case VK_DESCRIPTOR_TYPE_SAMPLER:
+		  for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++) {
+			  size_t imageIndex = (bind[bindingI]->descriptorCount * i) + j;
+			  imageInfos[imageIndex].sampler = *(bind[bindingI]->samplers + j);
+		      }
+		  writes[i].pImageInfo = imageInfos.data() + (i * bind[bindingI]->descriptorCount);
+		  break;
+	      default:
+		  throw std::runtime_error("descriptor type not recognized, in prepare shader buffer sets");
+	      }
 	  }
+	  vkUpdateDescriptorSets(base.device,
+				 (uint32_t)writes.size(),
+				 writes.data(), 0, nullptr);
+      }
   }
 
 void _createDescriptorPool(VkDevice device, VkDescriptorPool* pool, std::vector<DS::DescriptorSet*> descriptorSets, uint32_t frameCount)

@@ -60,32 +60,37 @@ namespace descriptor {
       throw std::runtime_error("failed to add descriptor to set");
     }
     this->descriptors.push_back(
-				Descriptor(name,
-					   type,
-					   typeSize,
-					   arraySize,
-					   dynamicSize,
-					   nullptr));
+	    Descriptor(name,
+		       type,
+		       typeSize,
+		       arraySize,
+		       dynamicSize,
+		       nullptr));
   }
 
   void Set::AddSamplerDescriptor(std::string name, size_t samplerCount, void* pSamplers) {
     this->descriptors.push_back(
-				Descriptor(name,
-					   DescriptorType::Sampler,
-					   0,
-					   samplerCount,
-					   1,
-					   pSamplers));
+	    Descriptor(name,
+		       DescriptorType::Sampler,
+		       0,
+		       samplerCount,
+		       1,
+		       pSamplers));
   }
 
-  void Set::AddImageViewDescriptor(std::string name, size_t viewCount, void* pImageViews) {
+  void Set::AddImageViewDescriptor(std::string name, DescriptorType type, size_t viewCount, void* pImageViews) {
+      if(type != DescriptorType::SampledImage &&
+	 type != DescriptorType::SampledImagePerSet) {
+	  throw std::runtime_error("Tried to add image view to Descriptor Set that isn't"
+				   "sampled image or sampled image set");
+      }
    this->descriptors.push_back(
-				Descriptor(name,
-					   DescriptorType::SampledImage,
-					   0,
-					   viewCount,
-					   1,
-					   pImageViews));
+	   Descriptor(name,
+		      type,
+		      0,
+		      viewCount,
+		      1,
+		      pImageViews));
   }
 
   void Set::logDetails() {
