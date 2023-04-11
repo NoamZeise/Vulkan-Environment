@@ -87,7 +87,6 @@ const int MAX_2D_INSTANCE = 20;
       glm::vec2 _targetResolution;
       RenderConfig renderConf;
       bool renderConfChanged = true;
-
   
       VulkanManager* manager;
   

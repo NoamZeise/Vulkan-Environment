@@ -9,6 +9,7 @@
 #include "parts/command.h"
 #include "parts/descriptors.h"
 #include "pipeline.h"
+#include "pipeline_data.h"
 #include "vkhelper.h"
 #include "logger.h"
 
@@ -240,8 +241,8 @@ bool swapchainRecreationRequired(VkResult result) {
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true,
 	      manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
-	      VK_CULL_MODE_BACK_BIT, Vertex3D::attributeDescriptions(),
-	      Vertex3D::bindingDescriptions());
+	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V3D::attributeDescriptions(),
+	      pipeline_inputs::V3D::bindingDescriptions());
 
 	    
       part::create::GraphicsPipeline(
@@ -252,8 +253,8 @@ bool swapchainRecreationRequired(VkResult result) {
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	      true, renderConf.multisampling, true,
 	      manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
-	      VK_CULL_MODE_BACK_BIT, VertexAnim3D::attributeDescriptions(),
-	      VertexAnim3D::bindingDescriptions());
+	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::VAnim3D::attributeDescriptions(),
+	      pipeline_inputs::VAnim3D::bindingDescriptions());
 
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline2D, swapchain->getMaxMsaaSamples(),
@@ -262,8 +263,8 @@ bool swapchainRecreationRequired(VkResult result) {
 	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
 	      renderConf.multisampling, true,
 	      manager->deviceState.features.sampleRateShading, swapchain->offscreenExtent,
-	      VK_CULL_MODE_BACK_BIT, Vertex2D::attributeDescriptions(),
-	      Vertex2D::bindingDescriptions());
+	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V2D::attributeDescriptions(),
+	      pipeline_inputs::V2D::bindingDescriptions());
 
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, swapchain->getMaxMsaaSamples(),
