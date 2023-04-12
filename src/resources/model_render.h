@@ -13,7 +13,7 @@
 #include <resources/resources.h>
 #include <vertex_types.h>
 #ifndef NO_ASSIMP
-#include <resources/model_loader.h>
+#include <resource_loader/model_loader.h>
 #endif
 #include "texture_loader.h"
 #include "../render_structs/device_state.h"

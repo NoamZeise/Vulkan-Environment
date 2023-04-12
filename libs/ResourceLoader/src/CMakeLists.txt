@@ -1,13 +1,13 @@
 if(NO_ASSIMP)
   add_library(ResourceLoader
-    resources/stb_image_impl.cpp
-    resource_loader/vertex_model.cpp
+    stb_image_impl.cpp
+    vertex_model.cpp
   )
 else()
   add_library(ResourceLoader
-    resources/stb_image_impl.cpp
-    resources/model_loader.cpp
-    resource_loader/vertex_model.cpp
+    stb_image_impl.cpp
+    model_loader.cpp
+    vertex_model.cpp
   )
 endif()
 
@@ -19,4 +19,4 @@ if(NOT NO_ASSIMP)
 endif()
 #target_link_libraries(ResourceLoader PRIVATE assimp)
 
-target_include_directories(ResourceLoader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(ResourceLoader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)	

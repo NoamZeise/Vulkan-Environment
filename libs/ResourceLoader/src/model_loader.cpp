@@ -1,4 +1,4 @@
-#include "model_loader.h"
+#include <resource_loader/model_loader.h>
 
 #include <assimp/anim.h>
 #include <assimp/material.h>
