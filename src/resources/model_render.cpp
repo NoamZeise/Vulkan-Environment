@@ -68,18 +68,11 @@ namespace Resource
       if(models.size() <= 0)
 	  return;
       models.clear();
-      for (auto& model : loaded2D.models)
-	  for (size_t i = 0; i < model.meshes.size(); i++)
-	      delete model.meshes[i];
-      loaded2D.models.clear();
-      for (auto& model : loaded3D.models)
-	  for (size_t i = 0; i < model.meshes.size(); i++)
-	      delete model.meshes[i];
-      loaded3D.models.clear();
-      for (auto& model : loadedAnim3D.models)
-	  for (size_t i = 0; i < model.meshes.size(); i++)
-	      delete model.meshes[i];
-      loadedAnim3D.models.clear();
+
+      loaded2D.clearData();
+      loaded3D.clearData();
+      loadedAnim3D.clearData();
+      
       alreadyLoaded.clear();
       vertexDataSize = 0;
       indexDataSize = 0;

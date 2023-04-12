@@ -25,16 +25,22 @@ struct LoadedModel {
     LoadedModel(){}
     int ID = -1;
     std::vector<Mesh<T_Vert>*> meshes;
-    std::string        directory;
     std::vector<Resource::ModelAnimation> animations;
 };
 
 template <class T_Vert>
 struct ModelGroup {
+    ~ModelGroup() { clearData(); }
     std::vector<LoadedModel<T_Vert>> models;
     size_t vertexDataOffset;
     size_t vertexDataSize;
     void loadModel(ModelInfo::Model &modelData, uint32_t currentID);
+    void clearData() {
+	for (auto& model : models)
+	    for (size_t i = 0; i < model.meshes.size(); i++)
+		delete model.meshes[i];
+	models.clear();
+    }
 };
 
 //loadVerticies defined for Vertex Types
