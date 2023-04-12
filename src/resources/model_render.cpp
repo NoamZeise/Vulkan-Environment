@@ -193,7 +193,7 @@ namespace Resource
 #ifndef NO_ASSIMP
       LOG("loading model: " << path);
       ModelInfo::Model fileModel = modelLoader.LoadModel(path);
-      Model userModel(static_cast<uint32_t>(currentIndex));
+      Model userModel(currentIndex);
       if(!fileModel.animatedModel || pGetAnimations == nullptr) {
 	  loaded3D.loadModel(fileModel, currentIndex);
 	  loadModelTexture(&loaded3D.models[loaded3D.models.size() - 1], texLoader);
