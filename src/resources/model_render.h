@@ -46,10 +46,7 @@ namespace Resource
       ModelAnimation* getpAnimation(Model model, int animationIndex);
 
   private:
-      const char* MODEL_TEXTURE_LOCATION = "textures/";
       void loadQuad();
-
-      Texture loadTexture(std::string path, TextureLoader* texLoader);
 
       template <class T_Vert>
       void loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader);

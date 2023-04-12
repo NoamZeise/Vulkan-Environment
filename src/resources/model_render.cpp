@@ -223,20 +223,12 @@ namespace Resource
   void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
       for(auto& mesh: model->meshes) {
 	  if(mesh->texToLoad != "") {
-	      mesh->texture = loadTexture(mesh->texToLoad, texLoader);
+	      std::string loadStr = checkTextureLoaded(mesh->texToLoad, alreadyLoaded,
+						     &mesh->texture);
+	      if(loadStr != "")
+		  mesh->texture = texLoader->LoadTexture(loadStr);
 	  }
       }
-  }
-
-  Resource::Texture ModelRender::loadTexture(std::string path, TextureLoader* texLoader) {
-      std::string texLocation = MODEL_TEXTURE_LOCATION + path;
-  
-      for(unsigned int i = 0; i < alreadyLoaded.size(); i++)
-	  if(std::strcmp(alreadyLoaded[i].path.data(), texLocation.c_str()) == 0)
-	      return alreadyLoaded[i];
-    
-      alreadyLoaded.push_back(texLoader->LoadTexture(texLocation));
-      return alreadyLoaded[alreadyLoaded.size() - 1];
   }
 
   void ModelRender::endLoading(VkCommandBuffer transferBuff) {

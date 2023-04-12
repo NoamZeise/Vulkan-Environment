@@ -2,6 +2,7 @@
 
 #include <glm/gtc/matrix_inverse.hpp>
 #include <iostream>
+#include <cstring>
 
 //loadVerticies defined for Vertex Types
 
@@ -49,3 +50,17 @@ void loadVertices(Mesh<Vertex2D> *mesh, ModelInfo::Mesh &dataMesh) {
 	mesh->verticies.push_back(vertex);
     }
 }
+
+std::string checkTextureLoaded(std::string path,
+			       std::vector<Resource::Texture> &alreadyLoaded,
+			       Resource::Texture *pTex) {
+    std::string texLocation = MODEL_TEXTURE_LOCATION + path;
+    
+      for(unsigned int i = 0; i < alreadyLoaded.size(); i++)
+	  if(std::strcmp(alreadyLoaded[i].path.data(), texLocation.c_str()) == 0) {
+	      *pTex = alreadyLoaded[i];
+	      return "";
+	  }
+    
+      return texLocation;
+  }

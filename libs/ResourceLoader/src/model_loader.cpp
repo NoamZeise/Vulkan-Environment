@@ -275,5 +275,5 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
         }
     }
 }
-
+  
 }

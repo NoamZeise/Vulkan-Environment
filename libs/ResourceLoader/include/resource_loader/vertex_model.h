@@ -8,6 +8,9 @@
 #include <resources/model/model_info.h>
 #include <vertex_types.h>
 
+
+static const char* MODEL_TEXTURE_LOCATION = "textures/";
+
 template <class T_Vert>
 struct Mesh {
     Mesh() {}
@@ -71,5 +74,9 @@ void Mesh<T_Vert>::processMeshInfo(ModelInfo::Mesh &dataMesh) {
     loadVertices(this, dataMesh);
     this->indicies = dataMesh.indicies;
 }
+
+std::string checkTextureLoaded(std::string path,
+                               std::vector<Resource::Texture> &alreadyLoaded,
+                               Resource::Texture *pTex);
 
 #endif
