@@ -54,14 +54,15 @@ Render::Render(GLFWwindow *window, glm::vec2 target)
 }
 
 void Render::_initStagingResourceManagers() {
-  _stagingModelLoader = new Resource::ModelRender(manager->deviceState, manager->generalCommandPool);
-  _stagingTextureLoader = new Resource::TextureLoader(manager->deviceState,
-						      manager->generalCommandPool,
-						      renderConf);
-  _stagingFontLoader = new Resource::FontLoader();
-  _stagingTextureLoader->LoadTexture("textures/error.png");
+    _stagingModelLoader = new Resource::ModelRender(manager->deviceState,
+						    manager->generalCommandPool);
+    _stagingTextureLoader = new Resource::TextureLoader(manager->deviceState,
+							manager->generalCommandPool,
+							renderConf);
+    _stagingFontLoader = new Resource::FontLoader();
+    _stagingTextureLoader->LoadTexture("textures/error.png");
 }
-
+  
 Render::~Render()
 {
   vkQueueWaitIdle(manager->deviceState.queue.graphicsPresentQueue);

@@ -67,8 +67,10 @@ namespace Resource
     texToLoad.push_back({ std::string(path.c_str()) });
     TempTexture* tex = &texToLoad.back();
     tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);
-    if (!tex->pixelData)
+    if (!tex->pixelData) {
+	LOG_ERROR("failed to load texture - path: " << path);
       throw std::runtime_error("failed to load texture at " + path);
+    }
 
     tex->nrChannels = 4;
 

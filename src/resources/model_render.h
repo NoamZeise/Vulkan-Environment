@@ -17,9 +17,12 @@
 #endif
 #include "texture_loader.h"
 #include "../render_structs/device_state.h"
+#include <resource_loader/vertex_model.h>
 
 namespace Resource
 {
+  struct ModelInGPU;
+  enum class ModelType;
 
   class ModelRender
   {
@@ -43,83 +46,13 @@ namespace Resource
       ModelAnimation* getpAnimation(Model model, int animationIndex);
 
   private:
-
-      enum class ModelType {
-	  model2D,
-	  model3D,
-	  modelAnim3D,
-      };
-
-      template <class T_Vert>
-      struct Mesh {
-	  Mesh() {}
-	  std::vector<T_Vert> verticies;
-	  std::vector<unsigned int> indicies;
-	  Texture texture;
-	  glm::vec4 diffuseColour;
-      };
-
-      template <class T_Vert>
-      struct LoadedModel {
-	  LoadedModel(){}
-	  int ID = -1;
-	  std::vector<Mesh<T_Vert>*> meshes;
-	  std::string        directory;
-	  std::vector<ModelAnimation> animations;
-      };
-
-      template <class T_Vert>
-      struct ModelGroup {
-	  std::vector<LoadedModel<T_Vert>> models;
-	  size_t vertexDataOffset;
-	  size_t vertexDataSize;
-      };
-
-      ModelType getModelType(Vertex2D vert) { return ModelType::model2D; }
-      ModelType getModelType(Vertex3D vert) { return ModelType::model3D; }
-      ModelType getModelType(VertexAnim3D vert) { return ModelType::modelAnim3D; }
-
-      struct MeshInfo {
-	  MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
-	  MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset,
-		   Texture texture, glm::vec4 diffuseColour)
-	  {
-	      this->indexCount = indexCount;
-	      this->indexOffset = indexOffset;
-	      this->vertexOffset = vertexOffset;
-	      this->texture = texture;
-	      this->diffuseColour = diffuseColour;
-	  }
-	  size_t indexCount;
-	  size_t indexOffset;
-	  size_t vertexOffset;
-	  Texture texture;
-	  glm::vec4 diffuseColour;
-      };
-
-      struct ModelInGPU {
-	  size_t vertexCount = 0;
-	  size_t indexCount  = 0;
-	  size_t vertexOffset = 0;
-	  size_t indexOffset = 0;
-	  std::vector<MeshInfo> meshes;
-
-	  std::vector<ModelAnimation> animations;
-	  std::map<std::string, int> animationMap;
-	  ModelType type;
-      };
-
       const char* MODEL_TEXTURE_LOCATION = "textures/";
       void loadQuad();
+
+      Texture loadTexture(std::string path, TextureLoader* texLoader);
+
       template <class T_Vert>
-      LoadedModel<T_Vert>* loadModelFromInfo(ModelGroup<T_Vert> *group, ModelInfo::Model &modelData,
-			     std::string path,
-			     TextureLoader* texLoader);
-      template <class T_Vert>
-      void loadMesh(Mesh<T_Vert> *mesh, ModelInfo::Mesh &dataMesh, TextureLoader* texLoader);
-      Resource::Texture loadTexture(std::string path, TextureLoader* texLoader);
-      void loadVertices(Mesh<VertexAnim3D> *mesh, ModelInfo::Mesh &dataMesh);
-      void loadVertices(Mesh<Vertex3D> *mesh, ModelInfo::Mesh &dataMesh);
+      void loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader);
 
       template <class T_Vert>
       void processLoadGroup(ModelGroup<T_Vert>* pGroup);
@@ -152,15 +85,13 @@ namespace Resource
       VkDeviceMemory memory;
 
       size_t vertexDataSize = 0;
-
       size_t indexDataSize = 0;
-
-      size_t currentIndex = 0;
+      uint32_t currentIndex = 0;
 
       bool boundThisFrame = false;
       ModelType prevBoundType;
 
-      size_t quadID = 0;
+      size_t quadID;
   };
 
 }

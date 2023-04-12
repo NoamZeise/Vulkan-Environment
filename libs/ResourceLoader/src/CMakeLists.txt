@@ -1,11 +1,13 @@
 if(NO_ASSIMP)
   add_library(ResourceLoader
     resources/stb_image_impl.cpp
+    resource_loader/vertex_model.cpp
   )
 else()
   add_library(ResourceLoader
     resources/stb_image_impl.cpp
     resources/model_loader.cpp
+    resource_loader/vertex_model.cpp
   )
 endif()
 

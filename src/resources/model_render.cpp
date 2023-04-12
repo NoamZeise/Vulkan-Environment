@@ -15,7 +15,45 @@
 
 namespace Resource
 {
+  enum class ModelType {
+      model2D,
+      model3D,
+      modelAnim3D,
+  };
 
+  ModelType getModelType(Vertex2D vert) { return ModelType::model2D; }
+  ModelType getModelType(Vertex3D vert) { return ModelType::model3D; }
+  ModelType getModelType(VertexAnim3D vert) { return ModelType::modelAnim3D; }
+
+   struct MeshInfo {
+      MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
+      MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset,
+	       Texture texture, glm::vec4 diffuseColour) {
+	  this->indexCount = indexCount;
+	  this->indexOffset = indexOffset;
+	  this->vertexOffset = vertexOffset;
+	  this->texture = texture;
+	  this->diffuseColour = diffuseColour;
+      }
+      size_t indexCount;
+      size_t indexOffset;
+      size_t vertexOffset;
+      Texture texture;
+      glm::vec4 diffuseColour;
+  };
+
+  struct ModelInGPU {
+      size_t vertexCount = 0;
+      size_t indexCount  = 0;
+      size_t vertexOffset = 0;
+      size_t indexOffset = 0;
+      std::vector<MeshInfo> meshes;
+
+      std::vector<ModelAnimation> animations;
+      std::map<std::string, int> animationMap;
+      ModelType type;
+  };
+	
   ModelRender::ModelRender(DeviceState base, VkCommandPool pool) {
       this->base = base;
       this->pool = pool;
@@ -164,14 +202,17 @@ namespace Resource
       ModelInfo::Model fileModel = modelLoader.LoadModel(path);
       Model userModel(static_cast<uint32_t>(currentIndex));
       if(!fileModel.animatedModel || pGetAnimations == nullptr) {
-	  loadModelFromInfo(&loaded3D, fileModel, path, texLoader);
+	  loaded3D.loadModel(fileModel, currentIndex);
+	  loadModelTexture(&loaded3D.models[loaded3D.models.size() - 1], texLoader);
       } else {
-	  auto loadedModel = loadModelFromInfo(&loadedAnim3D, fileModel, path, texLoader);
+	  loadedAnim3D.loadModel(fileModel, currentIndex);
+	  auto loadedModel = &loadedAnim3D.models[loadedAnim3D.models.size() - 1];
 	  for(const auto &anim : fileModel.animations) {
 	      loadedModel->animations.push_back(ModelAnimation(fileModel.bones, anim));
 	      pGetAnimations->push_back(
 		      loadedModel->animations[loadedModel->animations.size() - 1]);
 	  }
+	  loadModelTexture(loadedModel, texLoader);
       }
       currentIndex++;
       LOG("finished loading model");
@@ -180,77 +221,21 @@ namespace Resource
       throw std::runtime_error("tried to load model but NO_ASSIMP is defined!");
 #endif
   }
-  template <class T_Vert>
-  ModelRender::LoadedModel<T_Vert>* ModelRender::loadModelFromInfo(ModelGroup<T_Vert> *group,
-								   ModelInfo::Model &modelData,
-								   std::string path,
-								   TextureLoader* texLoader) {
-      group->models.push_back(LoadedModel<T_Vert>());
-      auto model = &group->models[group->models.size() - 1];
-      model->directory = path.substr(0, path.find_last_of('/'));
-      model->ID = currentIndex;
-      for(auto& meshData: modelData.meshes) {
-	  model->meshes.push_back(new Mesh<T_Vert>());
-	  Mesh<T_Vert>* mesh = model->meshes.back();
-	  loadMesh(mesh, meshData, texLoader);
-      }
-      return model;
-  }
-
-  template <class T_Vert>
-  void ModelRender::loadMesh(Mesh<T_Vert> *mesh, ModelInfo::Mesh &dataMesh,
-			     TextureLoader* texLoader) {
-      // just take one diffuse texture for now
-      // TODO support multiple textures
-      if(dataMesh.diffuseTextures.size() > 0)
-	  mesh->texture = loadTexture(dataMesh.diffuseTextures[0], texLoader);
-      mesh->diffuseColour = dataMesh.diffuseColour;
-      loadVertices(mesh, dataMesh);
-      mesh->indicies = dataMesh.indicies;
-  }
-  
-  void ModelRender::loadVertices(Mesh<VertexAnim3D> *mesh, ModelInfo::Mesh &dataMesh) {
-      LOG("load anim verticies");
-      for(int vert = 0; vert < dataMesh.verticies.size(); vert++) {
-	  VertexAnim3D vertex;
-	  vertex.Position = glm::vec4(dataMesh.verticies[vert].Position, 1.0f);
-	  vertex.Normal = dataMesh.verticies[vert].Normal;
-	  vertex.TexCoord = dataMesh.verticies[vert].TexCoord;
-	  for(int vecElem = 0; vecElem < 4; vecElem++) {
-	      if(dataMesh.verticies[vert].BoneIDs.size() <= vecElem) {
-		  vertex.BoneIDs[vecElem] = -1;
-		  vertex.Weights[vecElem] = 0;
-	      }
-	      else {
-		  vertex.BoneIDs[vecElem] = dataMesh.verticies[vert].BoneIDs[vecElem];
-		  vertex.Weights[vecElem] = dataMesh.verticies[vert].BoneWeights[vecElem];
-	      }
-	  }
-	  if(dataMesh.verticies[vert].BoneIDs.size() > 4)
-	      LOG("vertex influenced by more than 4 bones, but only 4 bones will be used!\n");
-	  mesh->verticies.push_back(vertex);
-      }
-  }
-
-  void ModelRender::loadVertices(Mesh<Vertex3D> *mesh, ModelInfo::Mesh &dataMesh) {
-      LOG("load vertex verticies");
-      glm::mat4 meshTransform = dataMesh.bindTransform;
-      for(int vert = 0; vert < dataMesh.verticies.size(); vert++) {
-	  Vertex3D vertex;
-	  vertex.Position = meshTransform * glm::vec4(dataMesh.verticies[vert].Position, 1.0f);
-	  vertex.Normal = glm::mat3(glm::inverseTranspose(meshTransform)) *
-	      dataMesh.verticies[vert].Normal;
-	  vertex.TexCoord = dataMesh.verticies[vert].TexCoord;
-	  mesh->verticies.push_back(vertex);
-      }
-  }
 
   Model ModelRender::loadModel(std::string path, TextureLoader* texLoader) {
       return loadModel(path, texLoader, nullptr);
   }
 
-  Resource::Texture ModelRender::loadTexture(std::string path, TextureLoader* texLoader) {
+  template <class T_Vert>
+  void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
+      for(auto& mesh: model->meshes) {
+	  if(mesh->texToLoad != "") {
+	      mesh->texture = loadTexture(mesh->texToLoad, texLoader);
+	  }
+      }
+  }
 
+  Resource::Texture ModelRender::loadTexture(std::string path, TextureLoader* texLoader) {
       std::string texLocation = MODEL_TEXTURE_LOCATION + path;
   
       for(unsigned int i = 0; i < alreadyLoaded.size(); i++)
@@ -399,6 +384,4 @@ namespace Resource
 	  }
 	  pGroup->models.clear();
       }
-
-	
   } //end namespace
