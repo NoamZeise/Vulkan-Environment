@@ -27,7 +27,7 @@ namespace Resource
 
    struct MeshInfo {
       MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
-      MeshInfo(size_t indexCount, size_t indexOffset, size_t vertexOffset,
+      MeshInfo(uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset,
 	       Texture texture, glm::vec4 diffuseColour) {
 	  this->indexCount = indexCount;
 	  this->indexOffset = indexOffset;
@@ -35,18 +35,18 @@ namespace Resource
 	  this->texture = texture;
 	  this->diffuseColour = diffuseColour;
       }
-      size_t indexCount;
-      size_t indexOffset;
-      size_t vertexOffset;
+      uint32_t indexCount;
+      uint32_t indexOffset;
+      uint32_t vertexOffset;
       Texture texture;
       glm::vec4 diffuseColour;
   };
 
   struct ModelInGPU {
-      size_t vertexCount = 0;
-      size_t indexCount  = 0;
-      size_t vertexOffset = 0;
-      size_t indexOffset = 0;
+      uint32_t vertexCount = 0;
+      uint32_t indexCount  = 0;
+      uint32_t vertexOffset = 0;
+      uint32_t indexOffset = 0;
       std::vector<MeshInfo> meshes;
 
       std::vector<ModelAnimation> animations;
@@ -125,7 +125,7 @@ namespace Resource
   }
 
   void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
-			      size_t count, size_t instanceOffset) {
+			      uint32_t count, uint32_t instanceOffset) {
       if(model.ID >= models.size()) {
 	  LOG("the model ID is out of range, ID: " << model.ID);
 	  return;
@@ -136,16 +136,16 @@ namespace Resource
 	  fragPushConstants fps {
 	      modelInfo->meshes[i].diffuseColour,
 	      glm::vec4(0, 0, 1, 1), //texOffset
-	      static_cast<uint32_t>(modelInfo->meshes[i].texture.ID)
+	      (uint32_t)modelInfo->meshes[i].texture.ID
 	  };
 	  vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			     0, sizeof(fragPushConstants), &fps);
-	  drawMesh(cmdBuff, modelInfo, i, count, instanceOffset);
+	  drawMesh(cmdBuff, modelInfo, (uint32_t)i, count, instanceOffset);
       }
   }
 
   void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
-			     size_t count, size_t instanceOffset, glm::vec4 colour,
+			     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
 			     glm::vec4 texOffset) {
       bindGroupVertexBuffer(cmdBuff, ModelType::model2D);
       ModelInGPU *modelInfo = &models[static_cast<int>(quadID)];
@@ -155,7 +155,7 @@ namespace Resource
   void ModelRender::drawMesh(VkCommandBuffer cmdBuff,
 			     ModelInGPU *modelInfo,
 			     uint32_t meshIndex, uint32_t instanceCount, uint32_t instanceOffset) {
-      vkCmdDrawIndexed(
+    vkCmdDrawIndexed(
 	      cmdBuff,
 	      modelInfo->meshes[meshIndex].indexCount,
 	      instanceCount,
@@ -305,68 +305,68 @@ namespace Resource
       vkFreeMemory(base.device, stagingMemory, nullptr);
 
       LOG("finished loading model data to gpu");
-	  }
+  }
 
-	  template <class T_Vert >
-	  void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup) {
-	  pGroup->vertexDataOffset = vertexDataSize;
-	  size_t modelVertexOffset = 0;
-	  for(size_t i = 0; i < pGroup->models.size(); i++) {
-	      models[pGroup->models[i].ID] = ModelInGPU();
-	      ModelInGPU* model = &models[pGroup->models[i].ID];
+  template <class T_Vert >
+  void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup) {
+    pGroup->vertexDataOffset = vertexDataSize;
+    uint32_t modelVertexOffset = 0;
+    for(size_t i = 0; i < pGroup->models.size(); i++) {
+      models[pGroup->models[i].ID] = ModelInGPU();
+      ModelInGPU* model = &models[pGroup->models[i].ID];
 
-	      model->type = getModelType(pGroup->models[i].meshes[0]->verticies[0]);
-	      model->vertexOffset = modelVertexOffset;
-	      model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indicies[0]);
-	      model->meshes.resize(pGroup->models[i].meshes.size());
-	      for(size_t j = 0 ; j <  pGroup->models[i].meshes.size(); j++) {
-		  model->meshes[j] = MeshInfo(
-			  pGroup->models[i].meshes[j]->indicies.size(),
-			  model->indexCount,  //as offset
-			  model->vertexCount, //as offset
-			  pGroup->models[i].meshes[j]->texture,
-			  pGroup->models[i].meshes[j]->diffuseColour);
-		  model->vertexCount += pGroup->models[i].meshes[j]->verticies.size();
-		  model->indexCount  += pGroup->models[i].meshes[j]->indicies.size();
-		  vertexDataSize += sizeof(T_Vert) * pGroup->models[i].meshes[j]->verticies.size();
-		  indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0])
-		      * pGroup->models[i].meshes[j]->indicies.size();
-	      }
-	      modelVertexOffset += model->vertexCount;
+      model->type = getModelType(pGroup->models[i].meshes[0]->verticies[0]);
+      model->vertexOffset = modelVertexOffset;
+      model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indicies[0]);
+      model->meshes.resize(pGroup->models[i].meshes.size());
+      for(size_t j = 0 ; j <  pGroup->models[i].meshes.size(); j++) {
+	model->meshes[j] = MeshInfo(
+				    (uint32_t)pGroup->models[i].meshes[j]->indicies.size(),
+				    model->indexCount,  //as offset
+				    model->vertexCount, //as offset
+				    pGroup->models[i].meshes[j]->texture,
+				    pGroup->models[i].meshes[j]->diffuseColour);
+	model->vertexCount += (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
+	model->indexCount  += (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+	vertexDataSize += sizeof(T_Vert) * (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
+	indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0])
+	  * (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+      }
+      modelVertexOffset += model->vertexCount;
 
-	      for(size_t anim = 0; anim < pGroup->models[i].animations.size(); anim++) {
-		  model->animations.push_back(pGroup->models[i].animations[anim]);
-		  model->animationMap[pGroup->models[i].animations[anim].getName()] = static_cast<int>(
-			  pGroup->models[i].animations.size() - 1);
-	      }
-
-	  }
-	  pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
+      for(size_t anim = 0; anim < pGroup->models[i].animations.size(); anim++) {
+	model->animations.push_back(pGroup->models[i].animations[anim]);
+	model->animationMap[pGroup->models[i].animations[anim].getName()] = static_cast<int>(
+											     pGroup->models[i].animations.size() - 1);
       }
 
-      template <class T_Vert >
-	  void ModelRender::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup,
-					   size_t &pVertexDataOffset, size_t &pIndexDataOffset) {
-	  for(auto& model: pGroup->models) {
-	      for(size_t i = 0; i < model.meshes.size(); i++) {
+    }
+    pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
+  }
+
+  template <class T_Vert >
+  void ModelRender::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup,
+				   size_t &pVertexDataOffset, size_t &pIndexDataOffset) {
+    for(auto& model: pGroup->models) {
+      for(size_t i = 0; i < model.meshes.size(); i++) {
 		    
-		  std::memcpy(static_cast<char*>(pMem) + pVertexDataOffset,
-			      model.meshes[i]->verticies.data(),
-			      sizeof(T_Vert ) * model.meshes[i]->verticies.size());
+	std::memcpy(static_cast<char*>(pMem) + pVertexDataOffset,
+		    model.meshes[i]->verticies.data(),
+		    sizeof(T_Vert ) * model.meshes[i]->verticies.size());
 			
-		  pVertexDataOffset += sizeof(T_Vert ) * model.meshes[i]->verticies.size();
+	pVertexDataOffset += sizeof(T_Vert ) * model.meshes[i]->verticies.size();
 			
-		  std::memcpy(static_cast<char*>(pMem) + pIndexDataOffset,
-			      model.meshes[i]->indicies.data(),
-			      sizeof(model.meshes[i]->indicies[0])
-			      * model.meshes[i]->indicies.size());
+	std::memcpy(static_cast<char*>(pMem) + pIndexDataOffset,
+		    model.meshes[i]->indicies.data(),
+		    sizeof(model.meshes[i]->indicies[0])
+		    * model.meshes[i]->indicies.size());
 			
-		  pIndexDataOffset += sizeof(model.meshes[i]->indicies[0])
-		      * model.meshes[i]->indicies.size();
+	pIndexDataOffset += sizeof(model.meshes[i]->indicies[0])
+	  * model.meshes[i]->indicies.size();
 			
-		  delete model.meshes[i];
-	      }
-	  }
-	  pGroup->models.clear();
+	delete model.meshes[i];
       }
+    }
+    pGroup->models.clear();
+  }
   } //end namespace

@@ -38,9 +38,9 @@ namespace Resource
 
       void bindBuffers(VkCommandBuffer cmdBuff);
       void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
-		     size_t count, size_t instanceOffset);
+		     uint32_t count, uint32_t instanceOffset);
       void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
-		    size_t count, size_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
+		    uint32_t count, uint32_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
 
       size_t getAnimationIndex(Model model, std::string animationName);
       ModelAnimation* getpAnimation(Model model, int animationIndex);
@@ -81,8 +81,8 @@ namespace Resource
       VkBuffer buffer;
       VkDeviceMemory memory;
 
-      size_t vertexDataSize = 0;
-      size_t indexDataSize = 0;
+      uint32_t vertexDataSize = 0;
+      uint32_t indexDataSize = 0;
       uint32_t currentIndex = 0;
 
       bool boundThisFrame = false;
