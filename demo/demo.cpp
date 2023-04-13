@@ -13,27 +13,28 @@ float yaw = -5.0f;
 float pitch = -5.0f;
 bool resize = false;
 bool vsyncToggle = false;
+long frameElapsed = 0;
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     resize = true;
 }
     
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-    if (key == GLFW_KEY_W) pitch += 1.0f;
-    if (key == GLFW_KEY_S) pitch -= 1.0f;
-    if (key == GLFW_KEY_A) yaw += 1.0f;
-    if (key == GLFW_KEY_D) yaw -= 1.0f;
-
-    if(key == GLFW_KEY_UP) camPos.x += 1.0f;
-    if(key == GLFW_KEY_DOWN) camPos.x -= 1.0f;
-    if(key == GLFW_KEY_LEFT) camPos.y += 1.0f;
-    if(key == GLFW_KEY_RIGHT) camPos.y -= 1.0f;
-    if(key == GLFW_KEY_SPACE) camPos.z += 1.0f;
-    if(key == GLFW_KEY_LEFT_SHIFT) camPos.z -= 1.0f;
-    if(key == GLFW_KEY_V && action == GLFW_PRESS) vsyncToggle = true;
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+  float speed = 0.2f;
+  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+  if (key == GLFW_KEY_W) pitch += speed * frameElapsed;
+  if (key == GLFW_KEY_S) pitch -= speed * frameElapsed;
+  if (key == GLFW_KEY_A) yaw += speed * frameElapsed;
+  if (key == GLFW_KEY_D) yaw -= speed * frameElapsed;
+  speed = 0.5f;
+  if(key == GLFW_KEY_UP) camPos.x += speed * frameElapsed;
+  if(key == GLFW_KEY_DOWN) camPos.x -= speed * frameElapsed;
+  if(key == GLFW_KEY_LEFT) camPos.y += speed * frameElapsed;
+  if(key == GLFW_KEY_RIGHT) camPos.y -= speed * frameElapsed;
+  if(key == GLFW_KEY_SPACE) camPos.z += speed * frameElapsed;
+  if(key == GLFW_KEY_LEFT_SHIFT) camPos.z -= speed * frameElapsed;
+  if(key == GLFW_KEY_V && action == GLFW_PRESS) vsyncToggle = true;
 }
 
 void error_callback(int error, const char *description) {
@@ -90,18 +91,15 @@ int main() {
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
 	auto start = std::chrono::high_resolution_clock::now();
-	long frameElapsed = 0;
 	float elapsedTime = 0;
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
-
 	    if(vsyncToggle) {
 		render.setVsync(!render.getVsync());
 		vsyncToggle = false;
 	    }
 
 	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
-
 	    render.setTime(elapsedTime);
 
 	    elapsedTime += frameElapsed / 1000.0f;
@@ -113,7 +111,6 @@ int main() {
 	    render.Begin2DDraw();
 	
 	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
-
 	    render.DrawQuad(Resource::Texture(), glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
 
 	    render.Begin3DDraw();
@@ -126,31 +123,31 @@ int main() {
 						glm::vec3(100.0f, -100.0f, -100.0f)),
 					glm::radians(90.0f),
 					glm::vec3(1.0f, 0.0f, 0.0f)),
-				glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f)
-				    );
+				glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
+	    
 	    auto monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
 	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat);
 
 	    render.BeginAnim3DDraw();
 
-	    auto wolfMat =
+	    auto wolfMat = glm::translate(
 		glm::scale(
 			glm::rotate(
 				glm::mat4(1.0f),
 				glm::radians(90.0f),
-				glm::vec3(1.0f, -0.8f, 0.5f)),
-			glm::vec3(2.0f, 2.0f, 2.0f)
-			    );
+				glm::vec3(1.0f, 0.0f, 0.0f)),
+			glm::vec3(2.0f, 2.0f, 2.0f)),
+		glm::vec3(100.0f, -50.0f, 100.0f));
+	    
 	    auto wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
 	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
 	    
-
 	    wolfMat =
 		glm::scale(
 			glm::rotate(
 				glm::mat4(1.0f),
 				glm::radians(90.0f),
-				glm::vec3(3.0f, -0.8f, 0.5f)),
+				glm::vec3(1.0f, -0.8f, 0.5f)),
 			glm::vec3(2.0f, 2.0f, 2.0f)
 			    );
 	    wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
@@ -159,8 +156,7 @@ int main() {
 	    drawFinished = false;
 	    render.EndDraw(drawFinished);
 
-	    if(resize) {
-		
+	    if(resize) {	
 		resize = false;
 		render.FramebufferResize();
 	    }
