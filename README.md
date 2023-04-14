@@ -36,6 +36,8 @@ There are some optional flags that can be set to change what is built:
 - pass `-DNO_FREETYPE=true` to remove the freetype dependancy from the library (font related functions will throw an exception)
 - pass `-DNO_ASSIMP=true` to remove the assimp dependancy from the library ( model related functions will throw an exception)
 - pass `-DASSIMP_BUILD_<Some Model Type>_IMPORTER=true` to enable the importing of models that this project doesn't by default. (By default only .fbx and .obj model importers are built)
+- pass `-DVKENV_BUILD_STATIC=true` to have the library link agains the system's c runtime statically and link statically to dependancies
+- pass `-DBUILD_ASSIMP_STATIC=true` to have assimp linked statically (enabled if `VKENV_BUILD_STATIC` is enabled)
 
 To get this project and it's submodules run `$ git clone <this repo> --recurse-submodules`
 

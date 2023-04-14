@@ -10,14 +10,21 @@ option(GLFW_BUILD_DOCS "Build the GLFW documentation" ON)
 set(GLFW_BUILD_DOCS FALSE)
 option(GLFW_INSTALL "Generate installation target" ON)
 set(GLFW_INSTALL FALSE)
+include(CMakeDependentOption)
+cmake_dependent_option(USE_MSVC_RUNTIME_LIBRARY_DLL "Use MSVC runtime library DLL" ON
+  "MSVC" OFF)
+if(VKENV_BUILD_STATIC)
+  if(MSVC)
+    set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF)
+  endif()
+endif()
 add_subdirectory(glfw)
-
 
 add_subdirectory(glm)
 
-
 add_subdirectory(volk)
 
+# assimp setup
 if(NOT NO_ASSIMP)
   if(NOT BUILD_ASSIMP_STATIC)
     OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
@@ -31,6 +38,7 @@ if(NOT NO_ASSIMP)
   set(ASSIMP_BUILD_TESTS OFF)
   OPTION(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT "default value of all ASSIMP_BUILD_XXX_IMPORTER values" TRUE)
   set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
+  # by default only support obj and fbx models
   set(ASSIMP_BUILD_FBX_IMPORTER TRUE)
   set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
   add_subdirectory(assimp)

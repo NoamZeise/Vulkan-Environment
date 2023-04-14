@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 
 project(Vulkan-Environment)
 
@@ -9,7 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #         -BUILD_TESTS
 #         -NO_FREETYPE
 #         -NO_ASSIMP
-#         -STATIC_FLAG
+#         -VKENV_BUILD_STATIC
 #         -BUILD_ASSIMP_STATIC
 
 
@@ -21,9 +21,10 @@ if(NO_FREETYPE)
   add_compile_definitions(NO_FREETYPE)
 endif()
 
-if(STATIC_FLAG)
+if(VKENV_BUILD_STATIC)
   if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MT")
+    set(BUILD_ASSIMP_STATIC true)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
   endif()
