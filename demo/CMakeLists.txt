@@ -15,3 +15,12 @@ if(NOT NO_ASSIMP)
       $<TARGET_FILE_DIR:VKenvDemo>)
   endif()
 endif()
+
+if(NOT NO_FREETYPE)
+  if(NOT VKENV_BUILD_STATIC)
+    add_custom_command(TARGET VKenvDemo POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+      $<TARGET_FILE_DIR:freetype>
+      $<TARGET_FILE_DIR:VKenvDemo>)
+  endif()
+endif()
