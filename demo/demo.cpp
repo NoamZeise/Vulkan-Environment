@@ -82,6 +82,8 @@ int main() {
 	Resource::ModelAnimation currentWolfAnimation = wolfAnimations[0];
 	Resource::ModelAnimation otherWolfAnimation = wolfAnimations[1];
 
+	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
+
 	render.LoadResourcesToGPU();
 	render.UseLoadedResources();
 
@@ -112,6 +114,8 @@ int main() {
 	
 	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
 	    render.DrawQuad(Resource::Texture(), glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
+
+	    render.DrawString(font, "Demo", glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 
 	    render.Begin3DDraw();
 

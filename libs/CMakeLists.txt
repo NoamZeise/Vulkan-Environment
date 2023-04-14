@@ -43,3 +43,7 @@ if(NOT NO_ASSIMP)
   set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
   add_subdirectory(assimp)
 endif()
+
+if(NOT NO_FREETYPE)
+  add_subdirectory(freetype)
+endif()
