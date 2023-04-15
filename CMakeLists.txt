@@ -22,10 +22,9 @@ endif()
 
 if(VKENV_BUILD_STATIC)
   set(BUILD_ASSIMP_STATIC true)
+  set(BUILD_SHARED_LIBS false)
   if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
   endif()
 endif()
 
