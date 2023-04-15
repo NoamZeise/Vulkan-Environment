@@ -14,9 +14,9 @@ include(CMakeDependentOption)
 cmake_dependent_option(USE_MSVC_RUNTIME_LIBRARY_DLL "Use MSVC runtime library DLL" ON
   "MSVC" OFF)
 if(VKENV_BUILD_STATIC)
-  if(MSVC)
+ if(MSVC)
     set(USE_MSVC_RUNTIME_LIBRARY_DLL OFF)
-  endif()
+ endif()
 endif()
 add_subdirectory(glfw)
 
@@ -26,9 +26,11 @@ add_subdirectory(volk)
 
 # assimp setup
 if(NOT NO_ASSIMP)
+  OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
   if(NOT BUILD_ASSIMP_STATIC)
-    OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
     set(BUILD_SHARED_LIBS ON)
+  else()
+    set(BUILD_SHARED_LIBS OFF)
   endif()
   OPTION( ASSIMP_NO_EXPORT "Disable Assimp's export functionality." OFF)
   set(ASSIMP_NO_EXPORT ON)
@@ -45,5 +47,26 @@ if(NOT NO_ASSIMP)
 endif()
 
 if(NOT NO_FREETYPE)
+  if(NOT VKENV_BUILD_STATIC)
+    set(BUILD_SHARED_LIBS ON)
+  else()
+    set(BUILD_SHARED_LIBS OFF)
+  endif()
+  #disable freetype optional dependancies
+  option(FT_DISABLE_ZLIB
+  "Disable use of system zlib and use internal zlib library instead." OFF)
+set(FT_DISABLE_ZLIB true)
+option(FT_DISABLE_BZIP2
+  "Disable support of bzip2 compressed fonts." OFF)
+set(FT_DISABLE_BZIP2 true)
+option(FT_DISABLE_PNG
+  "Disable support of PNG compressed OpenType embedded bitmaps." OFF)
+set(FT_DISABLE_PNG true)
+option(FT_DISABLE_HARFBUZZ
+  "Disable HarfBuzz (used for improving auto-hinting of OpenType fonts)." OFF)
+set(FT_DISABLE_HARFBUZZ true)
+option(FT_DISABLE_BROTLI
+  "Disable support of compressed WOFF2 fonts." OFF)
+  set(FT_DISABLE_BROTLI true)
   add_subdirectory(freetype)
 endif()

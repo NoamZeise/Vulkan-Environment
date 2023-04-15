@@ -12,7 +12,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #         -VKENV_BUILD_STATIC
 #         -BUILD_ASSIMP_STATIC
 
-
 if(NO_ASSIMP)
   add_compile_definitions(NO_ASSIMP)
 endif()
@@ -22,8 +21,8 @@ if(NO_FREETYPE)
 endif()
 
 if(VKENV_BUILD_STATIC)
+  set(BUILD_ASSIMP_STATIC true)
   if(MSVC)
-    set(BUILD_ASSIMP_STATIC true)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")

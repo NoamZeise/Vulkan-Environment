@@ -6,7 +6,7 @@ A 2D and 3D renderer library that uses Vulkan. In a working state.
 * 2D and 3D rendering
 * Import and Draw models (only supports diffuse image textures)
 * Skeletal animation
-* Image textures laoding and rendering
+* Image textures loading and rendering
 * Font loading and rendering
 
 ## Applications using this library:
