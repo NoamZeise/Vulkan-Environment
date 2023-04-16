@@ -297,6 +297,7 @@ void Render::_destroyFrameResources()
   vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
   for(int i = 0; i < descriptorSets.size(); i++)
       delete descriptorSets[i];
+  descriptorSets.clear();
   vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
 
   _pipeline3D.destroy(manager->deviceState.device);

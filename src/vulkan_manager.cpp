@@ -10,19 +10,8 @@
   if (result_expr != VK_SUCCESS)                                               \
     throw std::runtime_error(error_message);
 
-/*VkResult loadVulkan() {
-    VkResult result = volkInitialize();
-    if(result != VK_SUCCESS) {
-	return result;
-    }
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    return result;
-    }*/
-
 VulkanManager::VulkanManager(GLFWwindow *window, EnabledFeatures featuresToEnable) {
     this->window = window;
-    // throwOnErr(loadVulkan(),
-    //	       "Failed to load Vulkan functions");
     throwOnErr(part::create::Instance(&instance),
 	       "Failed to create Vulkan Instance");
 #ifndef NDEBUG
@@ -45,7 +34,6 @@ VulkanManager::VulkanManager(GLFWwindow *window, EnabledFeatures featuresToEnabl
 VulkanManager::~VulkanManager() {
     vkQueueWaitIdle(deviceState.queue.graphicsPresentQueue);
 
-    
     vkDestroyCommandPool(deviceState.device, generalCommandPool, nullptr);
     vkDestroyDevice(deviceState.device, nullptr);
     vkDestroySurfaceKHR(instance, windowSurface, nullptr);

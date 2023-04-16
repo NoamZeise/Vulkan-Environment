@@ -20,11 +20,9 @@ struct Frag2DData {
   alignas(4) uint32_t texID;
 };
 
-
 struct timeUbo {
     alignas(4) float time;
 };
- 
 
 struct Lighting {
   Lighting() {

@@ -15,17 +15,9 @@ struct VulkanManager {
     DeviceState deviceState;
     VkCommandPool generalCommandPool;
     VkCommandBuffer generalCommandBuffer;
-    /*bool useWindowResolution = true;
-    VkExtent2D offscreenExtent = {0, 0};
-    bool vsync = true;
-    bool srgb = false;
-    bool multisampling = true;*/
-    
     GLFWwindow *window;
     VkInstance instance;
     VkSurfaceKHR windowSurface;
-
-  
 #ifndef NDEBUG
     VkDebugUtilsMessengerEXT debugMessenger;
 #endif
