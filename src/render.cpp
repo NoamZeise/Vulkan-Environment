@@ -499,6 +499,7 @@ void Render::Begin2DDraw()
       0.0f, (float)swapchain->offscreenExtent.width*_scale2D / correction, 0.0f,
       (float)swapchain->offscreenExtent.height*_scale2D / correction, -10.0f, 10.0f);
   VP2DData.view = glm::mat4(1.0f);
+  
 
   VP2D->bindings[0].storeSetData(_frameI, &VP2DData, 0, 0, 0);
 
