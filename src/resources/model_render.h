@@ -29,10 +29,15 @@ namespace Resource
   public:
       ModelRender(DeviceState base, VkCommandPool pool);
       ~ModelRender();
-      Model loadModel(std::string path, TextureLoader* texLoader);
-      Model loadModel(std::string path, TextureLoader* texLoader,
-		      std::vector<Resource::ModelAnimation> *pGetAnimations);
+      
+      Model load2DModel(std::string path, TextureLoader* texLoader);
       Model load2DModel(ModelInfo::Model& model, TextureLoader* texLoader);
+      Model load3DModel(std::string path, TextureLoader* texLoader);
+      Model load3DModel(ModelInfo::Model& model, TextureLoader* texLoader);
+      Model loadAnimatedModel(std::string path, TextureLoader* texLoader,
+			      std::vector<Resource::ModelAnimation> *pGetAnimations);
+      Model loadAnimatedModel(ModelInfo::Model& model, TextureLoader* texLoader,
+			      std::vector<Resource::ModelAnimation> *pGetAnimations);
       void endLoading(VkCommandBuffer transferBuff);
 
       void bindBuffers(VkCommandBuffer cmdBuff);
@@ -40,27 +45,24 @@ namespace Resource
 		     uint32_t count, uint32_t instanceOffset);
       void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
 		    uint32_t count, uint32_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
-
       size_t getAnimationIndex(Model model, std::string animationName);
       ModelAnimation* getpAnimation(Model model, int animationIndex);
 
   private:
       void loadQuad();
-
+      template <class T_Vert>
+      Model loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup,
+			  TextureLoader* texLoader);
+      ModelInfo::Model loadModelFromFile(std::string path);
       template <class T_Vert>
       void loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader);
-
       template <class T_Vert>
       void processLoadGroup(ModelGroup<T_Vert>* pGroup);
-
       template <class T_Vert>
       void stageLoadGroup(void* pMem, ModelGroup<T_Vert>* pGroup,
 			  size_t &vertexDataOffset, size_t &indexDataOffset);
-
       void bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type);
-
       void unloadAllModelData();
-
       void drawMesh(VkCommandBuffer cmdBuff,
 		    ModelInGPU *modelInfo,
 		    uint32_t meshIndex,

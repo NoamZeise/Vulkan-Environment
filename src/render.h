@@ -36,14 +36,38 @@ const int MAX_2D_INSTANCE = 20;
 
   class Render {
   public:
+      /// Try and load Vulkan functions from the installed driver.
+      /// Returns whether the operation succeeded or not.
+      /// If the operation failed, don't try to create an object of type Render.
+      /// This will be called by Render automatically if not called before Render is created.
+      static bool LoadVulkan();
+      /// Iniltialise the renderer. Chooses a GPU and sets up resources loaders.
+      /// Do any resource loading, then call LoadResourcesToGPU(), then UseLoadedResources() 
+      /// before the draw loop.
       Render(GLFWwindow *window, glm::vec2 target);
       ~Render();
-      static bool LoadVulkan();
   
       Resource::Texture LoadTexture(std::string filepath);
       Resource::Font LoadFont(std::string filepath);
-      Resource::Model LoadModel(std::string filepath);
+      /// Load model from the filepath and store as a 2D model.
+      /// Can be used in 2D draws, which will be drawn with orthographic projection.
+      Resource::Model Load2DModel(std::string filepath);
+      /// Load 2D model from a ModelInfo::Model.
+      /// For loading your own models that aren't from a model file.
+      Resource::Model Load2DModel(ModelInfo::Model& model);
+      /// Load a model from a file and store as a 3D model.
+      Resource::Model Load3DModel(std::string filepath);
+      /// Load 3D model from a ModelInfo::Model.
+      /// For loading your own models that aren't from a model file.
+      Resource::Model Load3DModel(ModelInfo::Model& model);
+      /// Load a model that has animations
+      /// Supply a pointer to a vector of ModelAnimations to get the animations that the model has.
+      /// If the model has no animations, the model will be loaded as 3D.
       Resource::Model LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations);
+      Resource::Model LoadAnimatedModel(ModelInfo::Model& model,
+					std::vector<Resource::ModelAnimation> *pGetAnimation);
+
+      
       void LoadResourcesToGPU();
       void UseLoadedResources();
 

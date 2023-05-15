@@ -37,7 +37,11 @@ bool Render::LoadVulkan()
 
 void checkVolk() {
     if(volkGetInstanceVersion() == 0) {
-	throw std::runtime_error("Vulkan has not been loaded! make sure Render::LoadVulkan has been called and checked before creating an instance of Render");
+	// if user hasn't checked for vulkan support, try loading vulkan first.
+	if(!Render::LoadVulkan())
+	    throw std::runtime_error("Vulkan has not been loaded! Either the"
+				     " graphics devices does not support vulkan, "
+				     "or Vulkan drivers aren't installed");		    
     }
  }
 
@@ -313,51 +317,61 @@ Resource::Texture Render::LoadTexture(std::string filepath) {
 }
 
 Resource::Font Render::LoadFont(std::string filepath) {
-  try {
-    return _stagingFontLoader->LoadFont(filepath, _stagingTextureLoader);
-  } catch (const std::exception &e) {
-    std::cout << e.what() << std::endl;
-    return Resource::Font();
-  }
+    try {
+      return _stagingFontLoader->LoadFont(filepath, _stagingTextureLoader);
+    } catch (const std::exception &e) {
+	std::cout << e.what() << std::endl;
+	return Resource::Font();
+    }
 }
 
 Resource::Model Render::LoadAnimatedModel(
-    std::string filepath,
-    std::vector<Resource::ModelAnimation> *pGetAnimations) {
-  return _stagingModelLoader->loadModel(filepath, _stagingTextureLoader, pGetAnimations);
+	std::string filepath,
+	std::vector<Resource::ModelAnimation> *pGetAnimations) {
+    return _stagingModelLoader->loadAnimatedModel(filepath, _stagingTextureLoader, pGetAnimations);
 }
 
-Resource::Model Render::LoadModel(std::string filepath)
-{
-  return _stagingModelLoader->loadModel(filepath, _stagingTextureLoader);
+Resource::Model Render::LoadAnimatedModel(ModelInfo::Model& model,
+					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
+    return _stagingModelLoader->loadAnimatedModel(model, _stagingTextureLoader, pGetAnimation);
+}
+
+Resource::Model Render::Load2DModel(std::string filepath) {
+    return _stagingModelLoader->load2DModel(filepath, _stagingTextureLoader);
+}
+
+Resource::Model Render::Load2DModel(ModelInfo::Model& model) {
+    return _stagingModelLoader->load2DModel(model, _stagingTextureLoader);
+}
+
+Resource::Model Render::Load3DModel(std::string filepath) {
+    return _stagingModelLoader->load3DModel(filepath, _stagingTextureLoader);
 }
 
 void Render::LoadResourcesToGPU() {
-  _stagingTextureLoader->endLoading();
-  _stagingModelLoader->endLoading(manager->generalCommandBuffer);
+    _stagingTextureLoader->endLoading();
+    _stagingModelLoader->endLoading(manager->generalCommandBuffer);
 }
 
-void Render::UseLoadedResources()
-{
-  vkDeviceWaitIdle(manager->deviceState.device);
-  if(_textureLoader != nullptr)
-      _destroyFrameResources();
-  delete _textureLoader;
-  _textureLoader = _stagingTextureLoader;
-  delete _modelLoader;
-  _modelLoader = _stagingModelLoader;
-  delete _fontLoader;
-  _fontLoader = _stagingFontLoader;
-  _initStagingResourceManagers();
-  _initFrameResources();
+void Render::UseLoadedResources() {
+    vkDeviceWaitIdle(manager->deviceState.device);
+    if(_textureLoader != nullptr)
+	_destroyFrameResources();
+    delete _textureLoader;
+    _textureLoader = _stagingTextureLoader;
+    delete _modelLoader;
+    _modelLoader = _stagingModelLoader;
+    delete _fontLoader;
+    _fontLoader = _stagingFontLoader;
+    _initStagingResourceManagers();
+    _initFrameResources();
 }
 
-void Render::_resize()
-{
+void Render::_resize() {
     LOG("resizing");
     _framebufferResized = false;
     vkDeviceWaitIdle(manager->deviceState.device);
-
+    
     _destroyFrameResources();
     _initFrameResources();
     
@@ -365,8 +379,7 @@ void Render::_resize()
     _update3DProjectionMatrix();
 }
 
-void Render::_startDraw()
-{
+void Render::_startDraw() {
     bool rebuiltSwapchain = false;
  START_DRAW: // retry start draw if out of date swapchain
     VkResult result =  swapchain->beginOffscreenRenderPass(&currentCommandBuffer);
@@ -389,21 +402,20 @@ void Render::_startDraw()
     _begunDraw = true;
 }
 
-void Render::Begin3DDraw()
-{
-  if (!_begunDraw)
-    _startDraw();
-  if (_modelRuns > 0)
-    _drawBatch();
-  if (_instance2Druns > 0)
-    _drawBatch();
-  _renderState = RenderState::Draw3D;
-
-  VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
-  VP3D->bindings[1].storeSetData(_frameI, &timeData, 0, 0, 0);
-  lighting->bindings[0].storeSetData(_frameI, &lightingData, 0, 0, 0);
-
-  _pipeline3D.begin(currentCommandBuffer, _frameI);
+void Render::Begin3DDraw() {
+    if (!_begunDraw)
+	_startDraw();
+    if (_modelRuns > 0)
+	_drawBatch();
+    if (_instance2Druns > 0)
+	_drawBatch();
+    _renderState = RenderState::Draw3D;
+    
+    VP3D->bindings[0].storeSetData(_frameI, &VP3DData, 0, 0, 0);
+    VP3D->bindings[1].storeSetData(_frameI, &timeData, 0, 0, 0);
+    lighting->bindings[0].storeSetData(_frameI, &lightingData, 0, 0, 0);
+    
+    _pipeline3D.begin(currentCommandBuffer, _frameI);
 }
 
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)

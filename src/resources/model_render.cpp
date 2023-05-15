@@ -166,6 +166,63 @@ namespace Resource
 	      instanceOffset);
   }
 
+  template <class T_Vert>
+  Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup, TextureLoader* texLoader) {
+      Model userModel(currentIndex++);
+      modelGroup.loadModel(model, userModel.ID);
+      loadModelTexture(modelGroup.getPreviousModel(), texLoader);
+      return userModel;
+  }
+
+  Model ModelRender::load2DModel(ModelInfo::Model& model, TextureLoader* texLoader) {
+      return loadModelInfo(model, loaded2D, texLoader);
+  }
+
+  Model ModelRender::load3DModel(ModelInfo::Model& model, TextureLoader* texLoader) {
+      return loadModelInfo(model, loaded3D, texLoader);
+  }
+  
+  Model ModelRender::loadAnimatedModel(ModelInfo::Model& model, TextureLoader* texLoader,
+			  std::vector<Resource::ModelAnimation> *pGetAnimations) {
+      Model userModel = loadModelInfo(model, loadedAnim3D, texLoader);
+      for(ModelInfo::Animation anim : model.animations) {
+	  loadedAnim3D.getPreviousModel()->animations
+	      .push_back(ModelAnimation(model.bones, anim));
+	      pGetAnimations->push_back(
+		      loadedAnim3D.getPreviousModel()->
+		      animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
+      }
+      return userModel;
+  }
+
+  ModelInfo::Model ModelRender::loadModelFromFile(std::string path) {
+#ifndef NO_ASSIMP
+      LOG("loading model: " << path);
+      return modelLoader.LoadModel(path);
+#else
+      throw std::runtime_error("tried to load model from file, but NO_ASSIMP is defined"
+"so that feature is disabled!");
+#endif
+  }
+
+  Model ModelRender::load2DModel(std::string path, TextureLoader* texLoader) {
+      ModelInfo::Model fileModel = loadModelFromFile(path);
+      return load2DModel(fileModel, texLoader);
+  }
+
+  Model ModelRender::load3DModel(std::string path, TextureLoader* texLoader) {
+      return loadAnimatedModel(path, texLoader, nullptr);
+  }
+
+  Model ModelRender::loadAnimatedModel(std::string path, TextureLoader* texLoader,
+			       std::vector<Resource::ModelAnimation> *pGetAnimations) {
+      ModelInfo::Model fileModel = loadModelFromFile(path);
+      if(!fileModel.animatedModel || pGetAnimations == nullptr)
+	  return load3DModel(fileModel, texLoader);
+      else
+	  return loadAnimatedModel(fileModel, texLoader, pGetAnimations);
+  }
+
   void ModelRender::loadQuad() {
       ModelInfo::Mesh mesh;
       mesh.verticies.resize(4);
@@ -182,45 +239,7 @@ namespace Resource
       quad.meshes.push_back(mesh);
       quadID = load2DModel(quad, nullptr).ID;
   }
-
-  Model ModelRender::load2DModel(ModelInfo::Model& model, TextureLoader* texLoader) {
-      Model userModel(currentIndex++);
-      loaded2D.loadModel(model, userModel.ID);
-      loadModelTexture(loaded2D.getPreviousModel(), texLoader);
-      return userModel;
-  }
-
-  Model ModelRender::loadModel(std::string path, TextureLoader* texLoader,
-			       std::vector<Resource::ModelAnimation> *pGetAnimations) {
-#ifndef NO_ASSIMP
-      LOG("loading model: " << path);
-      ModelInfo::Model fileModel = modelLoader.LoadModel(path);
-      Model userModel(currentIndex);
-      if(!fileModel.animatedModel || pGetAnimations == nullptr) {
-	  loaded3D.loadModel(fileModel, currentIndex);
-	  loadModelTexture(loaded3D.getPreviousModel(), texLoader);
-      } else {
-	  loadedAnim3D.loadModel(fileModel, currentIndex);
-	  auto loadedModel = loadedAnim3D.getPreviousModel();
-	  for(const auto &anim : fileModel.animations) {
-	      loadedModel->animations.push_back(ModelAnimation(fileModel.bones, anim));
-	      pGetAnimations->push_back(
-		      loadedModel->animations[loadedModel->animations.size() - 1]);
-	  }
-	  loadModelTexture(loadedModel, texLoader);
-      }
-      currentIndex++;
-      LOG("finished loading model");
-      return userModel;
-#else
-      throw std::runtime_error("tried to load model but NO_ASSIMP is defined!");
-#endif
-  }
-
-  Model ModelRender::loadModel(std::string path, TextureLoader* texLoader) {
-      return loadModel(path, texLoader, nullptr);
-  }
-
+  
   template <class T_Vert>
   void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
       for(auto& mesh: model->meshes) {

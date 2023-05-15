@@ -76,7 +76,8 @@ int main() {
 		  << "\nheight: " << render.getTargetResolution().y << std::endl;
 
 	Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
-	Resource::Model suzanneModel = render.LoadModel("models/monkey.fbx");
+	Resource::Model suzanneModel = render.Load3DModel("models/monkey.fbx");
+
 	std::vector<Resource::ModelAnimation> wolfAnimations;
 	Resource::Model animatedWolf = render.LoadAnimatedModel("models/wolf.fbx", &wolfAnimations);
 	Resource::ModelAnimation currentWolfAnimation = wolfAnimations[0];
