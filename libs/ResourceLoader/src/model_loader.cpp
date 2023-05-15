@@ -62,10 +62,7 @@ namespace Resource
         return aiMat;
     }
 
-ModelLoader::ModelLoader()
-{
-
-}
+ModelLoader::ModelLoader() {}
 
 ModelInfo::Model ModelLoader::LoadModel(std::string path)
 {

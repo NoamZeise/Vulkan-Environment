@@ -41,6 +41,11 @@ if(NOT NO_ASSIMP)
     )
     set(ASSIMP_BUILD_ZLIB ON)
   endif()
+  OPTION ( ASSIMP_WARNINGS_AS_ERRORS
+    "Treat all warnings as errors."
+    ON
+  )
+  set(ASSIMP_WARNINGS_AS_ERRORS OFF)
   OPTION( ASSIMP_NO_EXPORT "Disable Assimp's export functionality." OFF)
   set(ASSIMP_NO_EXPORT ON)
   OPTION( ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." ON )

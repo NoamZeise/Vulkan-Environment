@@ -38,6 +38,11 @@ struct ModelGroup {
     size_t vertexDataOffset;
     size_t vertexDataSize;
     void loadModel(ModelInfo::Model &modelData, uint32_t currentID);
+    LoadedModel<T_Vert>* getPreviousModel() {
+	if(models.size() == 0)
+	    return nullptr;
+	return &models[models.size() - 1];
+    }
     void clearData() {
 	for (auto& model : models)
 	    for (size_t i = 0; i < model.meshes.size(); i++)
@@ -46,8 +51,7 @@ struct ModelGroup {
     }
 };
 
-//loadVerticies defined for Vertex Types
-
+//loadVerticies defined for Vertex Types. Full definition in .cpp file.
 void loadVertices(Mesh<VertexAnim3D> *mesh, ModelInfo::Mesh &dataMesh);
 void loadVertices(Mesh<Vertex3D> *mesh, ModelInfo::Mesh &dataMesh);
 void loadVertices(Mesh<Vertex2D> *mesh, ModelInfo::Mesh &dataMesh);

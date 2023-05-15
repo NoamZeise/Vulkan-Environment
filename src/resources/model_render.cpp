@@ -167,24 +167,26 @@ namespace Resource
   }
 
   void ModelRender::loadQuad() {
-      quadID = load2DModel( {
-	      {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	      {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	      {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-	      {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}} },
-	  { 0, 3, 2, 2, 1, 0}).ID;
+      ModelInfo::Mesh mesh;
+      mesh.verticies.resize(4);
+      mesh.verticies[0].Position = {0.0f, 0.0f, 0.0f};
+      mesh.verticies[0].TexCoord = {0.0f, 0.0f};
+      mesh.verticies[1].Position = {1.0f, 0.0f, 0.0f};
+      mesh.verticies[1].TexCoord = {1.0f, 0.0f};
+      mesh.verticies[2].Position = {1.0f, 1.0f, 0.0f};
+      mesh.verticies[2].TexCoord = {1.0f, 1.0f};
+      mesh.verticies[3].Position = {0.0f, 1.0f, 0.0f};
+      mesh.verticies[3].TexCoord = {0.0f, 1.0f};
+      mesh.indicies = { 0, 3, 2, 2, 1, 0};
+      ModelInfo::Model quad;
+      quad.meshes.push_back(mesh);
+      quadID = load2DModel(quad, nullptr).ID;
   }
 
-  Model ModelRender::load2DModel(std::vector<Vertex2D> vertices,
-				 std::vector<uint32_t> indices) {
+  Model ModelRender::load2DModel(ModelInfo::Model& model, TextureLoader* texLoader) {
       Model userModel(currentIndex++);
-      LoadedModel<Vertex2D> model;
-      model.ID = (uint32_t)userModel.ID;
-      Mesh<Vertex2D> *mesh = new Mesh<Vertex2D>();
-      mesh->verticies = vertices;
-      mesh->indicies = indices;
-      model.meshes.push_back(mesh);
-      loaded2D.models.push_back(model);
+      loaded2D.loadModel(model, userModel.ID);
+      loadModelTexture(loaded2D.getPreviousModel(), texLoader);
       return userModel;
   }
 
@@ -196,10 +198,10 @@ namespace Resource
       Model userModel(currentIndex);
       if(!fileModel.animatedModel || pGetAnimations == nullptr) {
 	  loaded3D.loadModel(fileModel, currentIndex);
-	  loadModelTexture(&loaded3D.models[loaded3D.models.size() - 1], texLoader);
+	  loadModelTexture(loaded3D.getPreviousModel(), texLoader);
       } else {
 	  loadedAnim3D.loadModel(fileModel, currentIndex);
-	  auto loadedModel = &loadedAnim3D.models[loadedAnim3D.models.size() - 1];
+	  auto loadedModel = loadedAnim3D.getPreviousModel();
 	  for(const auto &anim : fileModel.animations) {
 	      loadedModel->animations.push_back(ModelAnimation(fileModel.bones, anim));
 	      pGetAnimations->push_back(

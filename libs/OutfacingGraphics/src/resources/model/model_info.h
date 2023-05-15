@@ -19,6 +19,12 @@ struct Vertex
     glm::vec2 TexCoord;
     std::vector<unsigned int> BoneIDs;
     std::vector<float> BoneWeights;
+
+    Vertex() {
+	Position = {0.0f, 0.0f, 0.0f};
+	Normal = {0.0f, 0.0f, 0.0f};
+	TexCoord = {0.0f, 0.0f};
+    }
 };
 
 struct Mesh
@@ -27,8 +33,11 @@ struct Mesh
     std::vector<unsigned int> indicies;
     std::vector<std::string> diffuseTextures;
     glm::vec4 diffuseColour;
-
     glm::mat4 bindTransform;
+    Mesh() {
+	diffuseColour = glm::vec4(1.0f);
+	bindTransform = glm::mat4(1.0f);
+    }
 };
 
 struct Node

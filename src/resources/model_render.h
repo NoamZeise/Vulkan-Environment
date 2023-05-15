@@ -32,8 +32,7 @@ namespace Resource
       Model loadModel(std::string path, TextureLoader* texLoader);
       Model loadModel(std::string path, TextureLoader* texLoader,
 		      std::vector<Resource::ModelAnimation> *pGetAnimations);
-      Model load2DModel(std::vector<Vertex2D> vertices,
-			std::vector<uint32_t> indices);
+      Model load2DModel(ModelInfo::Model& model, TextureLoader* texLoader);
       void endLoading(VkCommandBuffer transferBuff);
 
       void bindBuffers(VkCommandBuffer cmdBuff);
