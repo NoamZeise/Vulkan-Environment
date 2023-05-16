@@ -1,5 +1,5 @@
-#ifndef OUT_GRAPH_VERTEX_TYPES_H
-#define OUT_GRAPH_VERTEX_TYPES_H
+#ifndef RESOURCE_LOADER_VERTEX_TYPES_H
+#define RESOURCE_LOADER_VERTEX_TYPES_H
 
 #include <glm/glm.hpp>
 

@@ -1,5 +1,5 @@
 #include "pipeline_data.h"
-
+#include <resource_loader/vertex_types.h>
 
 namespace pipeline_inputs {
 

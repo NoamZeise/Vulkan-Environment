@@ -1,3 +1,5 @@
+/// Collection of types used in the default shaders for the rendering framework.
+
 #ifndef VKENV_SHADER_STRUCTS_H
 #define VKENV_SHADER_STRUCTS_H
 

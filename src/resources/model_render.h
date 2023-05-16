@@ -11,7 +11,7 @@
 #include <string>
 
 #include <resources/resources.h>
-#include <vertex_types.h>
+#include <resource_loader/vertex_types.h>
 #ifndef NO_ASSIMP
 #include <resource_loader/model_loader.h>
 #endif

@@ -1,9 +1,11 @@
+/// The input data descriptions for the default graphics pipelines.
+/// Vertex2D, Vertex3D, VertexAnim3D bindings and attribute descriptions.
+
 #ifndef VKENV_PIPELINE_DATA_H
 #define VKENV_PIPELINE_DATA_H
 
 #include <glm/glm.hpp>
 #include <volk.h>
-#include <vertex_types.h>
 #include <vector>
 
 struct fragPushConstants {

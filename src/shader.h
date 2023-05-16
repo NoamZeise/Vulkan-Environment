@@ -1,20 +1,13 @@
+/// A high level description of shader buffers for pipelines.
+/// Turned into the proper vulkan resources with 'shader_internal'
+///
+/// This has no direct dependancy on any vulkan types.
+
 #ifndef VK_ENV_SHADER_H
 #define VK_ENV_SHADER_H
 
-// TO FIX FROM OLD
-// - desciptor set keeps track of if dynamic, for pipeline binding
-// - binding needed reference to parent set, for PrepareShaderbuffersets fn
-// - binding needed setCount (number of duplicates for a set (ie per frames))
-// for Prepareshaderbuffersets fn
-// - binding needed viewsPerSet boolean, ie. perFrameImageViews(ie sampling colour attachment in final) vs image views(ie texture views - doesnt change per frame) for Prepareshaderbuffersets.
-
-
 #include <vector>
 #include <string>
-
-/// Specify Shader Descriptors
-
-
 
 namespace descriptor {
 
@@ -30,7 +23,7 @@ namespace descriptor {
       StorageBufferDynamic,
       Sampler,
       SampledImage,
-      SampledImagePerSet, // ie different samplers for each desc set
+      SampledImagePerSet, // i.e different samplers for each desc set
   };
 
   struct Descriptor {

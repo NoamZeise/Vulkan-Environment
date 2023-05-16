@@ -4,10 +4,8 @@
 #include <volk.h>
 #include <stdexcept>
 
-namespace part
-{
-    namespace create
-    {
+namespace part {
+    namespace create {
         VkResult Image(VkDevice device,
 		 VkImage* image, VkMemoryRequirements *pMemoryRequirements,
 		 VkImageUsageFlags usageFlags,

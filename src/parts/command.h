@@ -5,10 +5,11 @@
 
 namespace part {
   namespace create {
-     VkResult CommandPoolAndBuffer(VkDevice device,
-				    VkCommandPool *commandPool,
-				    VkCommandBuffer *commandBuffer,
-				   uint32_t queueFamilyIndex);
+     VkResult CommandPoolAndBuffer(
+	     VkDevice device,
+	     VkCommandPool *commandPool,
+	     VkCommandBuffer *commandBuffer,
+	     uint32_t queueFamilyIndex);
   }
 }
 

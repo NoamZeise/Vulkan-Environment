@@ -1,5 +1,5 @@
-#ifndef PART_FRAMEBUFFER_H
-#define PART_FRAMEBUFFER_H
+#ifndef PARTS_FRAMEBUFFER_H
+#define PARTS_FRAMEBUFFER_H
 
 #include <stdint.h>
 #include <volk.h>
@@ -7,9 +7,11 @@
 
 namespace part {
     namespace create {
-VkResult Framebuffer(VkDevice device, VkRenderPass renderPass,
-                 VkFramebuffer *pFramebuffer,
-                 std::vector<VkImageView> attachments, uint32_t width, uint32_t height);
+      VkResult Framebuffer(VkDevice device,
+			   VkRenderPass renderPass,
+			   VkFramebuffer *pFramebuffer,
+			   std::vector<VkImageView> attachments,
+			   uint32_t width, uint32_t height);
     }
 }
  

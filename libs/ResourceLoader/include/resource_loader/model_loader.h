@@ -1,7 +1,6 @@
 #ifndef GL_MODEL_LOADER_H
 #define GL_MODEL_LOADER_H
 
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
@@ -9,8 +8,6 @@
 
 namespace Resource
 {
-
-
 class ModelLoader
 {
 public:

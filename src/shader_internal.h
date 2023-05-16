@@ -1,3 +1,8 @@
+/// Lower level description of shader buffers for pipelines
+/// holds the vulkan resources that make up the shader buffers.
+///
+/// Created using a higher level 'shader.h' description of the buffers.
+
 #ifndef VKENV_SHADER_INTERNAL_H
 #define VKENV_SHADER_INTERNAL_H
 

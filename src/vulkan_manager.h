@@ -1,3 +1,7 @@
+/// Holds the per app vulkan resources.
+/// i.e Graphics device, logical device, GFLW window, surface for rendering.
+/// These resources are usually created and destroyed once per app.
+
 #ifndef VULKAN_MANAGER_H
 #define VULKAN_MANAGER_H
 

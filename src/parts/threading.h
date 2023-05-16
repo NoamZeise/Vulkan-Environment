@@ -1,5 +1,5 @@
-#ifndef PART_CREATE_THREADING_H
-#define PART_CREATE_THREADING_H
+#ifndef PARTS_THREADING_H
+#define PARTS_THREADING_H
 
 #include <volk.h>
 

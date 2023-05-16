@@ -6,7 +6,7 @@
 #include <string>
 #include <stdint.h>
 #include <resources/model/model_info.h>
-#include <vertex_types.h>
+#include "vertex_types.h"
 
 
 static const char* MODEL_TEXTURE_LOCATION = "textures/";
