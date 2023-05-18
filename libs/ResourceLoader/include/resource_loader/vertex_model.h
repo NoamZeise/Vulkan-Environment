@@ -1,11 +1,11 @@
 #ifndef VERTEX_MODEL_H
 #define VERTEX_MODEL_H
 
-#include <resources/resources.h>
+#include <graphics/resources.h>
 #include <vector>
 #include <string>
 #include <stdint.h>
-#include <resources/model/model_info.h>
+#include <graphics/model/info.h>
 #include "vertex_types.h"
 
 

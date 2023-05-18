@@ -10,7 +10,7 @@
 #include <map>
 #include <string>
 
-#include <resources/resources.h>
+#include <graphics/resources.h>
 #include <resource_loader/vertex_types.h>
 #ifndef NO_ASSIMP
 #include <resource_loader/model_loader.h>

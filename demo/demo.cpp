@@ -1,8 +1,7 @@
 #include "../src/render.h"
-#include "glmhelper.h"
-#include <GLFW/glfw3.h>
+#include <graphics/glm_helper.h>
+
 #include <exception>
-#include <glm/glm.hpp>
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -113,8 +112,10 @@ int main() {
 
 	    render.Begin2DDraw();
 	
-	    render.DrawQuad(testTex, glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
-	    render.DrawQuad(Resource::Texture(), glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
+	    render.DrawQuad(testTex,
+			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
+	    render.DrawQuad(Resource::Texture(),
+			    glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
 
 	    render.DrawString(font, "Demo", glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 

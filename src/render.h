@@ -9,7 +9,7 @@
 #endif
 #include <glm/glm.hpp>
 
-#include <resources/resources.h>
+#include <graphics/resources.h>
 
 namespace Resource {
     class ModelRender;

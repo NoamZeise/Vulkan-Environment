@@ -9,10 +9,10 @@
 #include <string>
 #include <vector>
 
-#include <glmhelper.h>
+#include <graphics/glm_helper.h>
 
 #include "texture_loader.h"
-#include <resources/resources.h>
+#include <graphics/resources.h>
 
 namespace Resource
 {

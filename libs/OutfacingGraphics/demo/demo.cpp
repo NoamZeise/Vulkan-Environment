@@ -1,7 +1,7 @@
-#include <resources/resources.h>
+#include <graphics/resources.h>
 #include <glmhelper.h>
-#include <resources/model/model_animation.h>
-#include <resources/model/model_info.h>
+#include <graphics/model/animation.h>
+#include <graphics/model/info.h>
 
 #include <iostream>
 

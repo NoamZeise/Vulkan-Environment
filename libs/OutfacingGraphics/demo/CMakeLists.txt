@@ -1,2 +1,2 @@
 add_executable(SharedHelperDemo demo.cpp)
-target_link_libraries(SharedHelperDemo SharedHelper)
+target_link_libraries(SharedHelperDemo PUBLIC SharedHelper)

@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include <glmhelper.h>
+#include <graphics/glm_helper.h>
 
 namespace vkenv {
 

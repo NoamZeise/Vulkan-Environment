@@ -4,7 +4,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
-#include <resources/model/model_info.h>
+#include <graphics/model/info.h>
 
 namespace Resource
 {
