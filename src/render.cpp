@@ -348,6 +348,10 @@ Resource::Model Render::Load3DModel(std::string filepath) {
     return _stagingModelLoader->load3DModel(filepath, _stagingTextureLoader);
 }
 
+Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
+    return _stagingModelLoader->load3DModel(model, _stagingTextureLoader);
+}
+
 void Render::LoadResourcesToGPU() {
     _stagingTextureLoader->endLoading();
     _stagingModelLoader->endLoading(manager->generalCommandBuffer);
