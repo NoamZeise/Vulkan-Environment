@@ -272,5 +272,23 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
         }
     }
 }
+
+
+  ModelInfo::Model makeQuadModel() {
+      ModelInfo::Mesh mesh;
+      mesh.verticies.resize(4);
+      mesh.verticies[0].Position = {0.0f, 0.0f, 0.0f};
+      mesh.verticies[0].TexCoord = {0.0f, 0.0f};
+      mesh.verticies[1].Position = {1.0f, 0.0f, 0.0f};
+      mesh.verticies[1].TexCoord = {1.0f, 0.0f};
+      mesh.verticies[2].Position = {1.0f, 1.0f, 0.0f};
+      mesh.verticies[2].TexCoord = {1.0f, 1.0f};
+      mesh.verticies[3].Position = {0.0f, 1.0f, 0.0f};
+      mesh.verticies[3].TexCoord = {0.0f, 1.0f};
+      mesh.indicies = { 0, 3, 2, 2, 1, 0};
+      ModelInfo::Model quad;
+      quad.meshes.push_back(mesh);
+      return quad;
+  }
   
 }

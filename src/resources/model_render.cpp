@@ -171,15 +171,16 @@ namespace Resource {
 	case ModelType::m3D:
 	    return loadModelInfo(model, loaded3D, texLoader);
 	case ModelType::m3D_Anim:
-	    Model user_model = loadModelInfo(model, loadedAnim3D, texLoader);
-	    for(ModelInfo::Animation anim : model.animations) {
-		loadedAnim3D.getPreviousModel()->animations
-		    .push_back(ModelAnimation(model.bones, anim));
-		pGetAnimations->push_back(
-			loadedAnim3D.getPreviousModel()->
-			animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
-	    }
-	    return user_model;
+	    Model userModel = loadModelInfo(model, loadedAnim3D, texLoader);
+	    if(pGetAnimations != nullptr)
+		for(ModelInfo::Animation anim : model.animations) {
+		    loadedAnim3D.getPreviousModel()->animations
+			.push_back(ModelAnimation(model.bones, anim));
+		    pGetAnimations->push_back(
+			    loadedAnim3D.getPreviousModel()->
+			    animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
+		}
+	    return userModel;
 	}
 	throw std::runtime_error("Model type not implemented when trying to load model!");
   }
@@ -200,19 +201,7 @@ namespace Resource {
   }
 
   void ModelRender::loadQuad() {
-      ModelInfo::Mesh mesh;
-      mesh.verticies.resize(4);
-      mesh.verticies[0].Position = {0.0f, 0.0f, 0.0f};
-      mesh.verticies[0].TexCoord = {0.0f, 0.0f};
-      mesh.verticies[1].Position = {1.0f, 0.0f, 0.0f};
-      mesh.verticies[1].TexCoord = {1.0f, 0.0f};
-      mesh.verticies[2].Position = {1.0f, 1.0f, 0.0f};
-      mesh.verticies[2].TexCoord = {1.0f, 1.0f};
-      mesh.verticies[3].Position = {0.0f, 1.0f, 0.0f};
-      mesh.verticies[3].TexCoord = {0.0f, 1.0f};
-      mesh.indicies = { 0, 3, 2, 2, 1, 0};
-      ModelInfo::Model quad;
-      quad.meshes.push_back(mesh);
+      ModelInfo::Model quad = makeQuadModel();
       quadID = loadModel(ModelType::m2D, quad, nullptr, nullptr).ID;
   }
   

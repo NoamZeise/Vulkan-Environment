@@ -19,6 +19,8 @@ private:
     void processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene, aiMatrix4x4 transform);
     void buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim);
 };
+
+  ModelInfo::Model makeQuadModel();
 }
 
 #endif
