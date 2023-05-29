@@ -4,6 +4,10 @@
 #include <iostream>
 #include <cstring>
 
+Resource::ModelType getModelType(Vertex2D vert) { return Resource::ModelType::m2D; }
+Resource::ModelType getModelType(Vertex3D vert) { return Resource::ModelType::m3D; }
+Resource::ModelType getModelType(VertexAnim3D vert) { return Resource::ModelType::m3D_Anim; }
+
 //loadVerticies defined for Vertex Types
 
 void loadVertices(Mesh<VertexAnim3D> *mesh, ModelInfo::Mesh &dataMesh) {

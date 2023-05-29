@@ -27,12 +27,20 @@ namespace Resource {
       size_t ID = 0;
       glm::vec2 dim = glm::vec2(0, 0);
   };
+
+  enum class ModelType {
+      m2D,
+      m3D,
+      m3D_Anim,
+  };
   
   struct Model {
       Model() { this->ID = 1000000;}
       Model(size_t ID) {
 	  this->ID = ID;
+	  this->type = ModelType::m3D;
       }
+      ModelType type;
       size_t ID;
   };
   

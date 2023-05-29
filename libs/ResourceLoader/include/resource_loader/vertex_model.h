@@ -8,6 +8,9 @@
 #include <graphics/model/info.h>
 #include "vertex_types.h"
 
+Resource::ModelType getModelType(Vertex2D vert);
+Resource::ModelType getModelType(Vertex3D vert);
+Resource::ModelType getModelType(VertexAnim3D vert);
 
 static const char* MODEL_TEXTURE_LOCATION = "textures/";
 

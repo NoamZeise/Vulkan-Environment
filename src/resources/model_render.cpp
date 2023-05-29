@@ -13,19 +13,8 @@
 #include "../logger.h"
 #include "../pipeline_data.h"
 
-namespace Resource
-{
-  enum class ModelType {
-      model2D,
-      model3D,
-      modelAnim3D,
-  };
-
-  ModelType getModelType(Vertex2D vert) { return ModelType::model2D; }
-  ModelType getModelType(Vertex3D vert) { return ModelType::model3D; }
-  ModelType getModelType(VertexAnim3D vert) { return ModelType::modelAnim3D; }
-
-   struct MeshInfo {
+namespace Resource {
+  struct MeshInfo {
       MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
       MeshInfo(uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset,
 	       Texture texture, glm::vec4 diffuseColour) {
@@ -97,13 +86,13 @@ namespace Resource
       prevBoundType = type;
       size_t vOffset = 0;
       switch(type) {
-      case ModelType::model2D:
+      case ModelType::m2D:
 	  vOffset = loaded2D.vertexDataOffset;
 	  break;
-      case ModelType::model3D:
+      case ModelType::m3D:
 	  vOffset = loaded3D.vertexDataOffset;
 	  break;
-      case ModelType::modelAnim3D:
+      case ModelType::m3D_Anim:
 	  vOffset = loadedAnim3D.vertexDataOffset;
 	  break;
       }
@@ -147,7 +136,7 @@ namespace Resource
   void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
 			     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
 			     glm::vec4 texOffset) {
-      bindGroupVertexBuffer(cmdBuff, ModelType::model2D);
+      bindGroupVertexBuffer(cmdBuff, ModelType::m2D);
       ModelInGPU *modelInfo = &models[static_cast<int>(quadID)];
       drawMesh(cmdBuff, modelInfo, 0, count, instanceOffset);
   }
