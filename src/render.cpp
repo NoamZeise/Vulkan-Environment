@@ -328,28 +328,28 @@ Resource::Font Render::LoadFont(std::string filepath) {
 Resource::Model Render::LoadAnimatedModel(
 	std::string filepath,
 	std::vector<Resource::ModelAnimation> *pGetAnimations) {
-    return _stagingModelLoader->loadAnimatedModel(filepath, _stagingTextureLoader, pGetAnimations);
+    return _stagingModelLoader->loadModel(Resource::ModelType::m3D_Anim, filepath, _stagingTextureLoader, pGetAnimations);
 }
 
 Resource::Model Render::LoadAnimatedModel(ModelInfo::Model& model,
 					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
-    return _stagingModelLoader->loadAnimatedModel(model, _stagingTextureLoader, pGetAnimation);
+    return _stagingModelLoader->loadModel(Resource::ModelType::m3D_Anim, model, _stagingTextureLoader, pGetAnimation);
 }
 
 Resource::Model Render::Load2DModel(std::string filepath) {
-    return _stagingModelLoader->load2DModel(filepath, _stagingTextureLoader);
+    return _stagingModelLoader->loadModel(Resource::ModelType::m2D, filepath, _stagingTextureLoader, nullptr);
 }
 
 Resource::Model Render::Load2DModel(ModelInfo::Model& model) {
-    return _stagingModelLoader->load2DModel(model, _stagingTextureLoader);
+    return _stagingModelLoader->loadModel(Resource::ModelType::m2D, model, _stagingTextureLoader, nullptr);
 }
 
 Resource::Model Render::Load3DModel(std::string filepath) {
-    return _stagingModelLoader->load3DModel(filepath, _stagingTextureLoader);
+    return _stagingModelLoader->loadModel(Resource::ModelType::m3D, filepath, _stagingTextureLoader, nullptr);
 }
 
 Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
-    return _stagingModelLoader->load3DModel(model, _stagingTextureLoader);
+    return _stagingModelLoader->loadModel(Resource::ModelType::m3D, model, _stagingTextureLoader, nullptr);
 }
 
 void Render::LoadResourcesToGPU() {

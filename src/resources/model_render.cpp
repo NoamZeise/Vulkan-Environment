@@ -118,7 +118,7 @@ namespace Resource {
       if(model.ID >= models.size()) {
 	  LOG("the model ID is out of range, ID: " << model.ID);
 	  return;
-      }
+      } 
       ModelInGPU *modelInfo = &models[model.ID];
       bindGroupVertexBuffer(cmdBuff, modelInfo->type);
       for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
@@ -158,30 +158,35 @@ namespace Resource {
   template <class T_Vert>
   Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup, TextureLoader* texLoader) {
       Model userModel(currentIndex++);
+      userModel.type = getModelType(T_Vert());
       modelGroup.loadModel(model, userModel.ID);
       loadModelTexture(modelGroup.getPreviousModel(), texLoader);
       return userModel;
   }
 
-  Model ModelRender::load2DModel(ModelInfo::Model& model, TextureLoader* texLoader) {
-      return loadModelInfo(model, loaded2D, texLoader);
+  Model ModelRender::loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
+	switch(type) {
+	case ModelType::m2D:
+	    return loadModelInfo(model, loaded2D, texLoader);
+	case ModelType::m3D:
+	    return loadModelInfo(model, loaded3D, texLoader);
+	case ModelType::m3D_Anim:
+	    Model user_model = loadModelInfo(model, loadedAnim3D, texLoader);
+	    for(ModelInfo::Animation anim : model.animations) {
+		loadedAnim3D.getPreviousModel()->animations
+		    .push_back(ModelAnimation(model.bones, anim));
+		pGetAnimations->push_back(
+			loadedAnim3D.getPreviousModel()->
+			animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
+	    }
+	    return user_model;
+	}
+	throw std::runtime_error("Model type not implemented when trying to load model!");
   }
 
-  Model ModelRender::load3DModel(ModelInfo::Model& model, TextureLoader* texLoader) {
-      return loadModelInfo(model, loaded3D, texLoader);
-  }
-  
-  Model ModelRender::loadAnimatedModel(ModelInfo::Model& model, TextureLoader* texLoader,
-			  std::vector<Resource::ModelAnimation> *pGetAnimations) {
-      Model userModel = loadModelInfo(model, loadedAnim3D, texLoader);
-      for(ModelInfo::Animation anim : model.animations) {
-	  loadedAnim3D.getPreviousModel()->animations
-	      .push_back(ModelAnimation(model.bones, anim));
-	      pGetAnimations->push_back(
-		      loadedAnim3D.getPreviousModel()->
-		      animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
-      }
-      return userModel;
+  Model ModelRender::loadModel(ModelType type, std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
+      ModelInfo::Model fileModel = loadModelFromFile(path);
+      return loadModel(type, fileModel, texLoader, pGetAnimations);
   }
 
   ModelInfo::Model ModelRender::loadModelFromFile(std::string path) {
@@ -192,24 +197,6 @@ namespace Resource {
       throw std::runtime_error("tried to load model from file, but NO_ASSIMP is defined"
 "so that feature is disabled!");
 #endif
-  }
-
-  Model ModelRender::load2DModel(std::string path, TextureLoader* texLoader) {
-      ModelInfo::Model fileModel = loadModelFromFile(path);
-      return load2DModel(fileModel, texLoader);
-  }
-
-  Model ModelRender::load3DModel(std::string path, TextureLoader* texLoader) {
-      return loadAnimatedModel(path, texLoader, nullptr);
-  }
-
-  Model ModelRender::loadAnimatedModel(std::string path, TextureLoader* texLoader,
-			       std::vector<Resource::ModelAnimation> *pGetAnimations) {
-      ModelInfo::Model fileModel = loadModelFromFile(path);
-      if(!fileModel.animatedModel || pGetAnimations == nullptr)
-	  return load3DModel(fileModel, texLoader);
-      else
-	  return loadAnimatedModel(fileModel, texLoader, pGetAnimations);
   }
 
   void ModelRender::loadQuad() {
@@ -226,7 +213,7 @@ namespace Resource {
       mesh.indicies = { 0, 3, 2, 2, 1, 0};
       ModelInfo::Model quad;
       quad.meshes.push_back(mesh);
-      quadID = load2DModel(quad, nullptr).ID;
+      quadID = loadModel(ModelType::m2D, quad, nullptr, nullptr).ID;
   }
   
   template <class T_Vert>

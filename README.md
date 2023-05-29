@@ -91,7 +91,7 @@ bugs:
 
 features:
 * make multiple render passes optional
-* support programatically generated models and textures
+* make the link between pipelines datatypes and model types more explicit
 * customize shader / descriptor sets outside of render
 * add tests
 * C ABI

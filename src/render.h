@@ -32,7 +32,7 @@ namespace vkenv {
 
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
 const int MAX_3D_INSTANCE = 50;
-const int MAX_2D_INSTANCE = 50;
+const int MAX_2D_INSTANCE = 100;
 
   class Render {
   public:

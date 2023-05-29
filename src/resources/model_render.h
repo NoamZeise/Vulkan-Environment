@@ -29,15 +29,9 @@ namespace Resource
   public:
       ModelRender(DeviceState base, VkCommandPool pool);
       ~ModelRender();
-      
-      Model load2DModel(std::string path, TextureLoader* texLoader);
-      Model load2DModel(ModelInfo::Model& model, TextureLoader* texLoader);
-      Model load3DModel(std::string path, TextureLoader* texLoader);
-      Model load3DModel(ModelInfo::Model& model, TextureLoader* texLoader);
-      Model loadAnimatedModel(std::string path, TextureLoader* texLoader,
-			      std::vector<Resource::ModelAnimation> *pGetAnimations);
-      Model loadAnimatedModel(ModelInfo::Model& model, TextureLoader* texLoader,
-			      std::vector<Resource::ModelAnimation> *pGetAnimations);
+
+      Model loadModel(ModelType type, std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
+      Model loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
       void endLoading(VkCommandBuffer transferBuff);
 
       void bindBuffers(VkCommandBuffer cmdBuff);
