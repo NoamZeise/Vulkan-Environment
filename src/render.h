@@ -163,12 +163,11 @@ const int MAX_2D_INSTANCE = 100;
       Resource::ModelRender *_modelLoader = nullptr;
       Resource::FontLoader *_fontLoader = nullptr;
 
-      enum class RenderState
-	  {
-	      Draw2D,
-	      Draw3D,
-	      DrawAnim3D,
-	  };
+      enum class RenderState {
+	  Draw2D,
+	  Draw3D,
+	  DrawAnim3D,
+      };
 
       bool _begunDraw = false;
       RenderState _renderState;

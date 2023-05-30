@@ -474,7 +474,7 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 
     auto animBones = animation->getCurrentBones();
     shaderStructs::Bones bonesData;
-    for(int i = 0; i < animBones->size() && i < 50; i++) {
+    for(int i = 0; i < animBones->size() && i < shaderStructs::MAX_BONES; i++) {
 	bonesData.mat[i] = animBones->at(i);
     }
     if(currentBonesDynamicOffset >= MAX_ANIMATIONS_PER_FRAME) {
