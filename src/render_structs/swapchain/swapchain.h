@@ -3,7 +3,7 @@
 
 #include <volk.h>
 #include "../device_state.h"
-#include "../../render_config.h"
+#include <graphics/render_config.h>
 #include "attachment_image.h"
 
 #include <vector>

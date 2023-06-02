@@ -20,7 +20,7 @@ namespace Resource {
 #include "render_structs/swapchain/swapchain.h"
 #include "pipeline.h"
 #include "vulkan_manager.h"
-#include "render_config.h"
+#include <graphics/render_config.h>
 #include "shader.h"
 #include "shader_internal.h"
 #include "shader_structs.h"

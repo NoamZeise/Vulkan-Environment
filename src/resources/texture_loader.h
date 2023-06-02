@@ -5,7 +5,7 @@
 #include <string>
 
 #include "../render_structs/device_state.h"
-#include "../render_config.h"
+#include <graphics/render_config.h>
 #include <graphics/resources.h>
 
 namespace Resource {

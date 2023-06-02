@@ -1,6 +1,8 @@
 #ifndef GRAPHICS_ENV_LOGGER_H
 #define GRAPHICS_ENV_LOGGER_H
 
+#include <iostream>
+
 #ifndef NDEBUG
 #define LOG(msg) std::cout << msg << std::endl;
 #else

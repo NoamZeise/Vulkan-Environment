@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include <resource_loader/stb_image.h>
-#include "../render_config.h"
 #include "../vkhelper.h"
 #include "../parts/images.h"
 

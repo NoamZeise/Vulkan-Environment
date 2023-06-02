@@ -1,11 +1,9 @@
 #ifndef ENV_VK_LOGGER_H
 #define ENV_VK_LOGGER_H
 
-#include <iostream>
+#include <logger.h>
 #include <string>
 #include <volk.h>
-
-#include <logger.h>
 
 const char* getVkResultStr(VkResult result);
 

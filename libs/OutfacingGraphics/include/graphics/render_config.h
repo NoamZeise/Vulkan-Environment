@@ -1,5 +1,5 @@
-#ifndef VKENV_RENDER_CONFIG
-#define VKENV_RENDER_CONFIG
+#ifndef RES_LOADER_RENDER_CONF_H
+#define RES_LOADER_RENDER_CONF_H
 
 struct RenderConfig {
   bool vsync = true;
