@@ -195,7 +195,7 @@ bool swapchainRecreationRequired(VkResult result) {
 		  manager->deviceState.device,
 		  manager->deviceState.physicalDevice, 1.0f,
 		  false,
-		  renderConf.texture_filter_nearest,
+		  true,
 		  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
 	  samplerCreated = true;
       }
@@ -204,8 +204,7 @@ bool swapchainRecreationRequired(VkResult result) {
       offscreen_Set.AddImageViewDescriptor("frame", descriptor::Type::SampledImagePerSet,
 					   1, swapchain->getOffscreenViews());
       offscreenTex = new DescSet(offscreen_Set, frameCount, manager->deviceState.device);
-
-
+      
 
       descriptorSets = {
 	  VP3D, VP2D, perFrame3D, bones, emptyDS, perFrame2DVert,
@@ -382,7 +381,6 @@ void Render::_startDraw() {
 	if(swapchainRecreationRequired(result)) {
 	    LOG("recreation required");
 	    _resize();
-
 	    if(!rebuiltSwapchain) { //only try to rebuild once
 		rebuiltSwapchain = true;
 		goto START_DRAW;
@@ -491,20 +489,10 @@ void Render::Begin2DDraw()
     _drawBatch();
   _renderState = RenderState::Draw2D;
 
-  float deviceRatio = (float)swapchain->offscreenExtent.width /
-                  (float)swapchain->offscreenExtent.height;
-  float virtualRatio = _targetResolution.x / _targetResolution.y;
-  float xCorrection = swapchain->offscreenExtent.width / _targetResolution.x;
-  float yCorrection = swapchain->offscreenExtent.height / _targetResolution.y;
-  float correction;
-  if (virtualRatio < deviceRatio) {
-    correction = yCorrection;
-  } else {
-    correction = xCorrection;
-  }
   VP2DData.proj = glm::ortho(
-      0.0f, (float)swapchain->offscreenExtent.width*_scale2D / correction, 0.0f,
-      (float)swapchain->offscreenExtent.height*_scale2D / correction, -10.0f, 10.0f);
+      0.0f, (float)swapchain->offscreenExtent.width*_scale2D, 0.0f,
+      (float)swapchain->offscreenExtent.height*_scale2D,
+      renderConf.depth_range_2D[0], renderConf.depth_range_2D[1]);
   VP2DData.view = glm::mat4(1.0f);
 
   VP2D->bindings[0].storeSetData(_frameI, &VP2DData, 0, 0, 0);
@@ -627,7 +615,7 @@ void Render::_update3DProjectionMatrix() {
       glm::perspective(glm::radians(_projectionFov),
                        ((float)swapchain->offscreenExtent.width) /
                            ((float)swapchain->offscreenExtent.height),
-                       0.1f, 1000.0f);
+                       renderConf.depth_range_3D[0], renderConf.depth_range_3D[1]);
   VP3DData.proj[1][1] *= -1; // opengl has inversed y axis, so need to correct
 }
 
