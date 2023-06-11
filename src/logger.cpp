@@ -4,6 +4,12 @@ const char* getVkResultStr(VkResult result) {
     switch(result) {
     case VK_SUCCESS:
 	return "Success";
+    case VK_TIMEOUT:
+	return "Timeout";
+    case VK_NOT_READY:
+	return "Not ready";
+    case VK_SUBOPTIMAL_KHR:
+	return "Suboptimal KHR";
     case VK_ERROR_INITIALIZATION_FAILED:
 	return "Initialization Failed";
     case VK_ERROR_OUT_OF_DATE_KHR:
@@ -22,7 +28,21 @@ const char* getVkResultStr(VkResult result) {
 	return "Out of Device Memory";
     case VK_ERROR_OUT_OF_HOST_MEMORY:
 	return "Out of Host Memory";
-    default:
+    case VK_ERROR_EXTENSION_NOT_PRESENT:
+	return "Extension not present";
+    case VK_ERROR_FEATURE_NOT_PRESENT:
+	return "Feature not present";
+    case VK_ERROR_FRAGMENTED_POOL:
+	return "Fragmented Pool";
+    case VK_ERROR_DEVICE_LOST:
+	return "device lost";
+    case VK_ERROR_SURFACE_LOST_KHR:
+	return "Surface lost";
+    case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
+	return "Full screen exclusive mode lost";
+    case VK_ERROR_UNKNOWN:
 	return "Unknown Error";
+    default:
+	return "Unrecognised Error";
     }
 }

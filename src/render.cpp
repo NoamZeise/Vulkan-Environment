@@ -374,23 +374,19 @@ void Render::_resize() {
 }
 
 void Render::_startDraw() {
-    bool rebuiltSwapchain = false;
- START_DRAW: // retry start draw if out of date swapchain
+ START_DRAW:
     VkResult result =  swapchain->beginOffscreenRenderPass(&currentCommandBuffer);
     if(result != VK_SUCCESS) {
 	if(swapchainRecreationRequired(result)) {
 	    LOG("recreation required");
 	    _resize();
-	    if(!rebuiltSwapchain) { //only try to rebuild once
-		rebuiltSwapchain = true;
-		goto START_DRAW;
-	    }
+	    goto START_DRAW;
 	}
 	throw std::runtime_error(
 		GET_ERR_STRING("failed to begin offscreen render pass!", result));
     }
     _modelLoader->bindBuffers(currentCommandBuffer);
-    _frameI  =  swapchain->getFrameIndex();
+    _frameI = swapchain->getFrameIndex();
     currentBonesDynamicOffset = 0;
     _begunDraw = true;
 }
