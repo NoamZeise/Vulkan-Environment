@@ -100,18 +100,19 @@ bool swapchainRecreationRequired(VkResult result) {
       else
 	  _targetResolution = glm::vec2((float)winWidth, (float)winHeight);
       VkExtent2D swapchainExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
+      
       VkResult result = swapchain->InitFrameResources(swapchainExtent,
 						      offscreenBufferExtent,
 						      renderConf);
       if(result !=  VK_SUCCESS) {
-	  //TODO check if out of date and try recreate?
 	  throw std::runtime_error(
 		  GET_ERR_STRING("failed to create swapchain resources", result));
       }
       
       size_t frameCount = swapchain->frameCount();
-      
 
+      LOG("Frame Count: " << frameCount);
+      
       LOG("Creating Descriptor Sets");
       
       /// set shader  descripor sets

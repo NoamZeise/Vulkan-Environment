@@ -33,4 +33,4 @@ if(VKENV_BUILD_STATIC)
    endif()
 endif()
 
-target_include_directories(${Vulkan-Render-Lib} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}../include)
+target_include_directories(${Vulkan-Render-Lib} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/)

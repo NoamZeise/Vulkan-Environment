@@ -1,5 +1,5 @@
-#ifndef ENV_VK_LOGGER_H
-#define ENV_VK_LOGGER_H
+#ifndef VK_ENV_LOGGER_H
+#define VK_ENV_LOGGER_H
 
 #include <logger.h>
 #include <string>

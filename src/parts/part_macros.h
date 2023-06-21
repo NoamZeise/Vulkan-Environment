@@ -1,8 +1,7 @@
-#ifndef PARTS_MACROS_H
-#define PARTS_MACROS_H
+#ifndef VK_ENV_PARTS_MACROS_H
+#define VK_ENV_PARTS_MACROS_H
 
-//! Both Macros require a 'VkResult result' var to be in scope, this is to avoid
-//! multiple defs for multiple calls in one function
+//! Both Macros require a 'VkResult result' var to be in scope
 
 #include <iostream>
 
