@@ -46,3 +46,15 @@ const char* getVkResultStr(VkResult result) {
 	return "Unrecognised Error";
     }
 }
+
+std::string resultMessageString(std::string message, VkResult result) {
+    return message + " VK_RESULT: " + getVkResultStr(result);
+}
+
+
+void checkResultAndThrow(VkResult result, std::string message) {
+    if(result != VK_SUCCESS) {
+	std::string errMsg = resultMessageString(message, result);
+	throw std::runtime_error(errMsg);
+    }
+}

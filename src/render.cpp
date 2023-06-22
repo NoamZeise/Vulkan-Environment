@@ -104,10 +104,8 @@ bool swapchainRecreationRequired(VkResult result) {
       VkResult result = swapchain->InitFrameResources(swapchainExtent,
 						      offscreenBufferExtent,
 						      renderConf);
-      if(result !=  VK_SUCCESS) {
-	  throw std::runtime_error(
-		  GET_ERR_STRING("failed to create swapchain resources", result));
-      }
+      
+      checkResultAndThrow(result, "failed to create swapchain resources");
       
       size_t frameCount = swapchain->frameCount();
 
@@ -383,8 +381,7 @@ void Render::_startDraw() {
 	    _resize();
 	    goto START_DRAW;
 	}
-	throw std::runtime_error(
-		GET_ERR_STRING("failed to begin offscreen render pass!", result));
+	checkResultAndThrow(result, "failed to begin offscreen render pass!");
     }
     _modelLoader->bindBuffers(currentCommandBuffer);
     _frameI = swapchain->getFrameIndex();
@@ -601,8 +598,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
       LOG("end of draw, resize or recreation required");
       _resize();
   } else if (result != VK_SUCCESS)
-      throw std::runtime_error(
-	      GET_ERR_STRING("failed to present swapchain image to queue", result));
+      checkResultAndThrow(result, "failed to present swapchain image to queue");
 
   submit = true;
 }

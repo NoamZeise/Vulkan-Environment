@@ -12,7 +12,6 @@ struct Frame {
     VkSemaphore imageAvailable;
     VkSemaphore presentReady;
     VkFence frameFinished;
-
 };
 
 #endif
