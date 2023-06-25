@@ -32,7 +32,10 @@ Swapchain::Swapchain(DeviceState device,
 
 
 Swapchain::~Swapchain() {
-    vkDestroySwapchainKHR(device.device, swapchain, nullptr);
+    vkDestroySwapchainKHR(device.device, swapchain, VK_NULL_HANDLE);
+    for(VkImageView &view: images) {
+	vkDestroyImageView(device.device, view, VK_NULL_HANDLE);
+    }
 }
 
 std::vector<VkImageView>* Swapchain::getSwapchainImageViews() {

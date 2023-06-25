@@ -37,11 +37,11 @@ VkResult createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* bu
 	VkMemoryRequirements memReq;
 	vkGetBufferMemoryRequirements(base.device, *buffer, &memReq);
 
-	return createMemory(base.device, base.physicalDevice, memReq.size,
+	return allocateMemory(base.device, base.physicalDevice, memReq.size,
 			    memory, properties, memReq.memoryTypeBits);
 }
 
-VkResult createMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
+VkResult allocateMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
 {
 	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	memInfo.allocationSize = size;

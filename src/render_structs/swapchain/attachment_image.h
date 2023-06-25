@@ -9,13 +9,12 @@ enum class AttachmentImageType {
     Resolve,
 };
 
-/// assuming this is not a stencil attachment
 struct AttachmentImageDescription {
     AttachmentImageDescription()  {}
     /// just sets image usage/aspect and index and imageLayout during subpass.
     /// need to set the rest of the members manually
     AttachmentImageDescription(uint32_t attachmentIndex, AttachmentImageType type) {
-	this->attachment_number = attachmentIndex;
+	this->attachmentIndex = attachmentIndex;
 	this->type = type;
         switch(type) {
 	case AttachmentImageType::Resolve:
@@ -26,7 +25,7 @@ struct AttachmentImageDescription {
 	    break;
 	case AttachmentImageType::Depth:
 	    imageUsageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	    imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+	    imageAspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	    imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	    break;
 	}
@@ -35,7 +34,7 @@ struct AttachmentImageDescription {
     VkImageUsageFlags imageUsageFlags;
     VkImageAspectFlags imageAspectFlags;
     
-    uint32_t attachment_number;
+    uint32_t attachmentIndex;
     VkFormat format;
     VkSampleCountFlagBits samples;
     VkImageLayout imageLayout;
@@ -45,7 +44,7 @@ struct AttachmentImageDescription {
 
     VkAttachmentReference getAttachmentReference() {
 	VkAttachmentReference attachRef;
-	attachRef.attachment = attachment_number;
+	attachRef.attachment = attachmentIndex;
 	attachRef.layout = imageLayout;
 	return attachRef;
     }

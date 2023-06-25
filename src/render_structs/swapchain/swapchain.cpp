@@ -73,7 +73,7 @@ VkResult Swapchain::initFramesAndAttachmentImages(std::vector<VkImage> &images,
 	frames.pop_back();
     }
     
-    msgAndReturnOnErr(vkhelper::createMemory(deviceState.device, deviceState.physicalDevice,
+    msgAndReturnOnErr(vkhelper::allocateMemory(deviceState.device, deviceState.physicalDevice,
 					     attachmentImagesMemorySize,
 					     &this->attachmentMemory,
 					     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,

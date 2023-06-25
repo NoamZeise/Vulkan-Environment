@@ -21,11 +21,10 @@ std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(
     resolve.format = swapchainFormat;
     resolve.finalImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     resolve.imageUsageFlags  |= VK_IMAGE_USAGE_SAMPLED_BIT;
-    //TODO check if this is nessecary
     if(resolve.type == AttachmentImageType::Resolve)
-	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     else
-	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    	resolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     resolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachments.push_back(resolve);
     
@@ -44,7 +43,7 @@ std::vector<AttachmentImageDescription> getOffscreenAttachmentImageDescriptions(
     AttachmentImageDescription depth(attachmentIndex++, AttachmentImageType::Depth);
     depth.samples = samples;
     depth.format = depthFormat;
-    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depth.finalImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
     depth.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachments.push_back(depth);

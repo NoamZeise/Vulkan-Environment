@@ -15,7 +15,7 @@ namespace vkhelper
   VkResult createBufferAndMemory(DeviceState base, VkDeviceSize size,
 				 VkBuffer* buffer, VkDeviceMemory* memory,
 				 VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-  VkResult createMemory(VkDevice device, VkPhysicalDevice physicalDevice,
+  VkResult allocateMemory(VkDevice device, VkPhysicalDevice physicalDevice,
 			VkDeviceSize size, VkDeviceMemory* memory,
 			VkMemoryPropertyFlags properties, uint32_t memoryTypeBits);
   VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment);

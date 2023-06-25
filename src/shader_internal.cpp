@@ -75,7 +75,7 @@ DescSet::DescSet(descriptor::Set set, size_t frameCount, VkDevice device) {
 DescSet::~DescSet() { set.destroySet(device); }
 
 
-void DescSet::printDetails() {
+void DescSet::logDetails() {
     this->highLevelSet.logDetails();
     for(int i = 0; i < this->bindings.size(); i++) {
 	LOG("arraySize: " << this->bindings[i].arraySize

@@ -51,7 +51,7 @@ struct DescSet {
   std::vector<DS::Binding> bindings;
   VkDevice device;
 
-  void printDetails();
+  void logDetails();
 };
 
 #endif

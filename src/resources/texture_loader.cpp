@@ -187,7 +187,7 @@ namespace Resource
     LOG("successfully copied textures to staging buffer\n"
 	"creating final memory buffer " << finalMemSize << " bytes");
     //create device local memory for permanent storage of images
-    vkhelper::createMemory(base.device, base.physicalDevice, finalMemSize, &memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
+    vkhelper::allocateMemory(base.device, base.physicalDevice, finalMemSize, &memory, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
 
     //transition image to required format
     VkCommandBufferAllocateInfo cmdAllocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
