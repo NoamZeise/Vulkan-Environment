@@ -19,4 +19,19 @@ std::string resultMessageString(std::string message, VkResult result);
 /// log an error with the result type and throw an exception
 void checkResultAndThrow(VkResult result, std::string message);
 
+
+//! Both Macros require a 'VkResult result' var to be in scope
+
+#define returnOnErr(result_expr)					\
+    result = result_expr;						\
+  if (result != VK_SUCCESS)						\
+      return result;
+
+#define msgAndReturnOnErr(result_expr, msg)				\
+    result = result_expr;						\
+  if (result != VK_SUCCESS) {						\
+      LOG_ERR_TYPE(msg, result);					\
+      return result;							\
+  }
+
 #endif

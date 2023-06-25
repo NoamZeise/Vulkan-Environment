@@ -3,7 +3,7 @@
 namespace part {
 namespace create {
 
-      
+  //TODO: remove after change to new renderpass/swapchain system
 VkResult Framebuffer(VkDevice device, VkRenderPass renderPass,
                  VkFramebuffer *pFramebuffer,
                  std::vector<VkImageView> attachments, uint32_t width, uint32_t height) {

@@ -15,7 +15,7 @@ class Swapchain {
 	      VkExtent2D &windowExtent,
 	      RenderConfig conf);
     ~Swapchain();
-    std::vector<VkImageView>* getSwapchainImageViews();
+    std::vector<VkImage>* getSwapchainImages();
     
     
  private:
@@ -23,7 +23,7 @@ class Swapchain {
     VkExtent2D swapchainExtent;
     VkSurfaceFormatKHR format;
     DeviceState device;
-    std::vector<VkImageView> images;
+    std::vector<VkImage> images;
 };
 
 #endif

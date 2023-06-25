@@ -3,7 +3,7 @@
 #include "../../parts/command.h"
 #include "../../parts/threading.h"
 #include "../../parts/images.h"
-#include "../../parts/part_macros.h"
+#include "../../logger.h"
 #include "../../parts/framebuffer.h"
 
 

@@ -1,6 +1,6 @@
 #include "device.h"
 
-#include "../part_macros.h"
+#include "../../logger.h"
 #include <iostream>
 #include <cstring>
 

@@ -3,10 +3,7 @@
 
 #include <iostream>
 #include <memory>
-
-#include "../part_macros.h"
 #include "device.h"
-
 #include "../../logger.h"
 
 // #define CHOOSE_PHYSICAL_DEVICE_MANUALLY

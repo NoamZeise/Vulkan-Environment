@@ -1,6 +1,6 @@
 #include "images.h"
 
-#include "part_macros.h"
+#include "../logger.h"
 
 namespace part
 {

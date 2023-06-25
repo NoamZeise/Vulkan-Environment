@@ -1,7 +1,7 @@
 #include "swapchain.h"
 
 #include "../../parts/swapchain.h"
-#include "../../parts/part_macros.h"
+#include "../../logger.h"
 #include "../../parts/threading.h"
 #include "../../vkhelper.h"
 #include "swapchain_frame.h"

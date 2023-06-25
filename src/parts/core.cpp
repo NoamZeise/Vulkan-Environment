@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <vector>
 
-#include "part_macros.h"
+#include "../logger.h"
 #ifndef NDEBUG
 #include "helper/debug.h"
 #endif

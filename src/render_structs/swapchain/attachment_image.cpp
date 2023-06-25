@@ -1,7 +1,7 @@
 #include "attachment_image.h"
 
 #include "../../parts/images.h"
-#include "../../parts/part_macros.h"
+#include "../../logger.h"
 #include "../../vkhelper.h"
 
 void AttachmentImage::Destroy(VkDevice device)

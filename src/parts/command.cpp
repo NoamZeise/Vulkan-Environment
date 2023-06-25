@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-#include "part_macros.h"
+#include "../logger.h"
 
 namespace part {
   namespace create {

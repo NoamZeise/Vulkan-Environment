@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "../part_macros.h"
+#include "../../logger.h"
 #include <vector>
 
 #ifndef NDEBUG 
