@@ -184,13 +184,22 @@ Framebuffer::~Framebuffer() {
 	a.Destroy(device);
 }
 
+
+enum class SubpassDependancyType {
+  PreviousImageOps,
+  FutureShaderRead,
+};
+
+VkSubpassDependency genSubpassDependancy(bool colour, bool depth,
+                                         SubpassDependancyType depType);
+
 RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments) {
     this->attachmentDescription = attachments;
     this->device = device;
 
     std::vector<VkAttachmentDescription> attachDescVK(attachments.size());
-    bool hasDepth, hasResolve;
-    hasDepth = hasResolve = false;
+    bool hasDepth, hasResolve, hasShaderReadAttachment;
+    hasDepth = hasResolve = hasShaderReadAttachment = false;
     VkAttachmentReference depthRef;
     VkAttachmentReference resolveRef;
     std::vector<VkAttachmentReference> colourRefs;
@@ -198,6 +207,8 @@ RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments)
 	VkClearValue clear;
 	attachDescVK[i] = attachments[i].getAttachmentDescription();
 	VkAttachmentReference attachRef = attachments[i].getAttachmentReference();
+	if(attachments[i].getUse() == AttachmentUse::ShaderRead)
+	    hasShaderReadAttachment = true;
 	switch(attachments[i].getType()) {
 	case AttachmentType::Colour:
 	    colourRefs.push_back(attachRef);
@@ -229,15 +240,22 @@ RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments)
     if(hasResolve)
 	subpass.pResolveAttachments = &resolveRef;
 
+    std::vector<VkSubpassDependency> subpassDependancies;
+    subpassDependancies.push_back(
+	    genSubpassDependancy(colourRefs.size() > 0, hasDepth,
+				 SubpassDependancyType::PreviousImageOps));
+    if(hasShaderReadAttachment)
+	subpassDependancies.push_back(
+		genSubpassDependancy(colourRefs.size() > 0, hasDepth,
+				     SubpassDependancyType::FutureShaderRead));
+
     VkRenderPassCreateInfo createInfo{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
     createInfo.attachmentCount = (uint32_t)attachDescVK.size();
     createInfo.pAttachments = attachDescVK.data();
     createInfo.subpassCount = 1;
     createInfo.pSubpasses = &subpass;
-    //TODO subpass Dependancies:
-    //createInfo.dependencyCount =
-    //createInfo.pDependencies =
-    throw std::runtime_error("Subpass Dependancies not set");
+    createInfo.dependencyCount = subpassDependancies.size();
+    createInfo.pDependencies = subpassDependancies.data();
 
     vkCreateRenderPass(device, &createInfo, VK_NULL_HANDLE, &this->renderpass);
 }
@@ -307,8 +325,10 @@ VkRect2D fbScissor(VkExtent2D extent);
 void RenderPass::beginRenderPass(VkCommandBuffer cmdBuff, uint32_t frameIndex) {
     VkRenderPassBeginInfo beginInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};
     if(frameIndex > framebuffers.size())
-	throw std::runtime_error("RenderPass Error: Tried to start render pass,"
-				 " but the frame index was out of range.");
+	throw std::runtime_error("RenderPass Error: Tried to start render pass, "
+				 "but the frame index was out of range. "
+				 "Ensure that thr renderpass framebuffers "
+				 "and attachments have been created.");
     beginInfo.renderPass = renderpass;
     beginInfo.framebuffer = framebuffers[frameIndex].framebuffer;
     beginInfo.renderArea.offset = offset;
@@ -358,4 +378,47 @@ VkRect2D fbScissor(VkExtent2D extent) {
     scissor.offset = {0, 0};
     scissor.extent = extent;
     return scissor;
+}
+
+void setStageMask(VkPipelineStageFlags *pStageMask, bool colour, bool depth) {
+    *pStageMask = 0;
+    if(colour)
+	*pStageMask |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    if(depth)
+	*pStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+}
+
+void setAccessMask(VkAccessFlags *pAccessMask, bool colour, bool depth) {
+    *pAccessMask = 0;
+    if(colour)
+	*pAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    if(depth)
+	*pAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+}
+
+VkSubpassDependency genSubpassDependancy(bool colour, bool depth, SubpassDependancyType depType) {
+    VkSubpassDependency dep;
+    dep.srcStageMask = 0;
+    dep.srcAccessMask = 0;
+    dep.dstStageMask = 0;
+    dep.dstAccessMask = 0;
+    //dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT; ??? TODO: check if needed
+    switch(depType) {
+    case SubpassDependancyType::PreviousImageOps:
+	dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+	dep.dstSubpass = 0;
+	setStageMask(&dep.srcStageMask, colour, depth);
+	setStageMask(&dep.dstStageMask, colour, depth);
+	setAccessMask(&dep.dstAccessMask, colour, depth);
+	break;
+    case SubpassDependancyType::FutureShaderRead:
+	dep.srcSubpass = 0;
+	dep.dstSubpass = VK_SUBPASS_EXTERNAL;
+	setStageMask(&dep.srcStageMask, colour, depth);
+	setAccessMask(&dep.srcAccessMask, colour, depth);
+	dep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	dep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+	break;
+    }
+    return dep;
 }
