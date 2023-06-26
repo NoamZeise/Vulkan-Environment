@@ -3,12 +3,11 @@
 
 #include <vector>
 #include <volk.h>
-#include "render_structs/device_state.h"
 #include <graphics/render_config.h>
 
 class Swapchain {
  public:
-    Swapchain(DeviceState device,
+    Swapchain(VkDevice device, VkPhysicalDevice physicalDevice,
 	      VkSurfaceKHR windowSurface,
 	      //may be modified if the supported extent differs
 	      //from the supplied one.
@@ -16,13 +15,14 @@ class Swapchain {
 	      RenderConfig conf);
     ~Swapchain();
     std::vector<VkImage>* getSwapchainImages();
+    VkResult aquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex);
     
     
  private:
     VkSwapchainKHR swapchain;
     VkExtent2D swapchainExtent;
     VkSurfaceFormatKHR format;
-    DeviceState device;
+    VkDevice device;
     std::vector<VkImage> images;
 };
 

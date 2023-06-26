@@ -26,3 +26,16 @@ Frame::~Frame() {
     vkDestroySemaphore(device, presentReady, nullptr);
     vkDestroyFence(device, frameFinished, nullptr);
 }
+
+VkResult Frame::startFrame(VkCommandBuffer *pCmdBuff) {
+    vkWaitForFences(device, 1, &frameFinished, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &frameFinished);
+
+    vkResetCommandPool(device, commandPool, 0);
+    VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    begin.pInheritanceInfo = VK_NULL_HANDLE;
+    VkResult result = vkBeginCommandBuffer(commandBuffer, &begin);
+    *pCmdBuff = commandBuffer;
+    return result;
+}
