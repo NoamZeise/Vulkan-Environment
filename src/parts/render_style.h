@@ -2,9 +2,7 @@
 #define PARTS_RENDER_STYLE_H
 
 #include "../pipeline.h"
-#include "../render_structs/swapchain/swapchain.h"
 #include "../shader_internal.h"
-#include "framebuffer.h"
 #include <volk.h>
 
 #include <string>

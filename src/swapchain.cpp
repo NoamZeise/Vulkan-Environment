@@ -9,8 +9,18 @@ Swapchain::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice,
 		     VkExtent2D &windowExtent,
 		     RenderConfig conf) {
     this->device = device;
+    this->physicalDevice = physicalDevice;
+    this->surface = windowSurface;
+    RecreateSwapchain(windowExtent, conf);
+}
+
+Swapchain::~Swapchain() {
+    vkDestroySwapchainKHR(device, swapchain, VK_NULL_HANDLE);
+}
+
+void Swapchain::RecreateSwapchain(VkExtent2D &windowExtent, RenderConfig &conf) {
     images = part::create::Swapchain(
-	    device, physicalDevice, windowSurface,
+	    device, physicalDevice, surface,
 	    windowExtent.width, windowExtent.height, conf.vsync, conf.srgb,
 	    &swapchain, &this->format, &this->swapchainExtent);
     if(swapchainExtent.width != windowExtent.width ||
@@ -21,16 +31,17 @@ Swapchain::Swapchain(VkDevice device, VkPhysicalDevice physicalDevice,
     }
 }
 
+std::vector<VkImage> *Swapchain::getSwapchainImages() { return &images; }
 
-Swapchain::~Swapchain() {
-    vkDestroySwapchainKHR(device, swapchain, VK_NULL_HANDLE);
+VkSwapchainKHR Swapchain::getSwapchain() {
+    return this->swapchain;
 }
 
-std::vector<VkImage>* Swapchain::getSwapchainImages() {
-    return &images;
+VkFormat Swapchain::getFormat() {
+    return this->format.format;
 }
 
-VkResult Swapchain::aquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex) {
+VkResult Swapchain::acquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex) {
     return vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imAquired, VK_NULL_HANDLE,
 				 pImageIndex);
 }

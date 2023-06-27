@@ -9,7 +9,8 @@ namespace part {
 	     VkDevice device,
 	     VkCommandPool *commandPool,
 	     VkCommandBuffer *commandBuffer,
-	     uint32_t queueFamilyIndex);
+	     uint32_t queueFamilyIndex,
+	     VkCommandPoolCreateFlags flags);
   }
 }
 

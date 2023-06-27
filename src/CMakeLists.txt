@@ -4,7 +4,6 @@ file(GLOB VK_RENDER_SOURCES
 	  parts/*
 	  parts/helper/*
 	  render_structs/*
-	  render_structs/swapchain/*
 	  )
 
 set(Vulkan-Render-Lib "VulkanEnvironment")

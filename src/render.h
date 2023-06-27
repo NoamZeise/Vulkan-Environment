@@ -17,13 +17,16 @@ namespace Resource {
     class TextureLoader;
 } // namespace Resource
 
-#include "render_structs/swapchain/swapchain.h"
-#include "pipeline.h"
-#include "vulkan_manager.h"
 #include <graphics/render_config.h>
+#include "vulkan_manager.h"
+#include "swapchain.h"
+#include "frame.h"
+#include "renderpass.h"
+#include "pipeline.h"
 #include "shader.h"
 #include "shader_internal.h"
 #include "shader_structs.h"
+
 
 #include <atomic>
 #include <vector>
@@ -112,11 +115,22 @@ const int MAX_2D_INSTANCE = 100;
       RenderConfig renderConf;
       bool renderConfChanged = true;
   
-      VulkanManager* manager;
-  
-      Swapchain *swapchain;
-      VkCommandBuffer currentCommandBuffer;
-  
+      VulkanManager* manager = nullptr;
+      uint32_t frameIndex = 0;
+      const uint32_t frameCount = 2;
+      Frame** frames;
+
+      VkFormat offscreenDepthFormat;
+      VkFormat prevSwapchainFormat = VK_FORMAT_UNDEFINED;
+      VkSampleCountFlagBits prevSampleCount = VK_SAMPLE_COUNT_1_BIT;
+      Swapchain *swapchain = nullptr;
+      uint32_t swapchainFrameIndex = 0;
+      uint32_t swapchainFrameCount = 0;
+      VkCommandBuffer currentCommandBuffer = VK_NULL_HANDLE;
+
+      VkDeviceMemory framebufferMemory = VK_NULL_HANDLE;
+      RenderPass* offscreenRenderPass = nullptr;
+      RenderPass* finalRenderPass = nullptr;
 
       Pipeline _pipeline3D;
       Pipeline _pipelineAnim3D;
@@ -171,7 +185,6 @@ const int MAX_2D_INSTANCE = 100;
 
       bool _begunDraw = false;
       RenderState _renderState;
-      uint32_t _frameI;
       VkSemaphore _imgAquireSem;
       float _projectionFov = 45.0f;
       float _scale2D = 1.0f;

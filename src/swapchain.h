@@ -14,15 +14,20 @@ class Swapchain {
 	      VkExtent2D &windowExtent,
 	      RenderConfig conf);
     ~Swapchain();
+    void RecreateSwapchain(VkExtent2D &windowExtent, RenderConfig &conf);
     std::vector<VkImage>* getSwapchainImages();
-    VkResult aquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex);
+    VkSwapchainKHR getSwapchain();
+    VkFormat getFormat();
+    VkResult acquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex);
     
     
  private:
-    VkSwapchainKHR swapchain;
+    VkDevice device;
+    VkPhysicalDevice physicalDevice;
+    VkSurfaceKHR surface;
+    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
     VkExtent2D swapchainExtent;
     VkSurfaceFormatKHR format;
-    VkDevice device;
     std::vector<VkImage> images;
 };
 

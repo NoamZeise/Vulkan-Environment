@@ -26,7 +26,7 @@ VulkanManager::VulkanManager(GLFWwindow *window, EnabledFeatures featuresToEnabl
 		       deviceState.device,
 		       &generalCommandPool,
 		       &generalCommandBuffer,
-		       deviceState.queue.graphicsPresentFamilyIndex),
+		       deviceState.queue.graphicsPresentFamilyIndex, 0),
 	       "Failed to create command pool and buffer");
 }
 

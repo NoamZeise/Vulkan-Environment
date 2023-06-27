@@ -5,7 +5,7 @@
 struct Frame {
     Frame(VkDevice device,  uint32_t graphicsQueueIndex);
     ~Frame();
-
+    void waitForPreviousFrame();
     VkResult startFrame(VkCommandBuffer *pCmdBuff);
     
     VkDevice device;

@@ -5,7 +5,7 @@
 namespace vkhelper
 {
 
-uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBits, VkMemoryPropertyFlags properties)
+  uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBits, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -17,11 +17,11 @@ uint32_t findMemoryIndex(VkPhysicalDevice physicalDevice, uint32_t memoryTypeBit
 			return i;
 		}
 	}
-	throw std::runtime_error("failed to find suitable memory type");
+	throw std::runtime_error("VkHelper::findMemoryIndex Error: "
+				 "failed to find suitable memory type");
 }
 
-VkResult createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
-{
+VkResult createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* buffer, VkDeviceMemory* memory, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties) {
 	VkBufferCreateInfo bufferInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL};
 	bufferInfo.size = size;
 	bufferInfo.usage = usage;
@@ -41,8 +41,7 @@ VkResult createBufferAndMemory(DeviceState base, VkDeviceSize size, VkBuffer* bu
 			    memory, properties, memReq.memoryTypeBits);
 }
 
-VkResult allocateMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits)
-{
+VkResult allocateMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDeviceSize size, VkDeviceMemory* memory, VkMemoryPropertyFlags properties, uint32_t memoryTypeBits) {
 	VkMemoryAllocateInfo memInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
 	memInfo.allocationSize = size;
 	memInfo.memoryTypeIndex = findMemoryIndex(physicalDevice, memoryTypeBits, properties);
@@ -50,8 +49,7 @@ VkResult allocateMemory(VkDevice device, VkPhysicalDevice physicalDevice, VkDevi
 	return vkAllocateMemory(device, &memInfo, nullptr, memory);
 }
 
-VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment)
-{
+VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize alignment) {
 	if (desiredSize % alignment != 0)
 	  desiredSize = desiredSize + ((alignment - (desiredSize % alignment)) % alignment);
 	return desiredSize;
@@ -59,8 +57,7 @@ VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize align
 
     VkSampler createTextureSampler(VkDevice device, VkPhysicalDevice physicalDevice,
 				   float maxLod, bool enableAnisotrophy, bool useNearestFilter,
-				   VkSamplerAddressMode addressMode)
-{
+				   VkSamplerAddressMode addressMode) {
   VkSampler sampler;
   
   VkPhysicalDeviceProperties deviceProps{};
@@ -69,23 +66,19 @@ VkDeviceSize correctMemoryAlignment(VkDeviceSize desiredSize, VkDeviceSize align
   samplerInfo.addressModeU = addressMode;
   samplerInfo.addressModeV = samplerInfo.addressModeU;
   samplerInfo.addressModeW = samplerInfo.addressModeU;
-  if (useNearestFilter)
-  {
+  if (useNearestFilter) {
     samplerInfo.magFilter = VK_FILTER_NEAREST;
     samplerInfo.minFilter = VK_FILTER_NEAREST;
   }
-  else
-  {
+  else {
     samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
   }
-  if(enableAnisotrophy)
-  {
+  if(enableAnisotrophy) {
     samplerInfo.anisotropyEnable = VK_TRUE;
 	samplerInfo.maxAnisotropy = deviceProps.limits.maxSamplerAnisotropy;
   }
-  else
-  {
+  else {
     samplerInfo.maxAnisotropy = 1.0f;
   }
   samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;

@@ -9,10 +9,12 @@ namespace part {
       VkResult CommandPoolAndBuffer(VkDevice device,
 				    VkCommandPool *commandPool,
 				    VkCommandBuffer *commandBuffer,
-				    uint32_t queueFamilyIndex) {
+				    uint32_t queueFamilyIndex,
+				    VkCommandPoolCreateFlags flags) {
       VkResult result = VK_SUCCESS;
       VkCommandPoolCreateInfo commandPoolInfo{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO};
       commandPoolInfo.queueFamilyIndex = queueFamilyIndex;
+      commandPoolInfo.flags = flags;
       msgAndReturnOnErr(vkCreateCommandPool(device, &commandPoolInfo, nullptr, commandPool),
 			"Failed to create command pool");
       
