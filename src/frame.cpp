@@ -17,7 +17,7 @@ Frame::Frame(VkDevice device,  uint32_t graphicsQueueIndex) {
     checkResultAndThrow(part::create::Semaphore(device, &swapchainImageReady),
 		"failed to create image available semaphore");
 
-    checkResultAndThrow(part::create::Semaphore(device, &presentReady),
+    checkResultAndThrow(part::create::Semaphore(device, &drawFinished),
 		"failed to create present ready semaphore");
 
     checkResultAndThrow(part::create::Fence(device, &frameFinished, true),
@@ -27,16 +27,21 @@ Frame::Frame(VkDevice device,  uint32_t graphicsQueueIndex) {
 Frame::~Frame() {
     vkDestroyCommandPool(device, commandPool, nullptr);
     vkDestroySemaphore(device, swapchainImageReady, nullptr);
-    vkDestroySemaphore(device, presentReady, nullptr);
+    vkDestroySemaphore(device, drawFinished, nullptr);
     vkDestroyFence(device, frameFinished, nullptr);
 }
 
-void Frame::waitForPreviousFrame() {
-    vkWaitForFences(device, 1, &frameFinished, VK_TRUE, UINT64_MAX);
+VkResult Frame::waitForPreviousFrame() {
+    VkResult result = vkWaitForFences(device, 1, &frameFinished, VK_TRUE, UINT64_MAX);
+    if(result != VK_SUCCESS)
+	LOG_ERR_TYPE("Failed to wait for frame fence", result);
+    result = vkResetFences(device, 1, &frameFinished);
+    if(result != VK_SUCCESS)
+	LOG_ERR_TYPE("Failed to reset frame fence", result);
+    return result;
 }
 
 VkResult Frame::startFrame(VkCommandBuffer *pCmdBuff) {
-    vkResetFences(device, 1, &frameFinished);
     vkResetCommandBuffer(commandBuffer, 0);
     VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;

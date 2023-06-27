@@ -84,7 +84,7 @@ void Render::_initStagingResourceManagers() {
   
 Render::~Render()
 {
-  vkQueueWaitIdle(manager->deviceState.queue.graphicsPresentQueue);
+  vkDeviceWaitIdle(manager->deviceState.device);
 
   delete _textureLoader;
   delete _stagingTextureLoader;
@@ -117,7 +117,13 @@ bool swapchainRecreationRequired(VkResult result) {
       LOG("Creating Swapchain");
 	    
       int winWidth, winHeight;
+      winWidth = winHeight = 0;
       glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
+      while(winWidth == 0 || winHeight == 0) {
+	  LOG("here");
+	  glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
+	  glfwWaitEvents();
+      }
       VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
       if (renderConf.force_target_resolution)
 	  offscreenBufferExtent = {(uint32_t)_targetResolution.x,
@@ -166,8 +172,6 @@ bool swapchainRecreationRequired(VkResult result) {
 	      vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
 	  }
 	  offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments);
-	  if(finalRenderPass != nullptr)
-	      delete finalRenderPass;
 	  finalRenderPass = new RenderPass(manager->deviceState.device, {
 		  AttachmentDesc(0, AttachmentType::Colour, AttachmentUse::PresentSrc,
 				 VK_SAMPLE_COUNT_1_BIT, swapchainFormat)});
@@ -467,26 +471,17 @@ void Render::_resize() {
     
     _destroyFrameResources();
     _initFrameResources();
-    
-    vkDeviceWaitIdle(manager->deviceState.device);
     _update3DProjectionMatrix();
 }
 
 void Render::_startDraw() {
-    //TODO: if not advance frame, also get stutter screen
     frameIndex = (frameIndex + 1) % frameCount;
-    frames[frameIndex]->waitForPreviousFrame();
- START_DRAW:
+    checkResultAndThrow(frames[frameIndex]->waitForPreviousFrame(),
+			"Render Error: failed to wait for previous frame fence");
     VkResult result = swapchain->acquireNextImage(frames[frameIndex]->swapchainImageReady,
 						 &swapchainFrameIndex);
-    if(result != VK_SUCCESS) {
-	if(swapchainRecreationRequired(result)) {
-	    LOG("recreation required");
-	    _resize();
-	    goto START_DRAW;
-	}
-	checkResultAndThrow(result, "Render Error: failed to begin offscreen render pass!");
-    }
+    if(result != VK_SUCCESS && !swapchainRecreationRequired(result))
+	    checkResultAndThrow(result, "Render Error: failed to begin offscreen render pass!");
     checkResultAndThrow(frames[frameIndex]->startFrame(&currentCommandBuffer),
 			"Render Error: Failed to start command buffer.");
     offscreenRenderPass->beginRenderPass(currentCommandBuffer, swapchainFrameIndex);
@@ -665,31 +660,30 @@ void Render::_drawBatch() {
 }
 
 
-  VkResult submitDraw(VkCommandBuffer *cmdBuff,
-		      VkQueue queue, Frame *frame) {
+  VkResult submitDraw(VkQueue queue, Frame *frame) {
       VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
       submitInfo.waitSemaphoreCount = 1;
       submitInfo.pWaitSemaphores = &frame->swapchainImageReady;
       VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
       submitInfo.pWaitDstStageMask = &stageFlags;
       submitInfo.commandBufferCount = 1;
-      submitInfo.pCommandBuffers = cmdBuff;
+      submitInfo.pCommandBuffers = &frame->commandBuffer;
       submitInfo.signalSemaphoreCount = 1;
-      submitInfo.pSignalSemaphores = &frame->presentReady;
+      submitInfo.pSignalSemaphores = &frame->drawFinished;
       VkResult result = vkQueueSubmit(queue, 1, &submitInfo, frame->frameFinished);
-      if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+      if(result != VK_SUCCESS)
 	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
       return result;
   }
 
   VkResult submitPresent(VkSemaphore* waitSemaphore, VkSwapchainKHR *swapchain,
-			 uint32_t* frameIndex, VkQueue queue) {
+			 uint32_t* swapchainImageIndex, VkQueue queue) {
     VkPresentInfoKHR presentInfo {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = waitSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapchain;
-    presentInfo.pImageIndices = frameIndex;
+    presentInfo.pImageIndices = swapchainImageIndex;
     VkResult result = vkQueuePresentKHR(queue, &presentInfo);
     if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
 	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
@@ -739,12 +733,11 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   
   VkResult result = vkEndCommandBuffer(currentCommandBuffer);
   if(result == VK_SUCCESS)
-      result = submitDraw(&currentCommandBuffer,
-			  manager->deviceState.queue.graphicsPresentQueue,
+      result = submitDraw(manager->deviceState.queue.graphicsPresentQueue,
 			  frames[frameIndex]);
   if(result == VK_SUCCESS) {
       VkSwapchainKHR sc = swapchain->getSwapchain();
-      result = submitPresent(&frames[frameIndex]->presentReady, &sc, &swapchainFrameIndex,
+      result = submitPresent(&frames[frameIndex]->drawFinished, &sc, &swapchainFrameIndex,
 			     manager->deviceState.queue.graphicsPresentQueue);
   }
   

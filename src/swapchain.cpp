@@ -41,7 +41,7 @@ VkFormat Swapchain::getFormat() {
     return this->format.format;
 }
 
-VkResult Swapchain::acquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex) {
+VkResult Swapchain::acquireNextImage(VkSemaphore imAquired, uint32_t *pImageIndex) {
     return vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, imAquired, VK_NULL_HANDLE,
 				 pImageIndex);
 }

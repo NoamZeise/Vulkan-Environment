@@ -18,7 +18,7 @@ class Swapchain {
     std::vector<VkImage>* getSwapchainImages();
     VkSwapchainKHR getSwapchain();
     VkFormat getFormat();
-    VkResult acquireNextImage(VkSemaphore &imAquired, uint32_t *pImageIndex);
+    VkResult acquireNextImage(VkSemaphore imAquired, uint32_t *pImageIndex);
     
     
  private:

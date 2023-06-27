@@ -5,14 +5,14 @@
 struct Frame {
     Frame(VkDevice device,  uint32_t graphicsQueueIndex);
     ~Frame();
-    void waitForPreviousFrame();
+    VkResult waitForPreviousFrame();
     VkResult startFrame(VkCommandBuffer *pCmdBuff);
     
     VkDevice device;
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
     VkSemaphore swapchainImageReady;
-    VkSemaphore presentReady;
+    VkSemaphore drawFinished;
     VkFence frameFinished;
 };
 
