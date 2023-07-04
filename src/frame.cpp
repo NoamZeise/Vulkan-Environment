@@ -10,8 +10,7 @@ Frame::Frame(VkDevice device,  uint32_t graphicsQueueIndex) {
     this->device = device;
     checkResultAndThrow(part::create::CommandPoolAndBuffer(
 				device, &commandPool,
-				&commandBuffer, graphicsQueueIndex,
-				VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT),
+				&commandBuffer, graphicsQueueIndex, 0),
 		"failed to create command pool and buffer for frame");
 
     checkResultAndThrow(part::create::Semaphore(device, &swapchainImageReady),
@@ -42,7 +41,7 @@ VkResult Frame::waitForPreviousFrame() {
 }
 
 VkResult Frame::startFrame(VkCommandBuffer *pCmdBuff) {
-    vkResetCommandBuffer(commandBuffer, 0);
+    vkResetCommandPool(device, commandPool, 0);
     VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     begin.pInheritanceInfo = VK_NULL_HANDLE;

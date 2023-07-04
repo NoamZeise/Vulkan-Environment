@@ -129,7 +129,7 @@ void AttachmentImage::Destroy(VkDevice device)
     case state::imageview:
 	vkDestroyImageView(device, view, nullptr);
     case state::image:
-	if(!usingExternalImage)
+	if(!usingExternalImage) 
 	    vkDestroyImage(device, image, nullptr);
     }
 }
@@ -291,7 +291,6 @@ RenderPass::~RenderPass() {
     framebuffers.clear();
     vkDestroyRenderPass(device, this->renderpass, VK_NULL_HANDLE);
 }
-
 
 VkResult RenderPass::createFramebufferImages(std::vector<VkImage> *swapchainImages,
 					 VkExtent2D extent,

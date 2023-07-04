@@ -1,6 +1,7 @@
 #include "vkhelper.h"
 
 #include <stdexcept>
+#include "logger.h"
 
 namespace vkhelper
 {
