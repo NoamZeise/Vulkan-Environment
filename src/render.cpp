@@ -172,10 +172,13 @@ void Render::_initFrameResources() {
 						      sampleCount, offscreenDepthFormat));
 
 	LOG("make new renderpasses");
-	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments);
+	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
+					     renderConf.clearColour);
+	float black[3] = {0.0f, 0.0f, 0.0f};
 	finalRenderPass = new RenderPass(manager->deviceState.device, {
 		AttachmentDesc(0, AttachmentType::Colour, AttachmentUse::PresentSrc,
-			       VK_SAMPLE_COUNT_1_BIT, swapchainFormat)});
+			       VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
+	    black);
     }
       
     prevSwapchainFormat = swapchainFormat;
@@ -383,6 +386,7 @@ void Render::_initFrameResources() {
 	    _targetResolution,
 	    glm::vec2((float)swapchainExtent.width,
 		      (float)swapchainExtent.height));
+    _update3DProjectionMatrix();
     LOG("Finished Creating Frame Resources");
     timeData.time = 0;
 }
@@ -504,9 +508,9 @@ void Render::Begin3DDraw() {
     _pipeline3D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
 
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
-{
-  if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
+	       glm::vec4 colour) {
+    if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
       LOG("WARNING: ran out of 3D instances!\n");
       return;
   }
@@ -515,12 +519,18 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
     _drawBatch();
 
   _currentModel = model;
+  _currentColour = colour;
   perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
-  perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
+  perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMatrix;
   _modelRuns++;
 
   if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
     _drawBatch();
+}
+
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
+{
+    DrawModel(model, modelMatrix, normalMat, glm::vec4(0.0f));
 }
 
 void Render::BeginAnim3DDraw()
@@ -642,7 +652,7 @@ void Render::_drawBatch() {
     case RenderState::Draw3D:
 	_modelLoader->drawModel(currentCommandBuffer,
 				_pipeline3D.layout, _currentModel, _modelRuns,
-				_current3DInstanceIndex);
+				_current3DInstanceIndex, _currentColour);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;

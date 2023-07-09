@@ -13,7 +13,7 @@ bool checkRequestedExtensionsAreSupported(
     VkPhysicalDevice physicalDevice,
     const std::vector<const char *> &requestedExtensions);
 
-std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies);
+std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies, float *queuePriority);
 
 VkPhysicalDeviceFeatures setRequestedDeviceFeatures(
 	VkPhysicalDevice physicalDevice,
