@@ -54,8 +54,7 @@ if(NOT NO_ASSIMP)
   set(ASSIMP_BUILD_TESTS OFF)
   OPTION(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT "default value of all ASSIMP_BUILD_XXX_IMPORTER values" TRUE)
   set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT FALSE)
-  # by default only support obj and fbx models
-  set(ASSIMP_BUILD_FBX_IMPORTER TRUE)
+  # by default only support obj
   set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
   add_subdirectory(assimp)
 endif()
