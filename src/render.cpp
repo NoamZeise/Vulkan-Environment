@@ -558,6 +558,7 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 	_drawBatch();
 
     _currentModel = model;
+    _currentColour = glm::vec4(0.0f);
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
@@ -650,7 +651,7 @@ void Render::_drawBatch() {
     case RenderState::Draw3D:
 	_modelLoader->drawModel(currentCommandBuffer,
 				_pipeline3D.layout, _currentModel, _modelRuns,
-				_current3DInstanceIndex);
+				_current3DInstanceIndex, _currentColour);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;

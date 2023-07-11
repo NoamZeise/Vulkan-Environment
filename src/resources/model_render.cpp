@@ -114,7 +114,7 @@ namespace Resource {
   }
 
   void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
-			      uint32_t count, uint32_t instanceOffset) {
+			      uint32_t count, uint32_t instanceOffset, glm::vec4 colour) {
       if(model.ID >= models.size()) {
 	  LOG("the model ID is out of range, ID: " << model.ID);
 	  return;
@@ -123,7 +123,7 @@ namespace Resource {
       bindGroupVertexBuffer(cmdBuff, modelInfo->type);
       for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
 	  fragPushConstants fps {
-	      modelInfo->meshes[i].diffuseColour,
+	      colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
 	      glm::vec4(0, 0, 1, 1), //texOffset
 	      (uint32_t)modelInfo->meshes[i].texture.ID
 	  };
