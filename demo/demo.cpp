@@ -133,6 +133,10 @@ int main() {
 	    
 	    auto monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
 	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat);
+	    monkeyMat = glm::translate(monkeyMat, glm::vec3(2.0f, 0.0f, 0.0f));
+	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
+	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
+			     glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 
 	    render.BeginAnim3DDraw();
 

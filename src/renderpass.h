@@ -20,17 +20,21 @@ enum class AttachmentUse {
 /// A high level description of the framebuffer attachments
 class AttachmentDesc {
  public:
+    AttachmentDesc() { created = false; }
     AttachmentDesc(uint32_t index, AttachmentType type, AttachmentUse use,
 		   VkSampleCountFlagBits sampleCount, VkFormat format);
     VkAttachmentReference getAttachmentReference();
     VkAttachmentDescription getAttachmentDescription();
     AttachmentType getType();
     AttachmentUse getUse();
+    uint32_t getIndex() { return index; }
+    bool wasCreated() { return created; }
     void getImageProps(VkFormat *imageFormat,
 		       VkImageUsageFlags *imageUsage,
 		       VkImageAspectFlags *imageAspect,
 		       VkSampleCountFlagBits *sampleCount);
 private:
+    bool created = true;
     uint32_t index;
     AttachmentType type;
     AttachmentUse use;
@@ -58,7 +62,8 @@ struct Framebuffer {
 
 class RenderPass {
  public:
-    RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments);
+    RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments,
+	       float clearColour[3]);
     ~RenderPass();
 
     /// pMemReq will be added to by the amount of memory required to

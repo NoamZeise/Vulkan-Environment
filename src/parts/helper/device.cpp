@@ -52,15 +52,14 @@ bool checkRequestedExtensionsAreSupported(
     return true;
 }
 
-std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies) {
+std::vector<VkDeviceQueueCreateInfo> fillQueueFamiliesCreateInfo(std::set<uint32_t> uniqueQueueFamilies, float *queuePriority) {
     std::vector<VkDeviceQueueCreateInfo> queueInfos(uniqueQueueFamilies.size());
-    float queuePriority = 1.0f;
     int familyCount = 0;
     for (uint32_t familyIndex : uniqueQueueFamilies) {
 	VkDeviceQueueCreateInfo queueCreateInfo{ VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
 	queueCreateInfo.queueFamilyIndex = familyIndex;
 	queueCreateInfo.queueCount = 1;
-	queueCreateInfo.pQueuePriorities = &queuePriority;
+	queueCreateInfo.pQueuePriorities = queuePriority;
    
 	queueInfos[familyCount] = queueCreateInfo;
 	familyCount++;

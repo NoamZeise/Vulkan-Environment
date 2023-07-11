@@ -106,13 +106,14 @@ namespace part {
 	// create logical device
 	VkDeviceCreateInfo deviceInfo{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
 
+	float queuePriority = 1.0f;
 	std::vector<VkDeviceQueueCreateInfo> queueInfos = fillQueueFamiliesCreateInfo(
-		{ deviceState->queue.graphicsPresentFamilyIndex });
+		{ deviceState->queue.graphicsPresentFamilyIndex }, &queuePriority);
 	    
-	deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueInfos.size());
+	deviceInfo.queueCreateInfoCount = (uint32_t)queueInfos.size();
 	deviceInfo.pQueueCreateInfos = queueInfos.data();
 
-	deviceInfo.enabledExtensionCount = static_cast<uint32_t>(REQUESTED_DEVICE_EXTENSIONS.size());
+	deviceInfo.enabledExtensionCount = (uint32_t)REQUESTED_DEVICE_EXTENSIONS.size();
 	deviceInfo.ppEnabledExtensionNames = REQUESTED_DEVICE_EXTENSIONS.data();
 	    
 	VkPhysicalDeviceFeatures chosenDeviceFeatures = setRequestedDeviceFeatures(
@@ -121,7 +122,7 @@ namespace part {
 		&deviceState->features);
 	deviceInfo.pEnabledFeatures = &chosenDeviceFeatures;
 
-	deviceInfo.enabledLayerCount = static_cast<uint32_t>(OPTIONAL_LAYERS.size());
+	deviceInfo.enabledLayerCount = (uint32_t)OPTIONAL_LAYERS.size();
 	deviceInfo.ppEnabledLayerNames = OPTIONAL_LAYERS.data();
 
 	returnOnErr(vkCreateDevice(deviceState->physicalDevice, &deviceInfo, nullptr,

@@ -14,6 +14,8 @@ struct RenderConfig {
     bool force_target_resolution = false;
     float depth_range_2D[2] = { -10.0f, 10.0f };
     float depth_range_3D[2] = { 0.1f, 1000.0f };
+    float clear_colour[3] = { 0.39f, 0.58f, 0.93f };
+    float scaled_boarder_colour[3] = { 0.0f, 0.0f, 0.0f };
 };
 
 #endif

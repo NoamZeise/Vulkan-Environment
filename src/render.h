@@ -77,7 +77,9 @@ const int MAX_2D_INSTANCE = 100;
       void Begin3DDraw();
       void BeginAnim3DDraw();
       void Begin2DDraw();
-      void DrawModel(    Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+      void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+      void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
+		     glm::vec4 modelColour);
       void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
 			 Resource::ModelAnimation *animation);
       void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour,

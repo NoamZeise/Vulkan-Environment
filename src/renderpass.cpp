@@ -220,8 +220,9 @@ enum class SubpassDependancyType {
 VkSubpassDependency genSubpassDependancy(bool colour, bool depth,
                                          SubpassDependancyType depType);
 
-RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments) {
-    this->attachmentDescription = attachments;
+RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments,
+	       float clearColour[3]) {
+    this->attachmentDescription.resize(attachments.size());
     this->device = device;
 
     std::vector<VkAttachmentDescription> attachDescVK(attachments.size());
@@ -232,14 +233,22 @@ RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments)
     std::vector<VkAttachmentReference> colourRefs;
     for(int i = 0; i < attachments.size(); i++) {
 	VkClearValue clear;
-	attachDescVK[i] = attachments[i].getAttachmentDescription();
+	if(attachments[i].getIndex() > attachments.size())
+	    throw std::runtime_error("Render Pass Creation Error: Attachment Index "
+				     "was greater than the number of supplied attachments");
+	if(attachmentDescription[attachments[i].getIndex()].wasCreated())
+	    throw std::runtime_error("Render Pass Creation Error: tried to have two attachments "
+				     "with the same index!");
+	attachmentDescription[attachments[i].getIndex()] = attachments[i];    
+	attachDescVK[attachments[i].getIndex()] = attachments[i].getAttachmentDescription();
+
 	VkAttachmentReference attachRef = attachments[i].getAttachmentReference();
 	if(attachments[i].getUse() == AttachmentUse::ShaderRead)
 	    hasShaderReadAttachment = true;
 	switch(attachments[i].getType()) {
 	case AttachmentType::Colour:
 	    colourRefs.push_back(attachRef);
-	    clear.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+	    clear.color = {{clearColour[0], clearColour[1], clearColour[2], 1.0f}};
 	    attachmentClears.push_back(clear);
 	    break;
 	case AttachmentType::Depth:
@@ -283,8 +292,8 @@ RenderPass::RenderPass(VkDevice device, std::vector<AttachmentDesc> attachments)
     createInfo.pSubpasses = &subpass;
     createInfo.dependencyCount = subpassDependancies.size();
     createInfo.pDependencies = subpassDependancies.data();
-
-    vkCreateRenderPass(device, &createInfo, VK_NULL_HANDLE, &this->renderpass);
+    VkResult res = vkCreateRenderPass(device, &createInfo, VK_NULL_HANDLE, &this->renderpass);
+    checkResultAndThrow(res, "Failed to created render pass!");
 }
 
 RenderPass::~RenderPass() {
@@ -299,7 +308,7 @@ VkResult RenderPass::createFramebufferImages(std::vector<VkImage> *swapchainImag
     VkResult result = VK_SUCCESS;
     std::vector<AttachmentImage> attachImages;
     for(int i = 0; i < attachmentDescription.size(); i++)
-	attachImages.push_back(attachmentDescription[i]);
+	attachImages.push_back(AttachmentImage(attachmentDescription[i]));
     framebuffers.clear();
     framebuffers.resize((swapchainImages->size()));
     framebufferExtent = extent;

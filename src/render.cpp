@@ -172,10 +172,12 @@ void Render::_initFrameResources() {
 						      sampleCount, offscreenDepthFormat));
 
 	LOG("make new renderpasses");
-	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments);
+	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
+					     renderConf.clear_colour);
 	finalRenderPass = new RenderPass(manager->deviceState.device, {
 		AttachmentDesc(0, AttachmentType::Colour, AttachmentUse::PresentSrc,
-			       VK_SAMPLE_COUNT_1_BIT, swapchainFormat)});
+			       VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
+	    renderConf.scaled_boarder_colour);
     }
       
     prevSwapchainFormat = swapchainFormat;
@@ -504,23 +506,29 @@ void Render::Begin3DDraw() {
     _pipeline3D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
 
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat)
-{
-  if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
-      LOG("WARNING: ran out of 3D instances!\n");
-      return;
-  }
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat) {
+    DrawModel(model, modelMatrix, normalMat, glm::vec4(0.0f));
+}
 
-  if (_currentModel.ID != model.ID && _modelRuns != 0)
-    _drawBatch();
 
-  _currentModel = model;
-  perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
-  perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
-  _modelRuns++;
-
-  if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
-    _drawBatch();
+void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
+		       glm::vec4 colour) {
+    if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
+	LOG("WARNING: ran out of 3D instances!\n");
+	return;
+    }
+    
+    if ((_currentColour != colour || _currentModel.ID != model.ID) && _modelRuns != 0)
+	_drawBatch();
+    
+    _currentModel = model;
+    _currentColour = colour;
+    perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
+    perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
+    _modelRuns++;
+    
+    if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
+	_drawBatch();
 }
 
 void Render::BeginAnim3DDraw()
