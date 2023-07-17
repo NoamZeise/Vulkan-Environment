@@ -196,7 +196,7 @@ namespace Resource {
       return modelLoader.LoadModel(path);
 #else
       throw std::runtime_error("tried to load model from file, but NO_ASSIMP is defined"
-"so that feature is disabled!");
+" so that feature is disabled!");
 #endif
   }
 

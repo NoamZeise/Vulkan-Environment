@@ -86,4 +86,6 @@ std::string checkTextureLoaded(std::string path,
                                std::vector<Resource::Texture> &alreadyLoaded,
                                Resource::Texture *pTex);
 
+ModelInfo::Model makeQuadModel();
+
 #endif
