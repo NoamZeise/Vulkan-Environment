@@ -47,7 +47,7 @@ const int MAX_2D_INSTANCE = 100;
       /// Iniltialise the renderer. Chooses a GPU and sets up resources loaders.
       /// Do any resource loading, then call LoadResourcesToGPU(), then UseLoadedResources() 
       /// before the draw loop.
-      Render(GLFWwindow *window, glm::vec2 target);
+      Render(GLFWwindow *window, RenderConfig renderConf);
       ~Render();
   
       Resource::Texture LoadTexture(std::string filepath);
@@ -94,16 +94,15 @@ const int MAX_2D_INSTANCE = 100;
       void EndDraw(std::atomic<bool> &submit);
 
       void FramebufferResize();
-    
+
       void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
       void set2DViewMatrixAndScale(glm::mat4 view, float scale);
       void setLightDirection(glm::vec4 lightDir);
-      void setForceTargetRes(bool force);
-      bool isTargetResForced();
+
+      void setRenderConf(RenderConfig renderConf);
+      RenderConfig getRenderConf();
       void setTargetResolution(glm::vec2 resolution);
       glm::vec2 getTargetResolution();
-      void setVsync(bool vsync);
-      bool getVsync();
 
       void setTime(float time) {
 	  timeData.time = time;
@@ -112,9 +111,8 @@ const int MAX_2D_INSTANCE = 100;
   private:
       bool _framebufferResized = false;
 
-      //render settings
-      glm::vec2 _targetResolution;
       RenderConfig renderConf;
+      RenderConfig prevRenderConf;
       bool renderConfChanged = true;
   
       VulkanManager* manager = nullptr;

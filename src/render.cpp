@@ -55,14 +55,14 @@ void checkVolk() {
 }
 
 
-Render::Render(GLFWwindow *window, glm::vec2 target)
+Render::Render(GLFWwindow *window, RenderConfig renderConf)
 {
     checkVolk();
+    this->renderConf = renderConf;
+    this->prevRenderConf = renderConf;
     EnabledFeatures features;
     features.sampleRateShading = renderConf.sample_shading;
     manager = new VulkanManager(window, features);
-    _targetResolution = target;
-
     offscreenDepthFormat = getDepthBufferFormat(manager->deviceState.physicalDevice);
     
     frames = new Frame*[frameCount];
@@ -125,11 +125,9 @@ void Render::_initFrameResources() {
 	glfwWaitEvents();
     }
     VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
-    if (renderConf.force_target_resolution)
-	offscreenBufferExtent = {(uint32_t)_targetResolution.x,
-				 (uint32_t)_targetResolution.y};
-    else
-	_targetResolution = glm::vec2((float)winWidth, (float)winHeight);
+    if (renderConf.target_resolution[0] != 0.0 && renderConf.target_resolution[1] != 0.0)
+	offscreenBufferExtent = {(uint32_t)renderConf.target_resolution[0],
+				 (uint32_t)renderConf.target_resolution[1]};
     VkExtent2D swapchainExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
       
     if(swapchain == nullptr)
@@ -177,7 +175,7 @@ void Render::_initFrameResources() {
 	finalRenderPass = new RenderPass(manager->deviceState.device, {
 		AttachmentDesc(0, AttachmentType::Colour, AttachmentUse::PresentSrc,
 			       VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
-	    renderConf.scaled_boarder_colour);
+	    renderConf.scaled_border_colour);
     }
       
     prevSwapchainFormat = swapchainFormat;
@@ -380,13 +378,13 @@ void Render::_initFrameResources() {
 	    false, false, false, manager->deviceState.features.sampleRateShading,
 	    swapchainExtent, VK_CULL_MODE_NONE, {}, {});
 
-    renderConfChanged = false;
     offscreenTransformData = glmhelper::calcFinalOffset(
-	    _targetResolution,
+	    glm::vec2(offscreenBufferExtent.width, offscreenBufferExtent.height),
 	    glm::vec2((float)swapchainExtent.width,
 		      (float)swapchainExtent.height));
     LOG("Finished Creating Frame Resources");
     timeData.time = 0;
+    prevRenderConf = renderConf;
 }
 
 void Render::_destroyFrameResources()
@@ -787,34 +785,26 @@ void Render::setLightDirection(glm::vec4 lightDir) {
   lightingData.direction = lightDir;
 }
 
-void Render::setForceTargetRes(bool force) {
-    if(renderConf.force_target_resolution != force) {
-      renderConf.force_target_resolution = force;
-      renderConfChanged = true;
-      FramebufferResize();
-      LOG("set force target: " << force);
-    }
-}
-bool Render::isTargetResForced() { return renderConf.force_target_resolution; }
-void Render::setTargetResolution(glm::vec2 resolution) {
-    _targetResolution = resolution;
-    renderConf.force_target_resolution = true;
-    renderConfChanged = true;
+void Render::setRenderConf(RenderConfig renderConf) {
+    this->renderConf = renderConf;
     FramebufferResize();
-    LOG("set target res");
-}
-glm::vec2 Render::getTargetResolution() {
-  return _targetResolution;
-}
-void Render::setVsync(bool vsync) {
-    this->renderConf.vsync = vsync;
-    renderConfChanged = true;
-    FramebufferResize();
-    LOG("set vsync");
 }
 
-bool Render::getVsync() {
-    return this->renderConf.vsync;
+RenderConfig Render::getRenderConf() {
+    return renderConf;
+}
+
+void Render::setTargetResolution(glm::vec2 resolution) {
+    if(renderConf.target_resolution[0] == resolution.x &&
+       renderConf.target_resolution[1] == resolution.y)
+	return;
+    renderConf.target_resolution[0] = resolution.x;
+    renderConf.target_resolution[1] = resolution.y;
+    FramebufferResize();
+}
+
+glm::vec2 Render::getTargetResolution() {
+    return glm::vec2(renderConf.target_resolution[0], renderConf.target_resolution[1]);
 }
 
 }//namespace
