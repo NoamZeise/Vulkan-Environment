@@ -59,6 +59,8 @@ float FontLoader::MeasureString(Font font, std::string text, float size) {
 
 #include <stdexcept>
 
+struct FontData{};
+
 namespace Resource {
     FontLoader::~FontLoader() {}
     Font FontLoader::LoadFont(std::string file, TextureLoader* texLoader) { throw std::runtime_error("Tried to use Font::LoadFont, but NO_FREETYPE is defined"); }
