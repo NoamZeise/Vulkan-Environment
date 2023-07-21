@@ -79,7 +79,7 @@ FontData* loadFont(std::string path, int fontSize) {
 	    }
 	}
 	delete[] charMap[c].data;
-	charMap[c].c.texOffset  = glmhelper::getTextureOffset(
+	charMap[c].c.texOffset = glmhelper::getTextureOffset(
 		glm::vec2(totalWidth, largestHeight),
 		glm::vec4(widthOffset, 0, charMap[c].width, charMap[c].height));
 

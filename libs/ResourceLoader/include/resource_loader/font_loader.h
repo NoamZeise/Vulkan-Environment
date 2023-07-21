@@ -16,7 +16,7 @@ struct Character {
 };
 
 struct FontData {
-    unsigned char* textureData;
+    unsigned char* textureData; //caller's responsibility to free
     unsigned int width;
     unsigned int height;
     unsigned int nrChannels;
