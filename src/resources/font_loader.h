@@ -14,11 +14,10 @@
 #include "texture_loader.h"
 #include <graphics/resources.h>
 
+struct FontData;
+
 namespace Resource
 {
-
-    class LoadedFont;
-
 class FontLoader
 {
 public:
@@ -30,7 +29,7 @@ public:
     void UnloadFonts();
     
 private:
-	std::vector<LoadedFont*> fonts;
+	std::vector<FontData*> fonts;
 };
 
 }

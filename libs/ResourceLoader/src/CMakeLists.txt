@@ -1,14 +1,16 @@
-if(NO_ASSIMP)
-  add_library(ResourceLoader
+add_library(ResourceLoader
     stb_image_impl.cpp
     vertex_model.cpp
-  )
-else()
-  add_library(ResourceLoader
-    stb_image_impl.cpp
+)
+if(NOT NO_ASSIMP)
+  target_sources(ResourceLoader PRIVATE
     model_loader.cpp
-    vertex_model.cpp
   )
+endif()
+if(NOT NO_FREETYPE)
+  target_sources(ResourceLoader PRIVATE font_loader.cpp)
+  add_dependencies(ResourceLoader freetype)
+  target_link_libraries(ResourceLoader PRIVATE freetype)
 endif()
 
 add_dependencies(ResourceLoader OutfacingGraphics)
