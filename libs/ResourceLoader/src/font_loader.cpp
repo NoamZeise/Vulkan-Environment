@@ -10,6 +10,7 @@
 
 const char FIRST_CHAR = ' ';
 const char LAST_CHAR = '~';
+const size_t CHANNELS = 4;
 
 struct FtLib {
     FT_Library lib;
@@ -49,32 +50,33 @@ FontData* loadFont(std::string path, int fontSize) {
     
     size_t largestHeight = 0;
     size_t totalWidth = 0;
+    size_t spacing = 2;
     std::map<char, CharData> charMap;
     for (unsigned char c = FIRST_CHAR; c < LAST_CHAR; c++) {
 	charMap[c] = loadChar(face, c, fontSize);
 	
-	totalWidth += charMap[c].width;
+	totalWidth += charMap[c].width + spacing;
 	largestHeight = charMap[c].height > largestHeight ?
 	    charMap[c].height : largestHeight;
     }
     fontD->width = totalWidth;
     fontD->height = largestHeight;
-    fontD->nrChannels = 4;
-    fontD->textureData = new unsigned char[totalWidth * largestHeight * 4];
+    fontD->nrChannels = CHANNELS;
+    fontD->textureData = new unsigned char[totalWidth * largestHeight * fontD->nrChannels];
     size_t widthOffset = 0;
     for (unsigned char c = FIRST_CHAR; c < LAST_CHAR; c++) {
-	for(size_t x = 0; x < charMap[c].width; x++) {
+	for(size_t x = 0; x < charMap[c].width + spacing; x++) {
 	    for(size_t y = 0; y < largestHeight; y++) {
-		for (size_t byte = 0; byte < 4; byte++) {
-		    if(y < charMap[c].height) {
-			fontD->textureData
-			    [(totalWidth*4*y) + (widthOffset*4) + (x * 4) + byte]
-			    = charMap[c].data
-			    [charMap[c].width * y + x];
-		    } else {
-			fontD->textureData[(totalWidth*4*y) + (widthOffset*4) + (x * 4) + byte]
-			    = 0x00;
-		    }
+		for (size_t byte = 0; byte < fontD->nrChannels; byte++) {
+		    fontD->textureData[(totalWidth*fontD->nrChannels*y)
+				       + (widthOffset*fontD->nrChannels)
+				       + (x * fontD->nrChannels) + byte]
+			= y < charMap[c].height && x < charMap[c].width
+			?
+			(byte == fontD->nrChannels - 1 ? //last channel has the rendered colour
+			 charMap[c].data[charMap[c].width * y + x]
+			 : 0xFF)
+			: 0x00;
 		}
 	    }
 	}
@@ -84,7 +86,7 @@ FontData* loadFont(std::string path, int fontSize) {
 		glm::vec4(widthOffset, 0, charMap[c].width, charMap[c].height));
 
 	fontD->chars[c] = charMap[c].c;							     
-	widthOffset += charMap[c].width;
+	widthOffset += charMap[c].width + spacing;
     }
 
     FT_Done_Face(face);
@@ -134,10 +136,13 @@ CharData makeChar(unsigned char* buffer, const FT_Face &face, int size) {
     c.data = buffer;
     c.width = face->glyph->bitmap.width;
     c.height = face->glyph->bitmap.rows;
-    c.c.size = glm::vec2(c.width / (double)size, c.height / (double)size);
-    c.c.bearing = glm::vec2(face->glyph->bitmap_left / (double)size,
-			    face->glyph->bitmap_top / (double)size);
-    c.c.advance = (float)(face->glyph->advance.x >> 6) / (double)size;
+    c.c.size = glm::vec2(
+	    c.width / (float)size,
+	    c.height / (float)size);
+    c.c.bearing = glm::vec2(
+	    face->glyph->bitmap_left / (float)size,
+	    face->glyph->bitmap_top / (float)size);
+    c.c.advance = (float)(face->glyph->advance.x >> 6) / (float)size;
     return c;
 }
 

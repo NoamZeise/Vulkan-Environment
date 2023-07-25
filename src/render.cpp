@@ -172,9 +172,12 @@ void Render::_initFrameResources() {
 	LOG("make new renderpasses");
 	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
 					     renderConf.clear_colour);
-	finalRenderPass = new RenderPass(manager->deviceState.device, {
-		AttachmentDesc(0, AttachmentType::Colour, AttachmentUse::PresentSrc,
-			       VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
+        finalRenderPass =
+            new RenderPass(manager->deviceState.device,
+                           {AttachmentDesc(0, AttachmentType::Colour,
+                                           AttachmentUse::PresentSrc,
+
+                                           VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
 	    renderConf.scaled_border_colour);
     }
       
