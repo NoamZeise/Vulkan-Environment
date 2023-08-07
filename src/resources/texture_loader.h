@@ -16,6 +16,7 @@ namespace Resource {
       ~TextureLoader();
       void UnloadTextures();
       Texture LoadTexture(std::string path);
+      // takes ownership of data
       Texture LoadTexture(unsigned char* data, int width, int height, int nrChannels);
       void endLoading();
       VkSampler* getSamplerP() { return &textureSampler; }
@@ -31,7 +32,7 @@ namespace Resource {
 	  VkFormat format;
 	  VkDeviceSize fileSize;
       };
-
+      
     struct LoadedTexture {
 	LoadedTexture(){}
 	LoadedTexture(TempTexture tex) {
@@ -47,6 +48,8 @@ namespace Resource {
 	VkDeviceSize imageMemSize;
 	VkDeviceSize imageMemOffset;
     };
+
+      void createTexMipMaps(VkCommandBuffer &cmdBuff, const LoadedTexture &tex);
       
       VkImageView _getImageView(uint32_t texID);
       

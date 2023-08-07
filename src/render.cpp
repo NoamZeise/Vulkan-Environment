@@ -141,8 +141,9 @@ void Render::_initFrameResources() {
     LOG("Creating Render Passes");
 
     VkFormat swapchainFormat = swapchain->getFormat();
-    VkSampleCountFlagBits sampleCount = vkhelper::getMaxSupportedMsaaSamples(manager->deviceState.device,
-									     manager->deviceState.physicalDevice);
+    VkSampleCountFlagBits sampleCount = vkhelper::getMaxSupportedMsaaSamples(
+	    manager->deviceState.device,
+	    manager->deviceState.physicalDevice);
     if(!renderConf.multisampling)
 	sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
