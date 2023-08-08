@@ -120,72 +120,32 @@ namespace Resource {
     VkDeviceMemory stagingMemory;
     uint32_t memoryTypeBits;
     uint32_t minimumMipmapLevel;
-    VkDeviceSize finalMemSize = stageTexturesCreateImages(
+    VkDeviceSize finalMemSize = stageTexDataCreateImages(
 	    stagingBuffer, stagingMemory, &memoryTypeBits, &minimumMipmapLevel);
 
     LOG("creating final memory buffer " << finalMemSize << " bytes");
     
-    //create device local memory for permanent storage of images
+    // create final memory
     vkhelper::allocateMemory(base.device, base.physicalDevice, finalMemSize, &memory,
 			     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
 
-    //transition image to required format
     VkCommandBuffer tempCmdBuffer;
     part::create::CommandBuffer(base.device, pool, &tempCmdBuffer);
-
     VkCommandBufferBeginInfo cmdBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
 
-    VkImageMemoryBarrier barrier = initialBarrierSettings();
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; // this layout used for mipmapping
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    VkBufferImageCopy region{};
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = { 0, 0, 0 };
-    VkDeviceSize bufferOffset = 0;
-
-    for (int i = 0; i < textures.size(); i++) {
-	vkBindImageMemory(base.device, textures[i].image, memory, textures[i].imageMemOffset);
-
-	barrier.image = textures[i].image;
-	barrier.subresourceRange.levelCount = textures[i].mipLevels;
-	vkCmdPipelineBarrier(tempCmdBuffer,
-			     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-			     0, nullptr, 0, nullptr, 1, &barrier);
-
-	region.imageExtent = { textures[i].width, textures[i].height, 1 };
-	region.bufferOffset = bufferOffset;
-	bufferOffset += texToLoad[i].fileSize;
-
-	vkCmdCopyBufferToImage(tempCmdBuffer, stagingBuffer, textures[i].image,
-			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			       1, &region);
-      }
-
-    if (vkEndCommandBuffer(tempCmdBuffer) != VK_SUCCESS)
-      throw std::runtime_error("failed to end command buffer");
-
-
-    LOG("transitioning textures to final format in final buffer");
-    
+    // move texture data from staging memory to final memory
+    textureDataStagingToFinal(stagingBuffer, tempCmdBuffer);
     VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &tempCmdBuffer;
-    
     vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
     vkQueueWaitIdle(base.queue.graphicsPresentQueue);
 
-    LOG("finished moving textures to final buffer");
+    LOG("finished moving textures to final memory location");
 
+    // free staging buffer/memory
     vkUnmapMemory(base.device, stagingMemory);
     vkDestroyBuffer(base.device, stagingBuffer, nullptr);
     vkFreeMemory(base.device, stagingMemory, nullptr);
@@ -289,7 +249,7 @@ namespace Resource {
       }
   }
 
-  VkDeviceSize TextureLoader::stageTexturesCreateImages(VkBuffer &stagingBuffer,
+  VkDeviceSize TextureLoader::stageTexDataCreateImages(VkBuffer &stagingBuffer,
 							VkDeviceMemory &stagingMemory,
 						        uint32_t *pFinalMemType,
 							uint32_t *pMinimumMipmapLevel) {
@@ -336,7 +296,48 @@ namespace Resource {
       LOG("successfully copied textures to staging buffer");
       return finalMemSize;
   }
-  
+
+
+  /// --- Texture Data Staging to Final
+
+  // transition image to mipmapping format + copy data from staging buffer to gpu memory
+  // and bind to texture image.
+  void TextureLoader::textureDataStagingToFinal(VkBuffer stagingBuffer,
+						VkCommandBuffer &cmdbuff) {
+      VkImageMemoryBarrier barrier = initialBarrierSettings();
+      barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+      barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; // this layout used for mipmapping
+      barrier.srcAccessMask = 0;
+      barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+      VkBufferImageCopy region{};
+      region.bufferRowLength = 0;
+      region.bufferImageHeight = 0;
+      region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      region.imageSubresource.mipLevel = 0;
+      region.imageSubresource.baseArrayLayer = 0;
+      region.imageSubresource.layerCount = 1;
+      region.imageOffset = { 0, 0, 0 };
+      
+      VkDeviceSize bufferOffset = 0;
+      for (int i = 0; i < textures.size(); i++) {
+	  vkBindImageMemory(base.device, textures[i].image, memory, textures[i].imageMemOffset);
+	  barrier.image = textures[i].image;
+	  barrier.subresourceRange.levelCount = textures[i].mipLevels;
+	  vkCmdPipelineBarrier(cmdbuff,
+			       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+			       0, nullptr, 0, nullptr, 1, &barrier);
+	  region.imageExtent = { textures[i].width, textures[i].height, 1 };
+	  region.bufferOffset = bufferOffset;
+	  bufferOffset += texToLoad[i].fileSize;
+
+	  vkCmdCopyBufferToImage(cmdbuff, stagingBuffer, textures[i].image,
+				 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				 1, &region);
+      }
+      if (vkEndCommandBuffer(cmdbuff) != VK_SUCCESS)
+	  throw std::runtime_error("failed to end command buffer");
+  }
 
   /// --- Mipmapping ---
   

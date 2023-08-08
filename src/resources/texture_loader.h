@@ -49,7 +49,7 @@ namespace Resource {
 	VkDeviceSize imageMemOffset;
     };
 
-      VkDeviceSize stageTexturesCreateImages(VkBuffer &stagingBuffer,
+      VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
 					     VkDeviceMemory &stagingMemory,
 					     uint32_t *pFinalMemType,
 					     uint32_t *pMinimumMipmapLevel);
@@ -57,6 +57,8 @@ namespace Resource {
 					      TempTexture &toLoad);
       void createImageForTexture(VkDevice device, LoadedTexture &tex, VkFormat imgFormat,
 				 VkMemoryRequirements *pMemreq);
+      void textureDataStagingToFinal(VkBuffer stagingBuffer,
+						VkCommandBuffer &cmdbuff);
       void createTexMipMaps(VkCommandBuffer &cmdBuff, const LoadedTexture &tex);
       
       VkImageView _getImageView(uint32_t texID);
