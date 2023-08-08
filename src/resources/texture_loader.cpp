@@ -8,14 +8,14 @@
 #include <resource_loader/stb_image.h>
 #include "../vkhelper.h"
 #include "../parts/images.h"
+#include "../parts/command.h"
 
 #include "../logger.h"
 
 const VkFilter MIPMAP_FILTER = VK_FILTER_LINEAR;
 
-namespace Resource
-{
-
+namespace Resource {
+  
   TextureLoader::TextureLoader(DeviceState base, VkCommandPool pool, RenderConfig config) {
     this->srgb = config.srgb;
     this->mipmapping = config.mip_mapping;
@@ -98,6 +98,11 @@ namespace Resource
     return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), "NULL");
   }
 
+
+  
+  /// --- loading textures to GPU ---
+
+  
   VkImageMemoryBarrier initialBarrierSettings();
 
   void TextureLoader::endLoading() {
@@ -111,90 +116,22 @@ namespace Resource
 
     LOG("end texture load, loading " << texToLoad.size() << " textures to GPU");
 
-    VkDeviceSize totalFilesize = 0;
-    for (const auto& tex : texToLoad)
-	totalFilesize += tex.fileSize;
-
-    LOG("creating staging buffer for textures " << totalFilesize << " bytes");
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
+    uint32_t memoryTypeBits;
+    uint32_t minimumMipmapLevel;
+    VkDeviceSize finalMemSize = stageTexturesCreateImages(
+	    stagingBuffer, stagingMemory, &memoryTypeBits, &minimumMipmapLevel);
 
-    vkhelper::createBufferAndMemory(base, totalFilesize, &stagingBuffer, &stagingMemory,
-				    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-				    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-				    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
-    void* pMem;
-    vkMapMemory(base.device, stagingMemory, 0, totalFilesize, 0, &pMem);
-
-    //move image pixel data to buffer
-    VkDeviceSize finalMemSize = 0;
-    VkMemoryRequirements memreq;
-    VkDeviceSize bufferOffset = 0;
-
-    uint32_t memoryTypeBits = 0;
-    uint32_t minMips = UINT32_MAX;
-    for (size_t i = 0; i < texToLoad.size(); i++) {
-	std::memcpy(static_cast<char*>(pMem) + bufferOffset,
-		    texToLoad[i].pixelData,
-		    texToLoad[i].fileSize);
-	
-	if (texToLoad[i].path != "NULL")
-	  stbi_image_free(texToLoad[i].pixelData);
-	else
-	  delete[] texToLoad[i].pixelData;
-	texToLoad[i].pixelData = nullptr;
-
-	bufferOffset += texToLoad[i].fileSize;
-
-	textures[i] = LoadedTexture(texToLoad[i]);
-	VkFormatProperties formatProperties;
-	vkGetPhysicalDeviceFormatProperties(base.physicalDevice, texToLoad[i].format,
-					    &formatProperties);
-	if (!(formatProperties.optimalTilingFeatures &
-	      VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
-	    || !(formatProperties.optimalTilingFeatures &
-		 VK_FORMAT_FEATURE_BLIT_DST_BIT)
-	    || !mipmapping)
-	  textures[i].mipLevels = 1;
-	//get smallest mip levels of any texture
-	if (textures[i].mipLevels < minMips)
-	  minMips = textures[i].mipLevels;
-
-	if(part::create::Image(base.device, &textures[i].image, &memreq,
-			       VK_IMAGE_USAGE_SAMPLED_BIT |
-			       VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-			       VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-			       VkExtent2D { textures[i].width, textures[i].height },
-			       texToLoad[i].format,
-			       VK_SAMPLE_COUNT_1_BIT, textures[i].mipLevels) != VK_SUCCESS) {
-	  throw std::runtime_error("failed to create image for texture at: "
-				   + texToLoad[i].path);
-	}
-
-	memoryTypeBits |= memreq.memoryTypeBits;
-	finalMemSize = vkhelper::correctMemoryAlignment(finalMemSize, memreq.alignment);
-	textures[i].imageMemOffset = finalMemSize;
-	textures[i].imageMemSize = vkhelper::correctMemoryAlignment(memreq.size, memreq.alignment);
-	finalMemSize += textures[i].imageMemSize;
-      }
-
-    LOG("successfully copied textures to staging buffer\n"
-	"creating final memory buffer " << finalMemSize << " bytes");
+    LOG("creating final memory buffer " << finalMemSize << " bytes");
     
     //create device local memory for permanent storage of images
     vkhelper::allocateMemory(base.device, base.physicalDevice, finalMemSize, &memory,
 			     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
 
     //transition image to required format
-    VkCommandBufferAllocateInfo cmdAllocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    cmdAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdAllocInfo.commandBufferCount = 1;
-    cmdAllocInfo.commandPool = pool;
     VkCommandBuffer tempCmdBuffer;
-    vkAllocateCommandBuffers(base.device, &cmdAllocInfo, &tempCmdBuffer);
+    part::create::CommandBuffer(base.device, pool, &tempCmdBuffer);
 
     VkCommandBufferBeginInfo cmdBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -214,7 +151,7 @@ namespace Resource
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = { 0, 0, 0 };
-    bufferOffset = 0;
+    VkDeviceSize bufferOffset = 0;
 
     for (int i = 0; i < textures.size(); i++) {
 	vkBindImageMemory(base.device, textures[i].image, memory, textures[i].imageMemOffset);
@@ -229,7 +166,8 @@ namespace Resource
 	region.bufferOffset = bufferOffset;
 	bufferOffset += texToLoad[i].fileSize;
 
-	vkCmdCopyBufferToImage(tempCmdBuffer, stagingBuffer, textures[i].image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	vkCmdCopyBufferToImage(tempCmdBuffer, stagingBuffer, textures[i].image,
+			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			       1, &region);
       }
 
@@ -251,8 +189,6 @@ namespace Resource
     vkUnmapMemory(base.device, stagingMemory);
     vkDestroyBuffer(base.device, stagingBuffer, nullptr);
     vkFreeMemory(base.device, stagingMemory, nullptr);
-
-    LOG("creating texture mip maps");
 
     vkResetCommandPool(base.device, pool, 0);
     vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
@@ -286,7 +222,7 @@ namespace Resource
     }
     
     textureSampler = vkhelper::createTextureSampler(base.device, base.physicalDevice,
-						    static_cast<float>(minMips),
+						    static_cast<float>(minimumMipmapLevel),
 						    base.features.samplerAnisotropy,
 						    useNearestTextureFilter,
 						    VK_SAMPLER_ADDRESS_MODE_REPEAT);
@@ -295,10 +231,9 @@ namespace Resource
 
     vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
 
-    for(uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
-      {
+    for(uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++) {
 	imageViews[i] = _getImageView(i);
-      }
+    }
 
     texToLoad.clear();
 
@@ -315,6 +250,93 @@ namespace Resource
       throw std::runtime_error("no textures to replace error id with");
   }
 
+  /// --- Texture Data Staging ---
+
+  void TextureLoader::copyTextureToStagingBuffer(void* pMem, VkDeviceSize *pOffset, TempTexture &toLoad) {
+      std::memcpy(static_cast<char*>(pMem) + *pOffset,
+		  toLoad.pixelData,
+		  toLoad.fileSize);
+	
+      if (toLoad.path != "NULL")
+	  stbi_image_free(toLoad.pixelData);
+      else
+	  delete[] toLoad.pixelData;
+      toLoad.pixelData = nullptr;
+      
+      *pOffset += toLoad.fileSize;
+  }
+
+  bool formatSupportsMipmapping(VkPhysicalDevice physicalDevice, VkFormat format) {
+       VkFormatProperties formatProperties;
+       vkGetPhysicalDeviceFormatProperties(physicalDevice, format,
+					   &formatProperties);
+       return (formatProperties.optimalTilingFeatures &
+	       VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)
+	   && (formatProperties.optimalTilingFeatures &
+	       VK_FORMAT_FEATURE_BLIT_DST_BIT);
+  }
+
+  void TextureLoader::createImageForTexture(VkDevice device, LoadedTexture &tex, VkFormat imgFormat,
+					    VkMemoryRequirements *pMemreq) {
+      if(part::create::Image(device, &tex.image, pMemreq,
+			     VK_IMAGE_USAGE_SAMPLED_BIT |
+			     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+			     VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+			     VkExtent2D { tex.width, tex.height },
+			     imgFormat,
+			     VK_SAMPLE_COUNT_1_BIT, tex.mipLevels) != VK_SUCCESS) {
+	  throw std::runtime_error("failed to create image for texture");
+      }
+  }
+
+  VkDeviceSize TextureLoader::stageTexturesCreateImages(VkBuffer &stagingBuffer,
+							VkDeviceMemory &stagingMemory,
+						        uint32_t *pFinalMemType,
+							uint32_t *pMinimumMipmapLevel) {
+      VkDeviceSize totalDataSize = 0;
+      for(const auto& tex: texToLoad)
+	  totalDataSize += tex.fileSize;
+
+      LOG("creating staging buffer for textures. size: " << totalDataSize << " bytes");
+      vkhelper::createBufferAndMemory(
+	      base, totalDataSize, &stagingBuffer, &stagingMemory, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      
+      vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
+      void* pMem;
+      vkMapMemory(base.device, stagingMemory, 0, totalDataSize, 0, &pMem);
+
+      VkDeviceSize finalMemSize = 0;
+      VkMemoryRequirements memreq;
+      VkDeviceSize bufferOffset = 0;
+
+      *pFinalMemType = 0;
+      *pMinimumMipmapLevel = UINT32_MAX;
+      for (size_t i = 0; i < texToLoad.size(); i++) {
+	  copyTextureToStagingBuffer(pMem, &bufferOffset, texToLoad[i]);
+	  
+	  textures[i] = LoadedTexture(texToLoad[i]);
+	  
+	  if (!mipmapping || !formatSupportsMipmapping(base.physicalDevice, texToLoad[i].format))
+	      textures[i].mipLevels = 1;
+
+	  //get smallest mip levels of any texture
+	  if (textures[i].mipLevels < *pMinimumMipmapLevel)
+	      *pMinimumMipmapLevel = textures[i].mipLevels;
+      
+	  createImageForTexture(base.device, textures[i], texToLoad[i].format, &memreq);
+	  
+	  *pFinalMemType |= memreq.memoryTypeBits;
+	  finalMemSize = vkhelper::correctMemoryAlignment(finalMemSize, memreq.alignment);
+	  textures[i].imageMemOffset = finalMemSize;
+	  textures[i].imageMemSize = vkhelper::correctMemoryAlignment(
+		  memreq.size, memreq.alignment);
+	  finalMemSize += textures[i].imageMemSize;
+      }
+      LOG("successfully copied textures to staging buffer");
+      return finalMemSize;
+  }
+  
 
   /// --- Mipmapping ---
   
