@@ -10,6 +10,10 @@
 
 namespace Resource {
 
+  //for internal texture storage
+  struct TempTexture;
+  struct LoadedTexture;
+
   class TextureLoader {
   public:
       TextureLoader(DeviceState base, VkCommandPool pool, RenderConfig config);
@@ -23,43 +27,13 @@ namespace Resource {
       VkImageView* getImageViewsP() { return &imageViews[0]; }
       
   private:
-      struct TempTexture {
-	  std::string path;
-	  unsigned char* pixelData;
-	  int width;
-	  int height;
-	  int nrChannels;
-	  VkFormat format;
-	  VkDeviceSize fileSize;
-      };
-      
-    struct LoadedTexture {
-	LoadedTexture(){}
-	LoadedTexture(TempTexture tex) {
-	    width = tex.width;
-	    height = tex.height;
-	    mipLevels = (int)std::floor(std::log2(width > height ? width : height)) + 1;
-	}
-	uint32_t width;
-	uint32_t height;
-	VkImage image;
-	VkImageView view;
-	uint32_t mipLevels;
-	VkDeviceSize imageMemSize;
-	VkDeviceSize imageMemOffset;
-    };
 
       VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
 					     VkDeviceMemory &stagingMemory,
 					     uint32_t *pFinalMemType,
 					     uint32_t *pMinimumMipmapLevel);
-      void copyTextureToStagingBuffer(void* pMem, VkDeviceSize *pOffset,
-					      TempTexture &toLoad);
-      void createImageForTexture(VkDevice device, LoadedTexture &tex, VkFormat imgFormat,
-				 VkMemoryRequirements *pMemreq);
       void textureDataStagingToFinal(VkBuffer stagingBuffer,
-						VkCommandBuffer &cmdbuff);
-      void createTexMipMaps(VkCommandBuffer &cmdBuff, const LoadedTexture &tex);
+				     VkCommandBuffer &cmdbuff);
       
       VkImageView _getImageView(uint32_t texID);
       
