@@ -47,8 +47,9 @@ namespace Resource {
       VkDeviceSize imageMemSize;
       VkDeviceSize imageMemOffset;
 
-      void createImage(VkDevice device, VkMemoryRequirements *pMemreq);
+      VkResult createImage(VkDevice device, VkMemoryRequirements *pMemreq);
       void createMipMaps(VkCommandBuffer &cmdBuff);
+      VkResult createImageView(VkDevice device);
   };
 
   /// --- texture loader ---
@@ -156,25 +157,31 @@ namespace Resource {
     LOG("creating final memory buffer " << finalMemSize << " bytes");
     
     // create final memory
-    vkhelper::allocateMemory(base.device, base.physicalDevice, finalMemSize, &memory,
-			     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryTypeBits);
+    checkResultAndThrow(vkhelper::allocateMemory(base.device, base.physicalDevice,
+						 finalMemSize, &memory,
+						 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+						 memoryTypeBits),
+			"Failed to allocate memeory for final texture storage");
 
     VkCommandBuffer tempCmdBuffer;
-    if(part::create::CommandBuffer(base.device, pool, &tempCmdBuffer) != VK_SUCCESS)
-	throw std::runtime_error(
-		"failed to create temporary command buffer in end texture loading");
+    checkResultAndThrow(part::create::CommandBuffer(base.device, pool, &tempCmdBuffer),
+			"failed to create temporary command buffer in end texture loading");
     VkCommandBufferBeginInfo cmdBeginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
+    checkResultAndThrow(vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo),
+			"failed to begin staging texture data command buffer");
 
     // move texture data from staging memory to final memory
     textureDataStagingToFinal(stagingBuffer, tempCmdBuffer);
-    
+
+    checkResultAndThrow(vkEndCommandBuffer(tempCmdBuffer),
+			"failed to end command buffer for staging tex data");
     VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &tempCmdBuffer;
-    if(vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-	throw std::runtime_error("failed to submit queue in end tex loading fn");
+    checkResultAndThrow(vkQueueSubmit(base.queue.graphicsPresentQueue, 1,
+				      &submitInfo, VK_NULL_HANDLE),
+			"failed to submit queue for staging texture data");
     vkQueueWaitIdle(base.queue.graphicsPresentQueue);
 
     LOG("finished moving textures to final memory location");
@@ -184,40 +191,30 @@ namespace Resource {
     vkDestroyBuffer(base.device, stagingBuffer, nullptr);
     vkFreeMemory(base.device, stagingMemory, nullptr);
 
-    vkResetCommandPool(base.device, pool, 0);
-    vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo);
+    checkResultAndThrow(vkResetCommandPool(base.device, pool, 0),
+			"Failed to reset command pool in end tex loading");
+    checkResultAndThrow(vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo),
+			"Failed to begin mipmap creation command buffer");
 
     for (auto& tex : textures)
 	tex.createMipMaps(tempCmdBuffer);
 
-    if (vkEndCommandBuffer(tempCmdBuffer) != VK_SUCCESS)
-      throw std::runtime_error("failed to end command buffer in end texture loading");
-    
-    if(vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-	throw std::runtime_error("failed to submit queue in end tex loading fn");
-    }
+    checkResultAndThrow(vkEndCommandBuffer(tempCmdBuffer),
+			"failed to end command buffer for mipmap creation");
+    checkResultAndThrow(vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo,
+				      VK_NULL_HANDLE),
+			"failed to submit queue for mipmap creation");
     vkQueueWaitIdle(base.queue.graphicsPresentQueue);
     
     LOG("finished creating mip maps");
     
     //create image views
-    for (size_t i = 0; i < textures.size(); i++) {
-	VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-	viewInfo.image = textures[i].image;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = texToLoad[i].format;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = textures[i].mipLevels;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
-	
-	if (vkCreateImageView(base.device, &viewInfo, nullptr, &textures[i].view) != VK_SUCCESS)
-	    throw std::runtime_error(
-		    "Failed to create image view from texture with index: " + std::to_string(i));
-    }
+    for (auto &tex: textures)
+	checkResultAndThrow(
+		tex.createImageView(base.device), 
+		"Failed to create image view from texture");
 
-    textureSampler = vkhelper::createTextureSampler(
+    this->textureSampler = vkhelper::createTextureSampler(
 	    base.device,
 	    base.physicalDevice,
 	    static_cast<float>(minimumMipmapLevel),
@@ -284,16 +281,14 @@ namespace Resource {
 	       VK_FORMAT_FEATURE_BLIT_DST_BIT);
   }
 
-  void LoadedTexture::createImage(VkDevice device, VkMemoryRequirements *pMemreq) {
-      if(part::create::Image(device, &this->image, pMemreq,
-			     VK_IMAGE_USAGE_SAMPLED_BIT |
-			     VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-			     VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-			     VkExtent2D { this->width, this->height },
-			     this->format,
-			     VK_SAMPLE_COUNT_1_BIT, this->mipLevels) != VK_SUCCESS) {
-	  throw std::runtime_error("failed to create image for texture");
-      }
+  VkResult LoadedTexture::createImage(VkDevice device, VkMemoryRequirements *pMemreq) {
+      return part::create::Image(device, &this->image, pMemreq,
+				 VK_IMAGE_USAGE_SAMPLED_BIT |
+				 VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+				 VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+				 VkExtent2D { this->width, this->height },
+				 this->format,
+				 VK_SAMPLE_COUNT_1_BIT, this->mipLevels);
   }
 
   VkDeviceSize TextureLoader::stageTexDataCreateImages(VkBuffer &stagingBuffer,
@@ -305,9 +300,12 @@ namespace Resource {
 	  totalDataSize += tex.fileSize;
 
       LOG("creating staging buffer for textures. size: " << totalDataSize << " bytes");
-      vkhelper::createBufferAndMemory(
-	      base, totalDataSize, &stagingBuffer, &stagingMemory, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      checkResultAndThrow(vkhelper::createBufferAndMemory(
+				  base, totalDataSize, &stagingBuffer, &stagingMemory,
+				  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+				  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+				  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+			  "Failed to create staging memory for texture data");
       
       vkBindBufferMemory(base.device, stagingBuffer, stagingMemory, 0);
       void* pMem;
@@ -327,7 +325,9 @@ namespace Resource {
 	      !formatSupportsMipmapping(base.physicalDevice, this->texToLoad[i].format))
 	      textures[i].mipLevels = 1;
 	  
-	  textures[i].createImage(base.device, &memreq);
+	  checkResultAndThrow(textures[i].createImage(base.device, &memreq),
+			      "failed to create image in texture loader"
+			      "for texture at index " + std::to_string(i));
 
 	  //get smallest mip levels of any texture
 	  if (textures[i].mipLevels < *pMinimumMipmapLevel)
@@ -384,8 +384,6 @@ namespace Resource {
 				 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				 1, &region);
       }
-      if (vkEndCommandBuffer(cmdbuff) != VK_SUCCESS)
-	  throw std::runtime_error("failed to end command buffer");
   }
 
   /// --- Mipmapping ---
@@ -451,6 +449,22 @@ namespace Resource {
       return blit;
   }
 
+
+  /// --- image view creation ---
+
+  VkResult LoadedTexture::createImageView(VkDevice device) {
+      VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+      viewInfo.image = this->image;
+      viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      viewInfo.format = this->format;
+      viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      viewInfo.subresourceRange.baseMipLevel = 0;
+      viewInfo.subresourceRange.levelCount = this->mipLevels;
+      viewInfo.subresourceRange.baseArrayLayer = 0;
+      viewInfo.subresourceRange.layerCount = 1;
+	
+      return vkCreateImageView(device, &viewInfo, nullptr, &this->view);
+  }
 
   /// --- memory barriers ---
     

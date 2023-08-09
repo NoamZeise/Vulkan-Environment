@@ -27,11 +27,11 @@ namespace Resource {
       VkImageView* getImageViewsP() { return &imageViews[0]; }
       
   private:
-
+      
       VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
-					     VkDeviceMemory &stagingMemory,
-					     uint32_t *pFinalMemType,
-					     uint32_t *pMinimumMipmapLevel);
+					    VkDeviceMemory &stagingMemory,
+					    uint32_t *pFinalMemType,
+					    uint32_t *pMinimumMipmapLevel);
       void textureDataStagingToFinal(VkBuffer stagingBuffer,
 				     VkCommandBuffer &cmdbuff);
       
