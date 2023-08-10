@@ -174,37 +174,26 @@ namespace Resource {
     // move texture data from staging memory to final memory
     textureDataStagingToFinal(stagingBuffer, tempCmdBuffer);
 
-    checkResultAndThrow(vkEndCommandBuffer(tempCmdBuffer),
-			"failed to end command buffer for staging tex data");
-    VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &tempCmdBuffer;
-    checkResultAndThrow(vkQueueSubmit(base.queue.graphicsPresentQueue, 1,
-				      &submitInfo, VK_NULL_HANDLE),
-			"failed to submit queue for staging texture data");
-    vkQueueWaitIdle(base.queue.graphicsPresentQueue);
-
+    vkhelper::endCmdBufferSubmitAndWait(tempCmdBuffer,
+					base.queue.graphicsPresentQueue);
+    
     LOG("finished moving textures to final memory location");
-
-    // free staging buffer/memory
-    vkUnmapMemory(base.device, stagingMemory);
-    vkDestroyBuffer(base.device, stagingBuffer, nullptr);
-    vkFreeMemory(base.device, stagingMemory, nullptr);
 
     checkResultAndThrow(vkResetCommandPool(base.device, pool, 0),
 			"Failed to reset command pool in end tex loading");
+
+    // free staging buffer/memory 
+    vkUnmapMemory(base.device, stagingMemory);
+    vkDestroyBuffer(base.device, stagingBuffer, nullptr);
+    vkFreeMemory(base.device, stagingMemory, nullptr);
+    
     checkResultAndThrow(vkBeginCommandBuffer(tempCmdBuffer, &cmdBeginInfo),
 			"Failed to begin mipmap creation command buffer");
 
     for (auto& tex : textures)
 	tex.createMipMaps(tempCmdBuffer);
 
-    checkResultAndThrow(vkEndCommandBuffer(tempCmdBuffer),
-			"failed to end command buffer for mipmap creation");
-    checkResultAndThrow(vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo,
-				      VK_NULL_HANDLE),
-			"failed to submit queue for mipmap creation");
-    vkQueueWaitIdle(base.queue.graphicsPresentQueue);
+    vkhelper::endCmdBufferSubmitAndWait(tempCmdBuffer, base.queue.graphicsPresentQueue);
     
     LOG("finished creating mip maps");
     

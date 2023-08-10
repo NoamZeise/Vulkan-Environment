@@ -6,7 +6,6 @@
 
 namespace part {
   namespace create {
-
     VkResult CommandBuffer(VkDevice device, VkCommandPool pool, VkCommandBuffer *cmdbuff) {
 	VkCommandBufferAllocateInfo commandBufferInfo{
 	    VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
@@ -33,10 +32,7 @@ namespace part {
 	
 	return result;
     }
-  
 
-} // namspace create  
-    
-    
-  } // namespace parts
+} // namspace create    
+} // namespace parts
   

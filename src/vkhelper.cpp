@@ -125,4 +125,17 @@ VkSampleCountFlagBits getMaxSupportedMsaaSamples(VkDevice device, VkPhysicalDevi
 	return maxMsaaSamples;
 }
 
+  void endCmdBufferSubmitAndWait(VkCommandBuffer cmdbuff,
+				 VkQueue queue) {
+      checkResultAndThrow(vkEndCommandBuffer(cmdbuff),
+			  "failed to end command buffer");
+      VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+      submitInfo.commandBufferCount = 1;
+      submitInfo.pCommandBuffers = &cmdbuff;
+      checkResultAndThrow(vkQueueSubmit(queue, 1,
+					&submitInfo, VK_NULL_HANDLE),
+			  "failed to submit queue");
+      vkQueueWaitIdle(queue);
+  }
+
 }//namespace end
