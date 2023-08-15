@@ -67,8 +67,10 @@ int main() {
     glfwSetErrorCallback(error_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     std::cout << "GLFW window created\n";
+    RenderConfig config;
+    
     try {
-	vkenv::Render render(window, glm::vec2(400, 400));
+	vkenv::Render render(window, config);
 	
 	std::cout << "Framebuffer Size:"
 	             "\nwidth: "  << render.getTargetResolution().x
@@ -88,7 +90,6 @@ int main() {
 	render.UseLoadedResources();
 
 	render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
-	render.setForceTargetRes(false);
 
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
@@ -97,7 +98,8 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
 	    if(vsyncToggle) {
-		render.setVsync(!render.getVsync());
+		config.vsync = !config.vsync;
+		render.setRenderConf(config);
 		vsyncToggle = false;
 	    }
 
