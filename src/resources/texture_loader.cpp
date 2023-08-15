@@ -18,7 +18,7 @@ namespace Resource {
 
   /// --- interal texture storage ---
   
-  struct TempTexture {
+  struct TextureInMemory {
       std::string path;
       unsigned char* pixelData;
       int width;
@@ -30,9 +30,9 @@ namespace Resource {
       void copyToStagingMemAndFreePixelData(void* pMem, VkDeviceSize *pOffset);
   };
 
-  struct LoadedTexture {
-      LoadedTexture(){}
-      LoadedTexture(TempTexture tex) {
+  struct TextureInGPU {
+      TextureInGPU(){}
+      TextureInGPU(TextureInMemory tex) {
 	  width = tex.width;
 	  height = tex.height;
 	  mipLevels = (int)std::floor(std::log2(width > height ? width : height)) + 1;
@@ -95,7 +95,7 @@ namespace Resource {
       LOG("loading texture: " << path);
       
       texToLoad.push_back({ std::string(path.c_str()) });
-      TempTexture* tex = &texToLoad.back();
+      TextureInMemory* tex = &texToLoad.back();
       tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);
       if (!tex->pixelData) {
 	  LOG_ERROR("failed to load texture - path: " << path);
@@ -119,7 +119,7 @@ namespace Resource {
 
   Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels) {
     texToLoad.push_back({ "NULL" });
-    TempTexture* tex = &texToLoad.back();
+    TextureInMemory* tex = &texToLoad.back();
     tex->pixelData = data;
     tex->width = width;
     tex->height = height;
@@ -246,7 +246,7 @@ namespace Resource {
 
   /// --- Texture Data Staging ---
 
-  void TempTexture::copyToStagingMemAndFreePixelData(void* pMem, VkDeviceSize *pOffset) {
+  void TextureInMemory::copyToStagingMemAndFreePixelData(void* pMem, VkDeviceSize *pOffset) {
       std::memcpy(static_cast<char*>(pMem) + *pOffset,
 		  this->pixelData,
 		  this->fileSize);
@@ -270,7 +270,7 @@ namespace Resource {
 	       VK_FORMAT_FEATURE_BLIT_DST_BIT);
   }
 
-  VkResult LoadedTexture::createImage(VkDevice device, VkMemoryRequirements *pMemreq) {
+  VkResult TextureInGPU::createImage(VkDevice device, VkMemoryRequirements *pMemreq) {
       return part::create::Image(device, &this->image, pMemreq,
 				 VK_IMAGE_USAGE_SAMPLED_BIT |
 				 VK_IMAGE_USAGE_TRANSFER_DST_BIT |
@@ -309,7 +309,7 @@ namespace Resource {
       for (size_t i = 0; i < texToLoad.size(); i++) {
 	  texToLoad[i].copyToStagingMemAndFreePixelData(pMem, &bufferOffset);
 	  
-	  textures[i] = LoadedTexture(texToLoad[i]);
+	  textures[i] = TextureInGPU(texToLoad[i]);
 	  if (!mipmapping ||
 	      !formatSupportsMipmapping(base.physicalDevice, this->texToLoad[i].format))
 	      textures[i].mipLevels = 1;
@@ -383,7 +383,7 @@ namespace Resource {
   
   VkImageBlit getMipmapBlit(int32_t currentW, int32_t currentH, int destMipLevel);
 
-  void LoadedTexture::createMipMaps(VkCommandBuffer &cmdBuff) {
+  void TextureInGPU::createMipMaps(VkCommandBuffer &cmdBuff) {
       VkImageMemoryBarrier barrier = initialBarrierSettings();
       barrier.image = this->image;
       int mipW = this->width;
@@ -441,7 +441,7 @@ namespace Resource {
 
   /// --- image view creation ---
 
-  VkResult LoadedTexture::createImageView(VkDevice device) {
+  VkResult TextureInGPU::createImageView(VkDevice device) {
       VkImageViewCreateInfo viewInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
       viewInfo.image = this->image;
       viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;

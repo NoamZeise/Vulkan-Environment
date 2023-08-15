@@ -11,8 +11,8 @@
 namespace Resource {
 
   //for internal texture storage
-  struct TempTexture;
-  struct LoadedTexture;
+  struct TextureInMemory;
+  struct TextureInGPU;
 
   class TextureLoader {
   public:
@@ -44,8 +44,8 @@ namespace Resource {
       DeviceState base;
       VkCommandPool pool;
       
-      std::vector<TempTexture> texToLoad;
-      std::vector<LoadedTexture> textures;
+      std::vector<TextureInMemory> texToLoad;
+      std::vector<TextureInGPU> textures;
       VkDeviceMemory memory;
       VkImageView imageViews[MAX_TEXTURES_SUPPORTED];
       VkSampler textureSampler;
