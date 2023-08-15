@@ -25,7 +25,8 @@ namespace Resource {
       void endLoading();
       float getMinMipmapLevel();
       uint32_t getImageCount();
-      VkImageView getImageView(uint32_t index);
+      VkImageView getImageViewSetIndex(uint32_t texID, uint32_t imageViewIndex);
+      uint32_t getViewIndex(uint32_t texID);
       
   private:
       

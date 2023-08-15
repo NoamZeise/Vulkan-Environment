@@ -55,20 +55,6 @@ void loadVertices(Mesh<Vertex2D> *mesh, ModelInfo::Mesh &dataMesh) {
     }
 }
 
-std::string checkTextureLoaded(std::string path,
-			       std::vector<Resource::Texture> &alreadyLoaded,
-			       Resource::Texture *pTex) {
-    std::string texLocation = MODEL_TEXTURE_LOCATION + path;
-    
-      for(unsigned int i = 0; i < alreadyLoaded.size(); i++)
-	  if(std::strcmp(alreadyLoaded[i].path.data(), texLocation.c_str()) == 0) {
-	      *pTex = alreadyLoaded[i];
-	      return "";
-	  }
-    
-      return texLocation;
-  }
-
 ModelInfo::Model makeQuadModel() {
     ModelInfo::Mesh mesh;
     mesh.verticies.resize(4);

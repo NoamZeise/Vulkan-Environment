@@ -12,18 +12,24 @@ namespace Resource {
 
   const uint32_t MAX_TEXTURES_SUPPORTED = 20;//match in shader
 
+  struct ResourcePool {
+      ResourcePool() { ID = 0; }
+      ResourcePool(size_t ID) {
+	  this->ID = ID;
+      }
+      size_t ID = 0;
+  };
+
   struct Texture {
       Texture() {
-	  path = "";
 	  ID = 0;
 	  dim = glm::vec2(1, 1);
       }
-      Texture(size_t ID, glm::vec2 dimentions, std::string path) {
-	  this->path = path;
+      Texture(size_t ID, glm::vec2 dimentions) {
 	  this->ID = ID;
 	  this->dim = dimentions;
       }
-      std::string path;
+      ResourcePool pool;
       size_t ID = 0;
       glm::vec2 dim = glm::vec2(0, 0);
   };
@@ -40,6 +46,7 @@ namespace Resource {
 	  this->ID = ID;
 	  this->type = ModelType::m3D;
       }
+      ResourcePool pool;
       ModelType type;
       size_t ID;
   };
@@ -49,6 +56,7 @@ namespace Resource {
       Font(size_t ID) {
 	  this->ID = ID;
       }
+      ResourcePool pool;
       size_t ID;
   };
 

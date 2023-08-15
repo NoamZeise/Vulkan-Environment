@@ -26,7 +26,13 @@ namespace Resource {
       int nrChannels;
       VkFormat format;
       VkDeviceSize fileSize;
-      
+
+      void deleteTexData() {
+	  if (path != "NULL")
+	      stbi_image_free(pixelData);
+	  else
+	      delete[] pixelData;
+      }
       void copyToStagingMemAndFreePixelData(void* pMem, VkDeviceSize *pOffset);
   };
 
@@ -38,6 +44,7 @@ namespace Resource {
 	  mipLevels = (int)std::floor(std::log2(width > height ? width : height)) + 1;
 	  format = tex.format;
       }
+      uint32_t imageViewIndex = 0;
       uint32_t width;
       uint32_t height;
       VkImage image;
@@ -47,6 +54,10 @@ namespace Resource {
       VkDeviceSize imageMemSize;
       VkDeviceSize imageMemOffset;
 
+      void deleteTexResources(VkDevice device) {
+	  vkDestroyImageView(device, view, nullptr);
+	  vkDestroyImage(device, image, nullptr);	  
+      }
       VkResult createImage(VkDevice device, VkMemoryRequirements *pMemreq);
       void createMipMaps(VkCommandBuffer &cmdBuff);
       VkResult createImageView(VkDevice device);
@@ -55,53 +66,46 @@ namespace Resource {
   /// --- texture loader ---
   
   TextureLoader::TextureLoader(DeviceState base, VkCommandPool pool, RenderConfig config) {
-    this->srgb = config.srgb;
-    this->mipmapping = config.mip_mapping;
-    this->useNearestTextureFilter = config.texture_filter_nearest;
-    this->base = base;
-    this->pool = pool;
+      this->srgb = config.srgb;
+      this->mipmapping = config.mip_mapping;
+      this->useNearestTextureFilter = config.texture_filter_nearest;
+      this->base = base;
+      this->pool = pool;
   }
 
   TextureLoader::~TextureLoader() {
-    UnloadTextures();
+      UnloadTextures();
   }
 
   void TextureLoader::UnloadTextures() {
-      for(auto& tex: texToLoad) {
-	  if (tex.path != "NULL")
-	      stbi_image_free(tex.pixelData);
-	  else
-	      delete[] tex.pixelData;
-      }
+      for(auto& tex: texToLoad)
+	  tex.deleteTexData();
+      texToLoad.clear();
       if (textures.size() <= 0)
 	  return;
-      for (auto& tex : textures) {
-	  vkDestroyImageView(base.device, tex.view, nullptr);
-	  vkDestroyImage(base.device, tex.image, nullptr);
-      }
+      for (auto& tex : textures)
+	  tex.deleteTexResources(base.device);
       vkFreeMemory(base.device, memory, nullptr);
       textures.clear();
-      texToLoad.clear();
   }
   
   Texture TextureLoader::LoadTexture(std::string path) {
-      for(unsigned int i = 0; i > texToLoad.size(); i++) {
-	  if(texToLoad[i].path == path) {
-	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height), path);
-	  }
-      }
+      for(unsigned int i = 0; i > texToLoad.size(); i++)
+	  if(texToLoad[i].path == path)
+	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height));
       
       LOG("loading texture: " << path);
       
+      const int CHANNELS_TO_LOAD = 4;
       texToLoad.push_back({ std::string(path.c_str()) });
       TextureInMemory* tex = &texToLoad.back();
-      tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels, 4);
+      tex->pixelData = stbi_load(tex->path.c_str(), &tex->width, &tex->height, &tex->nrChannels,
+				 CHANNELS_TO_LOAD);
       if (!tex->pixelData) {
 	  LOG_ERROR("failed to load texture - path: " << path);
 	  throw std::runtime_error("failed to load texture at " + path);
       }
-      
-      tex->nrChannels = 4;
+      tex->nrChannels = CHANNELS_TO_LOAD;
       
       tex->fileSize = tex->width * tex->height * tex->nrChannels;
       
@@ -113,7 +117,7 @@ namespace Resource {
       LOG("  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1));
       
       return Texture((unsigned int)(texToLoad.size() - 1),
-		     glm::vec2(tex->width, tex->height), path);
+		     glm::vec2(tex->width, tex->height));
   }
 
   Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels) {
@@ -132,7 +136,7 @@ namespace Resource {
     else
       tex->format = VK_FORMAT_R8G8B8A8_UNORM;
 
-    return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), "NULL");
+    return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height));
   }
 
   float TextureLoader::getMinMipmapLevel() {
@@ -217,16 +221,25 @@ namespace Resource {
       return textures.size();
   }
 
-  VkImageView TextureLoader::getImageView(uint32_t texID)
-  {
-    if (texID < textures.size())
-	return textures[texID].view;
-    else if (textures.size() > 0) {
-	LOG("Requested texture ID was out of range");
-	return textures[0].view;
-    }
-    else
-      throw std::runtime_error("no textures to replace error id with");
+  VkImageView TextureLoader::getImageViewSetIndex(uint32_t texID, uint32_t imageViewIndex) {
+      if (texID < textures.size()) {
+	  textures[texID].imageViewIndex = imageViewIndex;
+	  return textures[texID].view;
+      }
+      else if (textures.size() > 0) {
+	  LOG_ERROR("Requested texture ID was out of range");
+	  return textures[0].view;
+      }
+      else
+	  throw std::runtime_error("no textures to replace error id with");
+  }
+
+  uint32_t TextureLoader::getViewIndex(uint32_t texID) {
+      if (texID < textures.size())
+	  return textures[texID].imageViewIndex;
+      
+      LOG_ERROR("View Index's texID was out of range. Returning 0.");
+      return 0;
   }
 
   void addImagePipelineBarrier(VkCommandBuffer &cmdBuff,
@@ -246,13 +259,7 @@ namespace Resource {
       std::memcpy(static_cast<char*>(pMem) + *pOffset,
 		  this->pixelData,
 		  this->fileSize);
-	
-      if (this->path != "NULL")
-	  stbi_image_free(this->pixelData);
-      else
-	  delete[] this->pixelData;
-      this->pixelData = nullptr;
-      
+      this->deleteTexData();
       *pOffset += this->fileSize;
   }
 

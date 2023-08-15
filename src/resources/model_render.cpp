@@ -208,12 +208,8 @@ namespace Resource {
   template <class T_Vert>
   void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
       for(auto& mesh: model->meshes) {
-	  if(mesh->texToLoad != "") {
-	      std::string loadStr = checkTextureLoaded(mesh->texToLoad, alreadyLoaded,
-						     &mesh->texture);
-	      if(loadStr != "")
-		  mesh->texture = texLoader->LoadTexture(loadStr);
-	  }
+	  if(mesh->texToLoad != "") 
+		  mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION + mesh->texToLoad);
       }
   }
 

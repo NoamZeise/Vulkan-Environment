@@ -304,9 +304,9 @@ void Render::_initFrameResources() {
 
     for(int i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
 	if(i < _textureLoader->getImageCount())
-	    textureViews[i] = _textureLoader->getImageView(i);
+	    textureViews[i] = _textureLoader->getImageViewSetIndex(i, i);
 	else
-	    textureViews[i] = _textureLoader->getImageView(0);
+	    textureViews[i] = _textureLoader->getImageViewSetIndex(0, i);
     }
 
     descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
