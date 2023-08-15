@@ -113,7 +113,6 @@ const int MAX_2D_INSTANCE = 100;
 
       RenderConfig renderConf;
       RenderConfig prevRenderConf;
-      bool renderConfChanged = true;
   
       VulkanManager* manager = nullptr;
       uint32_t frameIndex = 0;
@@ -163,12 +162,14 @@ const int MAX_2D_INSTANCE = 100;
       DescSet *textures;
       DescSet *emptyDS;
       DescSet *offscreenTex;
-      bool samplerCreated = false;
+      bool offscreenSamplerCreated = false;
       VkSampler _offscreenTextureSampler;
+      bool textureSamplerCreated = false;
+      float prevTexSamplerMinMipmap = 1.0f;
+      VkSampler textureSampler;
+      VkImageView textureViews[Resource::MAX_TEXTURES_SUPPORTED];
 
       std::vector<DescSet*> descriptorSets;
-
-      //std::vector<descriptor::Set> ds3D;
   
       Resource::TextureLoader *_stagingTextureLoader;
       Resource::ModelRender *_stagingModelLoader;

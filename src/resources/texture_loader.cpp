@@ -79,7 +79,6 @@ namespace Resource {
 	  vkDestroyImageView(base.device, tex.view, nullptr);
 	  vkDestroyImage(base.device, tex.image, nullptr);
       }
-      vkDestroySampler(base.device, textureSampler, nullptr);
       vkFreeMemory(base.device, memory, nullptr);
       textures.clear();
       texToLoad.clear();
@@ -136,6 +135,9 @@ namespace Resource {
     return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height), "NULL");
   }
 
+  float TextureLoader::getMinMipmapLevel() {
+      return (float)minimumMipmapLevel;
+  }
   
   /// --- loading textures to GPU ---
 
@@ -150,9 +152,8 @@ namespace Resource {
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
     uint32_t memoryTypeBits;
-    uint32_t minimumMipmapLevel;
     VkDeviceSize finalMemSize = stageTexDataCreateImages(
-	    stagingBuffer, stagingMemory, &memoryTypeBits, &minimumMipmapLevel);
+	    stagingBuffer, stagingMemory, &memoryTypeBits);
 
     LOG("creating final memory buffer " << finalMemSize << " bytes");
     
@@ -203,32 +204,27 @@ namespace Resource {
 		tex.createImageView(base.device), 
 		"Failed to create image view from texture");
 
-    this->textureSampler = vkhelper::createTextureSampler(
-	    base.device,
-	    base.physicalDevice,
-	    static_cast<float>(minimumMipmapLevel),
-	    base.features.samplerAnisotropy,
-	    useNearestTextureFilter,
-	    VK_SAMPLER_ADDRESS_MODE_REPEAT);
-
     LOG("finished creating image views and texture samplers");
 
     vkFreeCommandBuffers(base.device, pool, 1, &tempCmdBuffer);
-
-    for(uint32_t i = 0; i < MAX_TEXTURES_SUPPORTED; i++)
-	imageViews[i] = _getImageView(i);
 
     texToLoad.clear();
 
     LOG("finished loading textures");
   }
 
-  VkImageView TextureLoader::_getImageView(uint32_t texID)
+  uint32_t TextureLoader::getImageCount() {
+      return textures.size();
+  }
+
+  VkImageView TextureLoader::getImageView(uint32_t texID)
   {
     if (texID < textures.size())
-      return textures[texID].view;
-    else if (textures.size() > 0)
-      return textures[0].view;
+	return textures[texID].view;
+    else if (textures.size() > 0) {
+	LOG("Requested texture ID was out of range");
+	return textures[0].view;
+    }
     else
       throw std::runtime_error("no textures to replace error id with");
   }
@@ -282,8 +278,7 @@ namespace Resource {
 
   VkDeviceSize TextureLoader::stageTexDataCreateImages(VkBuffer &stagingBuffer,
 							VkDeviceMemory &stagingMemory,
-						        uint32_t *pFinalMemType,
-							uint32_t *pMinimumMipmapLevel) {
+						        uint32_t *pFinalMemType) {
       VkDeviceSize totalDataSize = 0;
       for(const auto& tex: texToLoad)
 	  totalDataSize += tex.fileSize;
@@ -305,7 +300,7 @@ namespace Resource {
       VkDeviceSize bufferOffset = 0;
 
       *pFinalMemType = 0;
-      *pMinimumMipmapLevel = UINT32_MAX;
+      minimumMipmapLevel = UINT32_MAX;
       for (size_t i = 0; i < texToLoad.size(); i++) {
 	  texToLoad[i].copyToStagingMemAndFreePixelData(pMem, &bufferOffset);
 	  
@@ -319,8 +314,8 @@ namespace Resource {
 			      "for texture at index " + std::to_string(i));
 
 	  //get smallest mip levels of any texture
-	  if (textures[i].mipLevels < *pMinimumMipmapLevel)
-	      *pMinimumMipmapLevel = textures[i].mipLevels;
+	  if (textures[i].mipLevels < minimumMipmapLevel)
+	      minimumMipmapLevel = textures[i].mipLevels;
 	  
 	  *pFinalMemType |= memreq.memoryTypeBits;
 	  finalMemSize = vkhelper::correctMemoryAlignment(finalMemSize, memreq.alignment);

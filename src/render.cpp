@@ -98,8 +98,10 @@ Render::~Render()
       delete finalRenderPass;
       vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
   }
-  if(samplerCreated)
+  if(offscreenSamplerCreated)
       vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
+  if(textureSamplerCreated)
+      vkDestroySampler(manager->deviceState.device, textureSampler, nullptr);
   if(swapchain != nullptr)
       delete swapchain;
   for(int i = 0; i < frameCount; i++)
@@ -249,7 +251,8 @@ void Render::_initFrameResources() {
     descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
     PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
 						  descriptor::Type::StorageBuffer,
-						  sizeof(shaderStructs::PerFrame3D), MAX_3D_INSTANCE);
+						  sizeof(shaderStructs::PerFrame3D),
+						  MAX_3D_INSTANCE);
     perFrame3D = new DescSet(PerFrame3D_Set, swapchainFrameCount, manager->deviceState.device);
       
 
@@ -275,14 +278,42 @@ void Render::_initFrameResources() {
     lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
 			       sizeof(shaderStructs::Lighting), 1);
     lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
-      
 
+
+    float minMipmapLevel = _textureLoader->getMinMipmapLevel();
+    
+    if(textureSamplerCreated) {
+	if(prevRenderConf.texture_filter_nearest != renderConf.texture_filter_nearest ||
+	   prevTexSamplerMinMipmap != minMipmapLevel) {
+	    textureSamplerCreated = false;
+	    vkDestroySampler(manager->deviceState.device, textureSampler, nullptr);
+	}
+    }
+    
+    if(!textureSamplerCreated) {	  
+	textureSampler = vkhelper::createTextureSampler(
+		manager->deviceState.device,
+		manager->deviceState.physicalDevice,
+		minMipmapLevel,
+		manager->deviceState.features.samplerAnisotropy,
+		renderConf.texture_filter_nearest,
+		VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	prevTexSamplerMinMipmap = minMipmapLevel;
+	textureSamplerCreated = true;
+    }
+
+    for(int i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
+	if(i < _textureLoader->getImageCount())
+	    textureViews[i] = _textureLoader->getImageView(i);
+	else
+	    textureViews[i] = _textureLoader->getImageView(0);
+    }
 
     descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
-    texture_Set.AddSamplerDescriptor("sampler", 1, _textureLoader->getSamplerP());
+    texture_Set.AddSamplerDescriptor("sampler", 1, &textureSampler);
     texture_Set.AddImageViewDescriptor("views", descriptor::Type::SampledImage,
 				       Resource::MAX_TEXTURES_SUPPORTED,
-				       _textureLoader->getImageViewsP());
+				       textureViews);
     textures = new DescSet(texture_Set, swapchainFrameCount, manager->deviceState.device);
       
     descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
@@ -296,14 +327,14 @@ void Render::_initFrameResources() {
 	    descriptor::Set("Empty", descriptor::ShaderStage::Vertex),
 	    swapchainFrameCount, manager->deviceState.device);
       
-    if(!samplerCreated) {	  
+    if(!offscreenSamplerCreated) {	  
 	_offscreenTextureSampler = vkhelper::createTextureSampler(
 		manager->deviceState.device,
 		manager->deviceState.physicalDevice, 1.0f,
 		false,
 		true,
 		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	samplerCreated = true;
+	offscreenSamplerCreated = true;
     }
     std::vector<VkImageView> offscreenViews = offscreenRenderPass->getAttachmentViews(
 	    renderConf.multisampling ? 2 : 0);

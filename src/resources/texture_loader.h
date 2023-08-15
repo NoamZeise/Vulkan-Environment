@@ -23,19 +23,17 @@ namespace Resource {
       // takes ownership of data
       Texture LoadTexture(unsigned char* data, int width, int height, int nrChannels);
       void endLoading();
-      VkSampler* getSamplerP() { return &textureSampler; }
-      VkImageView* getImageViewsP() { return &imageViews[0]; }
+      float getMinMipmapLevel();
+      uint32_t getImageCount();
+      VkImageView getImageView(uint32_t index);
       
   private:
       
       VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
 					    VkDeviceMemory &stagingMemory,
-					    uint32_t *pFinalMemType,
-					    uint32_t *pMinimumMipmapLevel);
+					    uint32_t *pFinalMemType);
       void textureDataStagingToFinal(VkBuffer stagingBuffer,
 				     VkCommandBuffer &cmdbuff);
-      
-      VkImageView _getImageView(uint32_t texID);
       
       bool srgb;
       bool mipmapping;
@@ -47,8 +45,7 @@ namespace Resource {
       std::vector<TextureInMemory> texToLoad;
       std::vector<TextureInGPU> textures;
       VkDeviceMemory memory;
-      VkImageView imageViews[MAX_TEXTURES_SUPPORTED];
-      VkSampler textureSampler;
+      uint32_t minimumMipmapLevel;
   };
 }
 #endif
