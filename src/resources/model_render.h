@@ -22,17 +22,22 @@
 namespace Resource
 {
   struct ModelInGPU;
-  enum class ModelType;
 
   class ModelRender
   {
   public:
-      ModelRender(DeviceState base, VkCommandPool pool);
+      ModelRender(DeviceState base, VkCommandPool pool,
+		  ResourcePool resPool);
       ~ModelRender();
 
       Model loadModel(ModelType type, std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
       Model loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
+      
       void endLoading(VkCommandBuffer transferBuff);
+
+      void unloadStaged();
+
+      void unloadGPU();
 
       void bindBuffers(VkCommandBuffer cmdBuff);
       void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
@@ -56,7 +61,6 @@ namespace Resource
       void stageLoadGroup(void* pMem, ModelGroup<T_Vert>* pGroup,
 			  size_t &vertexDataOffset, size_t &indexDataOffset);
       void bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type);
-      void unloadAllModelData();
       void drawMesh(VkCommandBuffer cmdBuff,
 		    ModelInGPU *modelInfo,
 		    uint32_t meshIndex,
@@ -68,11 +72,12 @@ namespace Resource
 #endif
       DeviceState base;
       VkCommandPool pool;
+      ResourcePool resPool;
       ModelGroup<Vertex2D> loaded2D;
       ModelGroup<Vertex3D> loaded3D;
       ModelGroup<VertexAnim3D> loadedAnim3D;
-      std::vector<Texture> alreadyLoaded;
-      std::map<size_t, ModelInGPU> models;
+      std::vector<ModelInGPU> models;
+      size_t modelTypeOffset[(size_t)ModelType::m3D_Anim + 1];
       VkBuffer buffer;
       VkDeviceMemory memory;
 

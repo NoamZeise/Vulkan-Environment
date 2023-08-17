@@ -170,7 +170,8 @@ const int MAX_2D_INSTANCE = 100;
       VkImageView textureViews[Resource::MAX_TEXTURES_SUPPORTED];
 
       std::vector<DescSet*> descriptorSets;
-  
+
+      Resource::ResourcePool resPool;
       Resource::TextureLoader *_stagingTextureLoader;
       Resource::ModelRender *_stagingModelLoader;
       Resource::FontLoader *_stagingFontLoader;    

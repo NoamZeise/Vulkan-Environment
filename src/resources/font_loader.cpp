@@ -7,12 +7,17 @@
 
 namespace Resource {
 
+  FontLoader::FontLoader(ResourcePool resPool) {
+      this->resPool = resPool;
+  }
+  
   FontLoader::~FontLoader() {
+      UnloadStaged();
       UnloadFonts();
   }
 
   Font FontLoader::LoadFont(std::string file, TextureLoader *texLoader) {
-      LOG("Loading font: " << file << " ID: " << fonts.size());
+      LOG("Loading font: " << file << " ID: " << stagedFonts.size() - 1);
       FontData* d = loadFont(file, FONT_LOAD_SIZE);
       Resource::Texture t = texLoader->LoadTexture(d->textureData,
 						   d->width,
@@ -21,14 +26,32 @@ namespace Resource {
       for(auto& c: d->chars)
 	  c.second.tex = t;
       d->textureData = nullptr;
-      fonts.push_back(d);
-      return Font((unsigned int)(fonts.size() - 1));
+      stagedFonts.push_back(d);
+      Font f = Font((size_t)(stagedFonts.size() - 1), resPool);
+      LOG("Loaded with ID:" << f.ID);
+      return f;
   }
 
-  void FontLoader::UnloadFonts() {
+  void FontLoader::EndLoading() {
+      UnloadFonts();
+      fonts.resize(stagedFonts.size());
+      for(int i = 0; i < fonts.size(); i++)
+	  fonts[i] = stagedFonts[i];
+      stagedFonts.clear();
+  }
+
+  void unloadFontVector(std::vector<FontData*> &fonts) {
       for(int i = 0; i < fonts.size(); i++)
 	  delete fonts[i];
       fonts.clear();
+  }
+
+  void FontLoader::UnloadStaged() {
+      unloadFontVector(stagedFonts);
+  }
+
+  void FontLoader::UnloadFonts() {
+      unloadFontVector(fonts);
   }
 
 float FontLoader::MeasureString(Font font, std::string text, float size) {
@@ -43,7 +66,8 @@ float FontLoader::MeasureString(Font font, std::string text, float size) {
 					       glm::vec2 position, float size,
 					       float depth, glm::vec4 colour, float rotate) {
       if (drawfont.ID >= fonts.size()) {
-	  LOG_ERROR("font ID out of range in DrawString, returning no draws!");
+	  LOG_ERROR("font ID out of range in DrawString, returning no draws! ID: "
+		    << drawfont.ID << " Loaded Fonts: " << fonts.size());
 	  return {};
       }
       return getDraws(fonts[drawfont.ID], text, size, position, depth, colour, rotate);

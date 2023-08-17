@@ -74,11 +74,13 @@ Render::Render(GLFWwindow *window, RenderConfig renderConf)
 
 void Render::_initStagingResourceManagers() {
     _stagingModelLoader = new Resource::ModelRender(manager->deviceState,
-						    manager->generalCommandPool);
+						    manager->generalCommandPool,
+						    resPool);
     _stagingTextureLoader = new Resource::TextureLoader(manager->deviceState,
 							manager->generalCommandPool,
+							resPool,
 							renderConf);
-    _stagingFontLoader = new Resource::FontLoader();
+    _stagingFontLoader = new Resource::FontLoader(resPool);
     _stagingTextureLoader->LoadTexture("textures/error.png");
 }
   
@@ -480,6 +482,7 @@ Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
 
 void Render::LoadResourcesToGPU() {
     _stagingTextureLoader->endLoading();
+    _stagingFontLoader->EndLoading();
     _stagingModelLoader->endLoading(manager->generalCommandBuffer);
 }
 

@@ -29,6 +29,12 @@ namespace Resource {
 	  this->ID = ID;
 	  this->dim = dimentions;
       }
+      Texture(size_t ID, glm::vec2 dimentions,
+	      ResourcePool pool) {
+	  this->ID = ID;
+	  this->dim = dimentions;
+	  this->pool = pool;
+      }
       ResourcePool pool;
       size_t ID = 0;
       glm::vec2 dim = glm::vec2(0, 0);
@@ -46,6 +52,11 @@ namespace Resource {
 	  this->ID = ID;
 	  this->type = ModelType::m3D;
       }
+      Model(size_t ID, ModelType type, ResourcePool pool) {
+	  this->ID = ID;
+	  this->type = type;
+	  this->pool = pool;
+      }
       ResourcePool pool;
       ModelType type;
       size_t ID;
@@ -55,6 +66,10 @@ namespace Resource {
       Font() { this->ID = 10000000; }
       Font(size_t ID) {
 	  this->ID = ID;
+      }
+      Font(size_t ID, ResourcePool pool) {
+	  this->ID = ID;
+	  this->pool = pool;
       }
       ResourcePool pool;
       size_t ID;

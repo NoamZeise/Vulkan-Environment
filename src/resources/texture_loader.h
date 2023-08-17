@@ -16,9 +16,11 @@ namespace Resource {
 
   class TextureLoader {
   public:
-      TextureLoader(DeviceState base, VkCommandPool pool, RenderConfig config);
+      TextureLoader(DeviceState base, VkCommandPool pool,
+		    ResourcePool resPool, RenderConfig config);
       ~TextureLoader();
-      void UnloadTextures();
+      void UnloadGPU();
+      void UnloadStaged(); 
       Texture LoadTexture(std::string path);
       // takes ownership of data
       Texture LoadTexture(unsigned char* data, int width, int height, int nrChannels);
@@ -41,6 +43,7 @@ namespace Resource {
       bool useNearestTextureFilter;
       
       DeviceState base;
+      ResourcePool resPool;
       VkCommandPool pool;
       
       std::vector<TextureInMemory> texToLoad;

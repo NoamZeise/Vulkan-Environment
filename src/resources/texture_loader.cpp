@@ -65,7 +65,9 @@ namespace Resource {
 
   /// --- texture loader ---
   
-  TextureLoader::TextureLoader(DeviceState base, VkCommandPool pool, RenderConfig config) {
+  TextureLoader::TextureLoader(DeviceState base, VkCommandPool pool,
+			       ResourcePool resPool, RenderConfig config) {
+      this->resPool = resPool;
       this->srgb = config.srgb;
       this->mipmapping = config.mip_mapping;
       this->useNearestTextureFilter = config.texture_filter_nearest;
@@ -74,13 +76,17 @@ namespace Resource {
   }
 
   TextureLoader::~TextureLoader() {
-      UnloadTextures();
+      UnloadStaged();
+      UnloadGPU();
   }
 
-  void TextureLoader::UnloadTextures() {
+  void TextureLoader::UnloadStaged() {
       for(auto& tex: texToLoad)
 	  tex.deleteTexData();
       texToLoad.clear();
+  }
+
+  void TextureLoader::UnloadGPU() {
       if (textures.size() <= 0)
 	  return;
       for (auto& tex : textures)
@@ -92,7 +98,8 @@ namespace Resource {
   Texture TextureLoader::LoadTexture(std::string path) {
       for(unsigned int i = 0; i > texToLoad.size(); i++)
 	  if(texToLoad[i].path == path)
-	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height));
+	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height),
+			     resPool);
       
       LOG("loading texture: " << path);
       
@@ -117,7 +124,8 @@ namespace Resource {
       LOG("  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1));
       
       return Texture((unsigned int)(texToLoad.size() - 1),
-		     glm::vec2(tex->width, tex->height));
+		     glm::vec2(tex->width, tex->height),
+		     resPool);
   }
 
   Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels) {
@@ -136,7 +144,9 @@ namespace Resource {
     else
       tex->format = VK_FORMAT_R8G8B8A8_UNORM;
 
-    return Texture((unsigned int)(texToLoad.size() - 1), glm::vec2(tex->width, tex->height));
+    return Texture((unsigned int)(texToLoad.size() - 1),
+		   glm::vec2(tex->width, tex->height),
+		   resPool);
   }
 
   float TextureLoader::getMinMipmapLevel() {
@@ -148,6 +158,8 @@ namespace Resource {
   void TextureLoader::endLoading() {
     if (texToLoad.size() <= 0)
 	return;
+    
+    UnloadGPU();
     
     textures.resize(texToLoad.size());
 

@@ -43,37 +43,38 @@ namespace Resource {
       ModelType type;
   };
 	
-  ModelRender::ModelRender(DeviceState base, VkCommandPool pool) {
+  ModelRender::ModelRender(DeviceState base, VkCommandPool pool, ResourcePool resPool) {
       this->base = base;
       this->pool = pool;
+      this->resPool = resPool;
       loadQuad();
   }
 
   ModelRender::~ModelRender() {
-      unloadAllModelData();
+      unloadStaged();
+      unloadGPU();
   }
 
-  void ModelRender::unloadAllModelData() {
-      if(models.size() <= 0)
-	  return;
-      models.clear();
-
+  void ModelRender::unloadStaged() {
       loaded2D.clearData();
       loaded3D.clearData();
       loadedAnim3D.clearData();
+  }
+
+  void ModelRender::unloadGPU() {
+      if(models.empty())
+	  return;
+      models.clear();
       
-      alreadyLoaded.clear();
       vertexDataSize = 0;
       indexDataSize = 0;
       currentIndex = 0;
+      
       vkDestroyBuffer(base.device, buffer, nullptr);
       vkFreeMemory(base.device, memory, nullptr);
   }
 
-  void ModelRender::bindBuffers(VkCommandBuffer cmdBuff)
-  {
-      if(currentIndex == 0)
-	  return;
+  void ModelRender::bindBuffers(VkCommandBuffer cmdBuff) {
       boundThisFrame = false;
       //bind index buffer - can only have one index buffer
       vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
@@ -84,18 +85,7 @@ namespace Resource {
 	  return;
       boundThisFrame = true;
       prevBoundType = type;
-      size_t vOffset = 0;
-      switch(type) {
-      case ModelType::m2D:
-	  vOffset = loaded2D.vertexDataOffset;
-	  break;
-      case ModelType::m3D:
-	  vOffset = loaded3D.vertexDataOffset;
-	  break;
-      case ModelType::m3D_Anim:
-	  vOffset = loadedAnim3D.vertexDataOffset;
-	  break;
-      }
+      size_t vOffset = modelTypeOffset[(size_t)type];
       VkBuffer vertexBuffers[] = { buffer };
       VkDeviceSize offsets[] = { vOffset };
       vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
@@ -156,33 +146,34 @@ namespace Resource {
   }
 
   template <class T_Vert>
-  Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup, TextureLoader* texLoader) {
-      Model userModel(currentIndex++);
-      userModel.type = getModelType(T_Vert());
+  Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup,
+				   TextureLoader* texLoader) {
+      Model userModel(currentIndex++, getModelType(T_Vert()), resPool);
       modelGroup.loadModel(model, userModel.ID);
       loadModelTexture(modelGroup.getPreviousModel(), texLoader);
       return userModel;
   }
 
-  Model ModelRender::loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
-	switch(type) {
-	case ModelType::m2D:
-	    return loadModelInfo(model, loaded2D, texLoader);
-	case ModelType::m3D:
-	    return loadModelInfo(model, loaded3D, texLoader);
-	case ModelType::m3D_Anim:
-	    Model userModel = loadModelInfo(model, loadedAnim3D, texLoader);
-	    if(pGetAnimations != nullptr)
-		for(ModelInfo::Animation anim : model.animations) {
-		    loadedAnim3D.getPreviousModel()->animations
-			.push_back(ModelAnimation(model.bones, anim));
-		    pGetAnimations->push_back(
-			    loadedAnim3D.getPreviousModel()->
-			    animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
-		}
-	    return userModel;
-	}
-	throw std::runtime_error("Model type not implemented when trying to load model!");
+  Model ModelRender::loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader,
+			       std::vector<Resource::ModelAnimation> *pGetAnimations) {
+      switch(type) {
+      case ModelType::m2D:
+	  return loadModelInfo(model, loaded2D, texLoader);
+      case ModelType::m3D:
+	  return loadModelInfo(model, loaded3D, texLoader);
+      case ModelType::m3D_Anim:
+	  Model userModel = loadModelInfo(model, loadedAnim3D, texLoader);
+	  if(pGetAnimations != nullptr)
+	      for(ModelInfo::Animation anim : model.animations) {
+		  loadedAnim3D.getPreviousModel()->animations
+		      .push_back(ModelAnimation(model.bones, anim));
+		  pGetAnimations->push_back(
+			  loadedAnim3D.getPreviousModel()->
+			  animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
+	      }
+	  return userModel;
+      }
+      throw std::runtime_error("Model type not implemented when trying to load model!");
   }
 
   Model ModelRender::loadModel(ModelType type, std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
@@ -207,10 +198,9 @@ namespace Resource {
   
   template <class T_Vert>
   void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
-      for(auto& mesh: model->meshes) {
+      for(auto& mesh: model->meshes)
 	  if(mesh->texToLoad != "") 
 		  mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION + mesh->texToLoad);
-      }
   }
 
   void ModelRender::endLoading(VkCommandBuffer transferBuff) {
@@ -220,7 +210,10 @@ namespace Resource {
 	  LOG("no model data to load to gpu");
 	  return;
       }
-
+      
+      int modelCount = currentIndex;
+      unloadGPU();
+      models.resize(modelCount);
       //get size of vertex data + offsets
       processLoadGroup(&loaded2D);
       processLoadGroup(&loaded3D);
@@ -291,64 +284,69 @@ namespace Resource {
 
   template <class T_Vert >
   void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup) {
-    pGroup->vertexDataOffset = vertexDataSize;
-    uint32_t modelVertexOffset = 0;
-    for(size_t i = 0; i < pGroup->models.size(); i++) {
-      models[pGroup->models[i].ID] = ModelInGPU();
-      ModelInGPU* model = &models[pGroup->models[i].ID];
+      T_Vert vert;
+      ModelType type = getModelType(vert);
+      modelTypeOffset[(size_t)type] = vertexDataSize;
+      pGroup->vertexDataOffset = vertexDataSize;
+      uint32_t modelVertexOffset = 0;
+      for(size_t i = 0; i < pGroup->models.size(); i++) {
+	  models[pGroup->models[i].ID] = ModelInGPU();
 
-      model->type = getModelType(pGroup->models[i].meshes[0]->verticies[0]);
-      model->vertexOffset = modelVertexOffset;
-      model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indicies[0]);
-      model->meshes.resize(pGroup->models[i].meshes.size());
-      for(size_t j = 0 ; j <  pGroup->models[i].meshes.size(); j++) {
-	model->meshes[j] = MeshInfo(
-				    (uint32_t)pGroup->models[i].meshes[j]->indicies.size(),
-				    model->indexCount,  //as offset
-				    model->vertexCount, //as offset
-				    pGroup->models[i].meshes[j]->texture,
-				    pGroup->models[i].meshes[j]->diffuseColour);
-	model->vertexCount += (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
-	model->indexCount  += (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
-	vertexDataSize += sizeof(T_Vert) * (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
-	indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0])
-	  * (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+	  ModelInGPU* model = &models[pGroup->models[i].ID];
+
+	  model->type = type;
+	  model->vertexOffset = modelVertexOffset;
+	  model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indicies[0]);
+	  model->meshes.resize(pGroup->models[i].meshes.size());
+	  for(size_t j = 0 ; j <  pGroup->models[i].meshes.size(); j++) {
+	      model->meshes[j] = MeshInfo(
+		      (uint32_t)pGroup->models[i].meshes[j]->indicies.size(),
+		      model->indexCount,  //as offset
+		      model->vertexCount, //as offset
+		      pGroup->models[i].meshes[j]->texture,
+		      pGroup->models[i].meshes[j]->diffuseColour);
+	      model->vertexCount += (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
+	      model->indexCount  += (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+	      vertexDataSize += sizeof(T_Vert)
+		  * (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
+	      indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0])
+		  * (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+	  }
+	  modelVertexOffset += model->vertexCount;
+
+	  for(size_t anim = 0; anim < pGroup->models[i].animations.size(); anim++) {
+	      model->animations.push_back(pGroup->models[i].animations[anim]);
+	      model->animationMap[pGroup->models[i].animations[anim].getName()] = static_cast<int>(
+		      pGroup->models[i].animations.size() - 1);
+	  }
+
       }
-      modelVertexOffset += model->vertexCount;
-
-      for(size_t anim = 0; anim < pGroup->models[i].animations.size(); anim++) {
-	model->animations.push_back(pGroup->models[i].animations[anim]);
-	model->animationMap[pGroup->models[i].animations[anim].getName()] = static_cast<int>(
-											     pGroup->models[i].animations.size() - 1);
-      }
-
-    }
-    pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
+      pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
   }
 
   template <class T_Vert >
   void ModelRender::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup,
 				   size_t &pVertexDataOffset, size_t &pIndexDataOffset) {
-    for(auto& model: pGroup->models) {
-      for(size_t i = 0; i < model.meshes.size(); i++) {
-		    
-	std::memcpy(static_cast<char*>(pMem) + pVertexDataOffset,
-		    model.meshes[i]->verticies.data(),
-		    sizeof(T_Vert ) * model.meshes[i]->verticies.size());
-			
-	pVertexDataOffset += sizeof(T_Vert ) * model.meshes[i]->verticies.size();
-			
-	std::memcpy(static_cast<char*>(pMem) + pIndexDataOffset,
-		    model.meshes[i]->indicies.data(),
-		    sizeof(model.meshes[i]->indicies[0])
-		    * model.meshes[i]->indicies.size());
-			
-	pIndexDataOffset += sizeof(model.meshes[i]->indicies[0])
-	  * model.meshes[i]->indicies.size();
-			
-	delete model.meshes[i];
+      for(auto& model: pGroup->models) {
+	  for(size_t i = 0; i < model.meshes.size(); i++) {
+	      
+	      std::memcpy(static_cast<char*>(pMem) + pVertexDataOffset,
+			  model.meshes[i]->verticies.data(),
+			  sizeof(T_Vert ) * model.meshes[i]->verticies.size());
+	      
+	      pVertexDataOffset += sizeof(T_Vert ) * model.meshes[i]->verticies.size();
+	      
+	      std::memcpy(static_cast<char*>(pMem) + pIndexDataOffset,
+			  model.meshes[i]->indicies.data(),
+			  sizeof(model.meshes[i]->indicies[0])
+			  * model.meshes[i]->indicies.size());
+	      
+	      pIndexDataOffset += sizeof(model.meshes[i]->indicies[0])
+		  * model.meshes[i]->indicies.size();
+	      
+	      delete model.meshes[i];
+	  }
       }
-    }
-    pGroup->models.clear();
+      pGroup->models.clear();
   }
-  } //end namespace
+} //end namespace

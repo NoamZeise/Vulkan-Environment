@@ -21,15 +21,20 @@ namespace Resource
 class FontLoader
 {
 public:
-    FontLoader() {}
+    FontLoader(ResourcePool resPool);
     ~FontLoader();
     Font LoadFont(std::string file, TextureLoader* texLoader);
     std::vector<QuadDraw> DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
     float MeasureString(Font font, std::string text, float size);
+    // must be called when texture_loader.end_loading() is called
+    void EndLoading();
+    void UnloadStaged();
     void UnloadFonts();
     
 private:
-	std::vector<FontData*> fonts;
+    ResourcePool resPool;
+    std::vector<FontData*> fonts;
+    std::vector<FontData*> stagedFonts;
 };
 
 }
