@@ -1,15 +1,13 @@
 #include "render.h"
 
 #include "parts/render_style.h"
-#include "resources/model_render.h"
-#include "resources/font_loader.h"
-#include "resources/texture_loader.h"
 #include "parts/core.h"
 #include "parts/swapchain.h"
 #include "parts/command.h"
 #include "parts/descriptors.h"
 #include "pipeline.h"
 #include "pipeline_data.h"
+#include "resources/resource_pool.h"
 #include "vkhelper.h"
 #include "logger.h"
 
@@ -69,31 +67,16 @@ Render::Render(GLFWwindow *window, RenderConfig renderConf)
     for(int i = 0; i < frameCount; i++)
 	frames[i] = new Frame(manager->deviceState.device,
 			      manager->deviceState.queue.graphicsPresentFamilyIndex);
-    _initStagingResourceManagers();
-}
-
-void Render::_initStagingResourceManagers() {
-    _stagingModelLoader = new Resource::ModelRender(manager->deviceState,
-						    manager->generalCommandPool,
-						    resPool);
-    _stagingTextureLoader = new Resource::TextureLoader(manager->deviceState,
-							manager->generalCommandPool,
-							resPool,
-							renderConf);
-    _stagingFontLoader = new Resource::FontLoader(resPool);
-    _stagingTextureLoader->LoadTexture("textures/error.png");
+    CreateResourcePool();
 }
   
 Render::~Render()
 {
   vkDeviceWaitIdle(manager->deviceState.device);
 
-  delete _textureLoader;
-  delete _stagingTextureLoader;
-  delete _modelLoader;
-  delete _stagingModelLoader;
-  delete _fontLoader;
-  delete _stagingFontLoader;
+  for(int i = 0; i < pools.size(); i++)
+      delete pools[i];
+  pools.clear();
   _destroyFrameResources();
   if(offscreenRenderPass != nullptr || finalRenderPass != nullptr) {
       delete offscreenRenderPass;
@@ -119,6 +102,9 @@ bool swapchainRecreationRequired(VkResult result) {
 
 void Render::_initFrameResources() {
     LOG("Creating Swapchain");
+
+    if(_frameResourcesCreated)
+	_destroyFrameResources();
 	    
     int winWidth, winHeight;
     winWidth = winHeight = 0;
@@ -281,8 +267,13 @@ void Render::_initFrameResources() {
 			       sizeof(shaderStructs::Lighting), 1);
     lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
 
-
-    float minMipmapLevel = _textureLoader->getMinMipmapLevel();
+    float minMipmapLevel = 100000.0f;
+    for(auto& p: pools) {
+	float n = p->texLoader->getMinMipmapLevel();
+	if(n < minMipmapLevel)
+	    minMipmapLevel = n;
+    }
+    
     
     if(textureSamplerCreated) {
 	if(prevRenderConf.texture_filter_nearest != renderConf.texture_filter_nearest ||
@@ -304,11 +295,35 @@ void Render::_initFrameResources() {
 	textureSamplerCreated = true;
     }
 
+    int pI = 0;
+    ResourcePool *pool = pools[pI];
+    VkImageView validView;
+    bool foundValidView = false;
     for(int i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
-	if(i < _textureLoader->getImageCount())
-	    textureViews[i] = _textureLoader->getImageViewSetIndex(i, i);
-	else
-	    textureViews[i] = _textureLoader->getImageViewSetIndex(0, i);
+	if(pool == nullptr || !pool->UseGPUResources)
+	    goto next_pool;
+	    
+	if(i < pool->texLoader->getImageCount()) {
+	    pool->usingGPUResources = true;
+            textureViews[i] = pool->texLoader->getImageViewSetIndex(i, i);
+            if (!foundValidView) {
+		foundValidView = true;
+		validView = textureViews[i];
+	    }              
+	}
+	else {
+	    if(pools.size() < pI + 1)
+		goto next_pool;
+	    else if(foundValidView)
+              textureViews[i] = validView;
+            else //TODO: change so we dont require a texture
+		LOG_ERROR("No textures were loaded. "
+			  "At least 1 Texture must be loaded");
+	}
+	continue;
+    next_pool:
+	pool = pools[++pI];
+	i--;
     }
 
     descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
@@ -422,33 +437,78 @@ void Render::_initFrameResources() {
     LOG("Finished Creating Frame Resources");
     timeData.time = 0;
     prevRenderConf = renderConf;
+    _frameResourcesCreated = true;
 }
 
 void Render::_destroyFrameResources()
 {
-  LOG("Destroying frame resources");
-  vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
-  vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
-  for(int i = 0; i < descriptorSets.size(); i++)
-      delete descriptorSets[i];
-  descriptorSets.clear();
-  vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
-
-  _pipeline3D.destroy(manager->deviceState.device);
-  _pipelineAnim3D.destroy(manager->deviceState.device);
-  _pipeline2D.destroy(manager->deviceState.device);
-  _pipelineFinal.destroy(manager->deviceState.device);
+    if(!_frameResourcesCreated)
+	return;
+    LOG("Destroying frame resources");
+    vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
+    vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
+    for(int i = 0; i < descriptorSets.size(); i++)
+	delete descriptorSets[i];
+    descriptorSets.clear();
+    vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
+    
+    _pipeline3D.destroy(manager->deviceState.device);
+    _pipelineAnim3D.destroy(manager->deviceState.device);
+    _pipeline2D.destroy(manager->deviceState.device);
+    _pipelineFinal.destroy(manager->deviceState.device);
+    
+    for(int i = 0; pools.size(); i++)
+	if(pools[i] != nullptr)
+	    pools[i]->usingGPUResources = false;
+    _frameResourcesCreated = false;
 }
 
+  Resource::ResourcePool Render::CreateResourcePool() {
+      int index = pools.size();
+      if(freePools.empty()) {
+	  pools.push_back(nullptr);
+      } else {
+	  index = freePools.back();
+	  freePools.pop_back();
+      }
+      pools[index] = new ResourcePool(index,
+				      manager->deviceState,
+				      manager->generalCommandPool,
+				      renderConf);
+      return pools[index]->poolID;
+  }
+
+  void Render::DestroyResourcePool(Resource::ResourcePool pool) {
+      bool reloadResources = false;
+      for(int i = 0; i < pools.size(); i++) {
+	  if(pools[i]->poolID.ID == pool.ID) {
+	      if(pools[i]->usingGPUResources) {
+		  reloadResources = true;
+		  vkDeviceWaitIdle(manager->deviceState.device);
+		  _destroyFrameResources();
+	      }
+	      delete pools[i];
+	      pools[i] = nullptr;
+	      freePools.push_back(i);
+	      if(reloadResources)
+		  _initFrameResources();
+	  }
+      }
+  }
+
 Resource::Texture Render::LoadTexture(std::string filepath) {
-  return _stagingTextureLoader->LoadTexture(filepath);
+    Resource::ResourcePool pool(0);
+    return pools[pool.ID]->texLoader->LoadTexture(filepath);
 }
 
 Resource::Font Render::LoadFont(std::string filepath) {
+    Resource::ResourcePool pool(0);
     try {
-      return _stagingFontLoader->LoadFont(filepath, _stagingTextureLoader);
+      return pools[pool.ID]->LoadFont(filepath);
     } catch (const std::exception &e) {
-	std::cout << e.what() << std::endl;
+	LOG_ERROR("Exception Occured when loading font, "
+		  "returning empty font. exception: "
+		  << e.what());
 	return Resource::Font();
     }
 }
@@ -456,61 +516,71 @@ Resource::Font Render::LoadFont(std::string filepath) {
 Resource::Model Render::LoadAnimatedModel(
 	std::string filepath,
 	std::vector<Resource::ModelAnimation> *pGetAnimations) {
-    return _stagingModelLoader->loadModel(Resource::ModelType::m3D_Anim, filepath, _stagingTextureLoader, pGetAnimations);
+    Resource::ResourcePool pool(0);
+    return pools[pool.ID]->loadModel(Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
 }
 
 Resource::Model Render::LoadAnimatedModel(ModelInfo::Model& model,
 					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
-    return _stagingModelLoader->loadModel(Resource::ModelType::m3D_Anim, model, _stagingTextureLoader, pGetAnimation);
+    Resource::ResourcePool pool(0);
+    return pools[pool.ID]->loadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
 }
 
 Resource::Model Render::Load2DModel(std::string filepath) {
-    return _stagingModelLoader->loadModel(Resource::ModelType::m2D, filepath, _stagingTextureLoader, nullptr);
+        Resource::ResourcePool pool(0);
+    return pools[pool.ID]->loadModel(Resource::ModelType::m2D, filepath, nullptr);
 }
 
 Resource::Model Render::Load2DModel(ModelInfo::Model& model) {
-    return _stagingModelLoader->loadModel(Resource::ModelType::m2D, model, _stagingTextureLoader, nullptr);
+    Resource::ResourcePool pool(0);
+    return pools[pool.ID]->loadModel(Resource::ModelType::m2D, model, nullptr);
 }
 
 Resource::Model Render::Load3DModel(std::string filepath) {
-    return _stagingModelLoader->loadModel(Resource::ModelType::m3D, filepath, _stagingTextureLoader, nullptr);
+    Resource::ResourcePool pool(0);
+    return pools[pool.ID]->loadModel(Resource::ModelType::m3D, filepath, nullptr);
 }
 
 Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
-    return _stagingModelLoader->loadModel(Resource::ModelType::m3D, model, _stagingTextureLoader, nullptr);
+    Resource::ResourcePool pool(0);
+    return pools[pool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
 }
 
 void Render::LoadResourcesToGPU() {
-    _stagingTextureLoader->endLoading();
-    _stagingFontLoader->EndLoading();
-    _stagingModelLoader->endLoading(manager->generalCommandBuffer);
+    Resource::ResourcePool pool(0);
+    bool remakeFrameRes = false;
+    if(pools[pool.ID]->usingGPUResources) {
+      LOG("Loading resources for pool that is currently in use, "
+          "this requires remaking frame resources.");
+      vkDeviceWaitIdle(manager->deviceState.device);
+      _destroyFrameResources();
+      remakeFrameRes = true;
+    }
+    pools[pool.ID]->loadPoolToGPU(manager->generalCommandBuffer);
+    if(remakeFrameRes)
+	_initFrameResources();
 }
 
 void Render::UseLoadedResources() {
     vkDeviceWaitIdle(manager->deviceState.device);
-    if(_textureLoader != nullptr)
-	_destroyFrameResources();
-    delete _textureLoader;
-    _textureLoader = _stagingTextureLoader;
-    delete _modelLoader;
-    _modelLoader = _stagingModelLoader;
-    delete _fontLoader;
-    _fontLoader = _stagingFontLoader;
-    _initStagingResourceManagers();
     _initFrameResources();
 }
 
 void Render::_resize() {
     LOG("resizing");
     _framebufferResized = false;
-    vkDeviceWaitIdle(manager->deviceState.device);
-    
-    _destroyFrameResources();
-    _initFrameResources();
+    UseLoadedResources();
     _update3DProjectionMatrix();
 }
 
 void Render::_startDraw() {
+    if (!_frameResourcesCreated) {
+      throw std::runtime_error("Tried to start draw when no"
+                               " frame resources have been created"
+                               " call LoadResourcesToGPU before "
+			       "drawing to the screen");                               
+    }    
+    
     frameIndex = (frameIndex + 1) % frameCount;
     checkResultAndThrow(frames[frameIndex]->waitForPreviousFrame(),
 			"Render Error: failed to wait for previous frame fence");
@@ -521,8 +591,11 @@ void Render::_startDraw() {
     checkResultAndThrow(frames[frameIndex]->startFrame(&currentCommandBuffer),
 			"Render Error: Failed to start command buffer.");
     offscreenRenderPass->beginRenderPass(currentCommandBuffer, swapchainFrameIndex);
-    _modelLoader->bindBuffers(currentCommandBuffer);
     currentBonesDynamicOffset = 0;
+    
+    pools[0]->modelLoader->bindBuffers(currentCommandBuffer);
+    currentModelPool = pools[0]->poolID;
+	
     _begunDraw = true;
 }
 
@@ -543,9 +616,7 @@ void Render::Begin3DDraw() {
 }
 
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat) {
-    DrawModel(model, modelMatrix, normalMat, glm::vec4(0.0f));
-}
-
+    DrawModel(model, modelMatrix, normalMat, glm::vec4(0.0f)); }
 
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
 		       glm::vec4 colour) {
@@ -553,6 +624,8 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 	LOG("WARNING: ran out of 3D instances!\n");
 	return;
     }
+    
+    _bindModelPool(model);
     
     if ((_currentColour != colour || _currentModel.ID != model.ID) && _modelRuns != 0)
 	_drawBatch();
@@ -589,6 +662,8 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 	LOG("WARNING: Ran out of 3D Anim Instance models!\n");
 	return;
     }
+
+    _bindModelPool(model);
     
     if (_currentModel.ID != model.ID && _modelRuns != 0)
 	_drawBatch();
@@ -664,9 +739,9 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix) {
   DrawQuad(texture, modelMatrix, glm::vec4(1), glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate)
-{
-  auto draws = _fontLoader->DrawString(font, text, position, size, depth, colour, rotate);
+void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate) {
+  auto draws = pools[font.pool.ID]->fontLoader->DrawString(font, text, position,
+							   size, depth, colour, rotate);
   for (const auto &draw : draws) {
     DrawQuad(draw.tex, draw.model, draw.colour, draw.texOffset);
   }
@@ -676,26 +751,36 @@ void Render::DrawString(Resource::Font font, std::string text,
   DrawString(font, text, position, size, depth, colour, 0.0);
 }
 
-float Render::MeasureString(Resource::Font font, std::string text, float size)
-{
-  return _fontLoader->MeasureString(font, text, size);
+float Render::MeasureString(Resource::Font font, std::string text, float size) {
+  return pools[font.pool.ID]->fontLoader->MeasureString(font, text, size);
 }
+
+  void Render::_bindModelPool(Resource::Model model) {
+      if(currentModelPool.ID != model.pool.ID) {
+	  if(_modelRuns > 0)
+	      _drawBatch();
+	  pools[model.pool.ID]->modelLoader->bindBuffers(currentCommandBuffer);
+      }
+  }
 
 void Render::_drawBatch() {
     switch(_renderState) {
     case RenderState::DrawAnim3D:
     case RenderState::Draw3D:
-	_modelLoader->drawModel(currentCommandBuffer,
-				_pipeline3D.layout, _currentModel, _modelRuns,
-				_current3DInstanceIndex, _currentColour);
+	pools[currentModelPool.ID]->modelLoader->drawModel(currentCommandBuffer,
+							   _pipeline3D.layout,
+							   _currentModel,
+							   _modelRuns,
+							   _current3DInstanceIndex,
+							   _currentColour);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;
     case RenderState::Draw2D:
-	_modelLoader->drawQuad(currentCommandBuffer,
-			       _pipeline3D.layout, 0, _instance2Druns,
-			       _current2DInstanceIndex, _currentColour,
-			       _currentTexOffset);
+	pools[currentModelPool.ID]->modelLoader->drawQuad(currentCommandBuffer,
+							  _pipeline3D.layout, 0, _instance2Druns,
+							  _current2DInstanceIndex, _currentColour,
+							  _currentTexOffset);
 	_current2DInstanceIndex += _instance2Druns;
 	_instance2Druns = 0;
 	break;

@@ -13,12 +13,25 @@ ResourcePool::~ResourcePool() {
     delete texLoader;
 }
 
-#include "../logger.h"
+Resource::Model ResourcePool::loadModel(Resource::ModelType type, std::string path, std::vector<Resource::ModelAnimation> *pGetAnimations) {
+    return modelLoader->loadModel(type, path, texLoader, pGetAnimations);
+}
+
+Resource::Model ResourcePool::loadModel(Resource::ModelType type, ModelInfo::Model &model,
+					std::vector<Resource::ModelAnimation> *pGetAnimations) {
+    return modelLoader->loadModel(type, model, texLoader, pGetAnimations);
+}
+
+Resource::Font ResourcePool::LoadFont(std::string file) {
+    return fontLoader->LoadFont(file, texLoader);
+}
 
 void ResourcePool::loadPoolToGPU(VkCommandBuffer generalCmdBuff) {
     texLoader->endLoading();
     fontLoader->EndLoading();
     modelLoader->endLoading(generalCmdBuff);
+    UseGPUResources = true;
+    usingGPUResources = false;
 }
 
 void ResourcePool::unloadStaged() {
@@ -31,4 +44,6 @@ void ResourcePool::unloadGPU() {
     texLoader->UnloadGPU();
     modelLoader->unloadGPU();
     fontLoader->UnloadFonts();
+    UseGPUResources = false;
+    usingGPUResources = false;
 }

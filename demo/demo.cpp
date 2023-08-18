@@ -85,7 +85,7 @@ int main() {
 	Resource::ModelAnimation otherWolfAnimation = wolfAnimations[1];
 
 	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
-
+	
 	render.LoadResourcesToGPU();
 	render.UseLoadedResources();
 
@@ -111,7 +111,6 @@ int main() {
 	    
 	    currentWolfAnimation.Update((float)frameElapsed);
 	    otherWolfAnimation.Update((float)frameElapsed);
-
 	    render.Begin2DDraw();
 	
 	    render.DrawQuad(testTex,

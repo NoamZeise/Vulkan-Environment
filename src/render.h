@@ -10,13 +10,6 @@
 #include <glm/glm.hpp>
 
 #include <graphics/resources.h>
-
-namespace Resource {
-    class ModelRender;
-    class FontLoader;
-    class TextureLoader;
-} // namespace Resource
-
 #include <graphics/render_config.h>
 #include "vulkan_manager.h"
 #include "swapchain.h"
@@ -26,10 +19,10 @@ namespace Resource {
 #include "shader.h"
 #include "shader_internal.h"
 #include "shader_structs.h"
-
-
 #include <atomic>
 #include <vector>
+
+struct ResourcePool;
 
 namespace vkenv {
 
@@ -49,7 +42,10 @@ const int MAX_2D_INSTANCE = 100;
       /// before the draw loop.
       Render(GLFWwindow *window, RenderConfig renderConf);
       ~Render();
-  
+
+      Resource::ResourcePool CreateResourcePool();
+      void DestroyResourcePool(Resource::ResourcePool pool);
+      
       Resource::Texture LoadTexture(std::string filepath);
       Resource::Font LoadFont(std::string filepath);
       /// Load model from the filepath and store as a 2D model.
@@ -77,6 +73,7 @@ const int MAX_2D_INSTANCE = 100;
       void Begin3DDraw();
       void BeginAnim3DDraw();
       void Begin2DDraw();
+      //switching between models that are in different pools often is slow
       void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
       void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
 		     glm::vec4 modelColour);
@@ -109,7 +106,18 @@ const int MAX_2D_INSTANCE = 100;
       }
     
   private:
+
+      void _initFrameResources();
+      void _destroyFrameResources();
+      void _startDraw();
+      void _resize();
+      void _update3DProjectionMatrix();
+      void _drawBatch();
+      void _bindModelPool(Resource::Model model);
+
+      
       bool _framebufferResized = false;
+      bool _frameResourcesCreated = false;
 
       RenderConfig renderConf;
       RenderConfig prevRenderConf;
@@ -171,13 +179,8 @@ const int MAX_2D_INSTANCE = 100;
 
       std::vector<DescSet*> descriptorSets;
 
-      Resource::ResourcePool resPool;
-      Resource::TextureLoader *_stagingTextureLoader;
-      Resource::ModelRender *_stagingModelLoader;
-      Resource::FontLoader *_stagingFontLoader;    
-      Resource::TextureLoader *_textureLoader = nullptr;
-      Resource::ModelRender *_modelLoader = nullptr;
-      Resource::FontLoader *_fontLoader = nullptr;
+      std::vector<ResourcePool*> pools;
+      std::vector<int> freePools;
 
       enum class RenderState {
 	  Draw2D,
@@ -201,13 +204,7 @@ const int MAX_2D_INSTANCE = 100;
       unsigned int _instance2Druns = 0;
       unsigned int _current2DInstanceIndex = 0;
 
-      void _initStagingResourceManagers();
-      void _initFrameResources();
-      void _destroyFrameResources();
-      void _startDraw();
-      void _resize();
-      void _update3DProjectionMatrix();
-      void _drawBatch();
+      Resource::ResourcePool currentModelPool;
   };
 
 } //namespace

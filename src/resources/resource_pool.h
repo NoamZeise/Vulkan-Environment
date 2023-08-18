@@ -24,10 +24,20 @@ struct ResourcePool {
     void unloadStaged();
     void unloadGPU();
 
+    void setUseGPUResources(bool value);
+
+    //injects TextureLoader ref into calls to model+font loaders
+    Resource::Model loadModel(Resource::ModelType type, std::string path, std::vector<Resource::ModelAnimation> *pGetAnimations);
+    Resource::Model loadModel(Resource::ModelType type, ModelInfo::Model& model, std::vector<Resource::ModelAnimation> *pGetAnimations);
+    Resource::Font LoadFont(std::string file);
+
     Resource::TextureLoader* texLoader;
     Resource::ModelRender* modelLoader;
     Resource::FontLoader* fontLoader;
     Resource::ResourcePool poolID;
+
+    bool UseGPUResources = false;
+    bool usingGPUResources = false;
 };
 
 
