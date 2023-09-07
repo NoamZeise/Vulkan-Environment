@@ -31,8 +31,9 @@ A 2D and 3D renderer library that uses Vulkan. In a working state.
 
 This project uses CMake for building, and can be used as a submodule in your CMake Project if you want to use this library for your application.
 
-There are some optional flags that can be set to change what is built:
-- pass `-DBUILD_DEMO=true` to build the example binary
+There are some optional flags that can be set to change what is built.
+They are used when generating the build files, so to build with examples without assimp you would call `cmake /path/to/project/root -D BUILD_EXMAPLES=true -D NO_ASSIMP=true`.
+- pass `-DBUILD_EXAMPLES=true` to build the example binaries 
 - pass `-DNO_FREETYPE=true` to remove the freetype dependancy from the library (font related functions will throw an exception)
 - pass `-DNO_ASSIMP=true` to remove the assimp dependancy from the library ( model related functions will throw an exception)
 - pass `-DASSIMP_BUILD_<Some Model Type>_IMPORTER=true` to enable the importing of models that this project doesn't by default. (By default only .fbx and .obj model importers are built)
@@ -51,7 +52,7 @@ Install the [Vulkan SDK](https://www.lunarg.com/vulkan-sdk/), for getting the vu
 
 Install [CMake](https://cmake.org/download/) if you haven't already
 
-### Linux with apt
+### Debian Based Linux
 vulkan tools
 ```
 $ sudo apt install vulkan-tools
@@ -68,7 +69,7 @@ install cmake if you haven't already
 ```
 $ sudo apt install cmake
 ```
-### Building with cmake
+### Building with Cmake
 
 make a build folder in the repo dir and go to it
 ```
