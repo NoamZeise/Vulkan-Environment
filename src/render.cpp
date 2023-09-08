@@ -107,7 +107,6 @@ void Render::_initFrameResources() {
     winWidth = winHeight = 0;
     glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
     while(winWidth == 0 || winHeight == 0) {
-	LOG("here");
 	glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
 	glfwWaitEvents();
     }
@@ -293,8 +292,9 @@ void Render::_initFrameResources() {
     }
 
     // Load textures across all active resource pools
-    // into the texture view descriptor set data
+    // into the textureViews descriptor set data
     int pI = 0;
+    int texID = 0;
     if(pools.size() < 1)
 	throw std::runtime_error("At least 1 pool must exist");
     ResourcePool *pool = pools[pI];
@@ -303,16 +303,16 @@ void Render::_initFrameResources() {
     for(int i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
 	if(pool == nullptr || !pool->UseGPUResources)
 	    goto next_pool;
-	    
-	if(i < pool->texLoader->getImageCount()) {
+	
+	if(texID < pool->texLoader->getImageCount()) {
 	    pool->usingGPUResources = true;
-            textureViews[i] = pool->texLoader->getImageViewSetIndex(i, i);
+            textureViews[i] = pool->texLoader->getImageViewSetIndex(texID++, i);
             if (!foundValidView) {
 		foundValidView = true;
 		validView = textureViews[i];
 	    }              
 	} else {
-	    if(pools.size() < pI + 1)
+	    if(pools.size() > pI + 1)
 		goto next_pool;
 	    else if(foundValidView)
 		textureViews[i] = validView;
@@ -323,6 +323,7 @@ void Render::_initFrameResources() {
 	continue;
     next_pool:
 	pool = pools[++pI];
+	texID = 0;
 	i--;
     }
 
@@ -445,19 +446,21 @@ void Render::_destroyFrameResources()
     if(!_frameResourcesCreated)
 	return;
     LOG("Destroying frame resources");
+    LOG("    freeing shader memory");
     vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
     vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
+    LOG("    destroying descriptors");
     for(int i = 0; i < descriptorSets.size(); i++)
 	delete descriptorSets[i];
     descriptorSets.clear();
     vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
-    
+    LOG("    destroying Pipelines");
     _pipeline3D.destroy(manager->deviceState.device);
     _pipelineAnim3D.destroy(manager->deviceState.device);
     _pipeline2D.destroy(manager->deviceState.device);
     _pipelineFinal.destroy(manager->deviceState.device);
-    
-    for(int i = 0; pools.size(); i++)
+    LOG("    setting resource pools");
+    for(int i = 0; i < pools.size(); i++)
 	if(pools[i] != nullptr)
 	    pools[i]->usingGPUResources = false;
     _frameResourcesCreated = false;
@@ -517,10 +520,13 @@ void Render::DestroyResourcePool(Resource::ResourcePool pool) {
 				   "with a pool that does not exist");
   }
 
-Resource::Texture Render::LoadTexture(std::string filepath) {
-    Resource::ResourcePool pool(0);
+Resource::Texture Render::LoadTexture(Resource::ResourcePool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->texLoader->LoadTexture(filepath);
+}
+  
+Resource::Texture Render::LoadTexture(std::string filepath) {
+    return LoadTexture(Resource::ResourcePool(0), filepath);
 }
 
 Resource::Font Render::LoadFont(std::string filepath) {
@@ -575,8 +581,7 @@ Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
     return pools[pool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
 }
 
-void Render::LoadResourcesToGPU() {
-    Resource::ResourcePool pool(0);
+void Render::LoadResourcesToGPU(Resource::ResourcePool pool) {
     _throwIfPoolInvaid(pool);
     bool remakeFrameRes = false;
     if(pools[pool.ID]->usingGPUResources) {
@@ -589,6 +594,10 @@ void Render::LoadResourcesToGPU() {
     pools[pool.ID]->loadPoolToGPU(manager->generalCommandBuffer);
     if(remakeFrameRes)
 	_initFrameResources();
+}
+
+void Render::LoadResourcesToGPU() {
+    LoadResourcesToGPU(Resource::ResourcePool(0));
 }
 
 void Render::UseLoadedResources() {
@@ -744,16 +753,18 @@ void Render::Begin2DDraw()
   _pipeline2D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
 
-void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset)
-{
+void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset) {
   if (_current2DInstanceIndex >= MAX_2D_INSTANCE) {
       LOG("WARNING: ran out of 2D instance models!\n");
       return;
   }
+  if(!_vaildPool(texture.pool))
+      return;
    perFrame2DVertData[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
-   perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texID = (uint32_t)texture.ID;
+   perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texID =
+       pools[texture.pool.ID]->texLoader->getViewIndex(texture.ID);
   _instance2Druns++;
 
   if (_current2DInstanceIndex + _instance2Druns == MAX_2D_INSTANCE)

@@ -54,6 +54,7 @@ const int MAX_2D_INSTANCE = 100;
 
       /// Load a 2D image file
       Resource::Texture LoadTexture(std::string filepath);
+      Resource::Texture LoadTexture(Resource::ResourcePool pool, std::string filepath);
       Resource::Font LoadFont(std::string filepath);
       /// Load model from the filepath and store as a 2D model.
       /// Can be used in 2D draws, which will be drawn with orthographic projection.
@@ -76,6 +77,7 @@ const int MAX_2D_INSTANCE = 100;
       /// Load A pool's resource from CPU to GPU memory
       /// This must be done before the pool's resources can be used.
       void LoadResourcesToGPU();
+      void LoadResourcesToGPU(Resource::ResourcePool);
       /// Reload frame resources, using any resources that have been loaded
       /// to the GPU from resource pools, and that have useResourcePool
       /// set to true.
@@ -117,7 +119,6 @@ const int MAX_2D_INSTANCE = 100;
       }
     
   private:
-
       void _initFrameResources();
       void _destroyFrameResources();
       void _startDraw();

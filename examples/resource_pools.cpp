@@ -7,6 +7,9 @@
 #include <vector>
 #include <string>
 
+const int WIN_WIDTH = 400;
+const int WIN_HEIGHT = 400;
+
 glm::vec3 camPos = glm::vec3(-350.0f, 10.0f, 0.0f);
 float yaw = -5.0f;
 float pitch = -5.0f;
@@ -46,22 +49,24 @@ glm::mat4 calcView() {
 				     sin(glm::radians(yaw)) * cos(glm::radians(pitch)),
 				     sin(glm::radians(pitch))));
 
-    return glm::lookAt(camPos, camPos + front, glm::normalize(glm::cross(glm::normalize(glm::cross(front, glm::vec3(0.0f, 0.0f, 1.0f))), front)));
+    return glm::lookAt(camPos, camPos + front,
+		       glm::normalize(glm::cross(glm::normalize(glm::cross(
+			     front, glm::vec3(0.0f, 0.0f, 1.0f))), front)));
 }
 
 int main() {
     std::cout << "--- Vulkan Environment Demo ---\n";
     if(!glfwInit()){
-      std::cerr << "Error: failed to initialise GLFW, aborting!\n";
-      return -1;
+      std::cerr << "Error: failed to initialise GLFW!\n";
+      return 1;
     }
-
-    // Vulkan Must be loaded before a window is created
     if(!vkenv::Render::LoadVulkan()) {
 	std::cerr << "Error: failed to load Vulkan!\n";
+	return 1;
     }
     
-    GLFWwindow* window = glfwCreateWindow(400, 400, "Vulkan Demo", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(WIN_WIDTH, WIN_HEIGHT,
+					  "Resource Pools", nullptr, nullptr);
     glfwSetKeyCallback(window, key_callback);
     glfwSetErrorCallback(error_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -70,22 +75,18 @@ int main() {
     
     try {
 	vkenv::Render render(window, config);
+
+	Resource::ResourcePool pool1 = render.CreateResourcePool();
+	Resource::ResourcePool pool2 = render.CreateResourcePool();
+
+	Resource::Texture texture1 = render.LoadTexture(pool1, "textures/ROOM.fbm/PolyCat.jpg");
+	Resource::Texture texture2 = render.LoadTexture(pool2, "textures/ROOM.fbm/PolyHearts.jpg");
 	
-	std::cout << "Framebuffer Size:"
-	             "\nwidth: "  << render.getTargetResolution().x
-		  << "\nheight: " << render.getTargetResolution().y << std::endl;
-
-	Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
-	Resource::Model suzanneModel = render.Load3DModel("models/monkey.fbx");
-
-	std::vector<Resource::ModelAnimation> wolfAnimations;
-	Resource::Model animatedWolf = render.LoadAnimatedModel("models/wolf.fbx", &wolfAnimations);
-	Resource::ModelAnimation currentWolfAnimation = wolfAnimations[0];
-	Resource::ModelAnimation otherWolfAnimation = wolfAnimations[1];
-
 	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
 	
 	render.LoadResourcesToGPU();
+	render.LoadResourcesToGPU(pool1);
+	render.LoadResourcesToGPU(pool2);
 	render.UseLoadedResources();
 
 	render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
@@ -107,67 +108,16 @@ int main() {
 
 	    elapsedTime += frameElapsed / 1000.0f;
 	    rot += 0.1f * frameElapsed;
-	    
-	    currentWolfAnimation.Update((float)frameElapsed);
-	    otherWolfAnimation.Update((float)frameElapsed);
+
 	    render.Begin2DDraw();
-	
-	    render.DrawQuad(testTex,
+	    render.DrawQuad(texture1,
 			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
-	    render.DrawQuad(Resource::Texture(),
+	    render.DrawQuad(texture2,
 			    glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
-
-	    render.DrawString(font, "Demo", glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
-
-	    render.Begin3DDraw();
-
-	    auto monkeyMat =
-			glm::rotate(
-				glm::rotate(
-					glm::translate(
-						glm::mat4(1.0f),
-						glm::vec3(100.0f, -100.0f, -100.0f)),
-					glm::radians(90.0f),
-					glm::vec3(1.0f, 0.0f, 0.0f)),
-				glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 	    
-	    auto monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
-	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
-				       glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
-	    monkeyMat = glm::translate(monkeyMat, glm::vec3(100.0f, 0.0f, 0.0f));
-	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
-	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
-			     glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-	    monkeyMat = glm::translate(monkeyMat, glm::vec3(100.0f, 0.0f, 0.0f));
-	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
-	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
-			     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+	    render.DrawString(font, "Resource Pool Demo",
+			      glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 
-	    render.BeginAnim3DDraw();
-
-	    auto wolfMat = glm::translate(
-		glm::scale(
-			glm::rotate(
-				glm::mat4(1.0f),
-				glm::radians(90.0f),
-				glm::vec3(1.0f, 0.0f, 0.0f)),
-			glm::vec3(2.0f, 2.0f, 2.0f)),
-		glm::vec3(100.0f, -50.0f, 100.0f));
-	    
-	    auto wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
-	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
-	    
-	    wolfMat =
-		glm::scale(
-			glm::rotate(
-				glm::mat4(1.0f),
-				glm::radians(90.0f),
-				glm::vec3(1.0f, -0.8f, 0.5f)),
-			glm::vec3(2.0f, 2.0f, 2.0f)
-			    );
-	    wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
-	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &otherWolfAnimation);
-	    
 	    drawFinished = false;
 	    render.EndDraw(drawFinished);
 

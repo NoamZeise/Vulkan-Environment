@@ -17,7 +17,7 @@ namespace Resource {
   }
 
   Font FontLoader::LoadFont(std::string file, TextureLoader *texLoader) {
-      LOG("Loading font: " << file << " ID: " << stagedFonts.size() - 1);
+      LOG("Loading font: " << file);
       FontData* d = loadFont(file, FONT_LOAD_SIZE);
       Resource::Texture t = texLoader->LoadTexture(d->textureData,
 						   d->width,
@@ -27,8 +27,8 @@ namespace Resource {
 	  c.second.tex = t;
       d->textureData = nullptr;
       stagedFonts.push_back(d);
-      Font f = Font((size_t)(stagedFonts.size() - 1), resPool);
-      LOG("Loaded with ID:" << f.ID);
+      Font f = Font(stagedFonts.size() - 1, resPool);
+      LOG("Font Loaded with ID: " << f.ID);
       return f;
   }
 

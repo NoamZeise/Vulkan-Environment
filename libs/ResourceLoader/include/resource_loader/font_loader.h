@@ -9,6 +9,7 @@ const int FONT_LOAD_SIZE = 100;
 
 struct Character {
     Resource::Texture tex;
+    bool blank = false;
     glm::vec4 texOffset;
     glm::vec2 size;
     glm::vec2 bearing;

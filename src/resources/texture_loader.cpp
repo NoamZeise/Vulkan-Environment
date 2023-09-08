@@ -129,6 +129,7 @@ namespace Resource {
   }
 
   Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels) {
+    LOG("loading texture data");
     texToLoad.push_back({ "NULL" });
     TextureInMemory* tex = &texToLoad.back();
     tex->pixelData = data;
@@ -143,6 +144,8 @@ namespace Resource {
       tex->format = VK_FORMAT_R8G8B8A8_SRGB;
     else
       tex->format = VK_FORMAT_R8G8B8A8_UNORM;
+
+    LOG("  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1));
 
     return Texture((unsigned int)(texToLoad.size() - 1),
 		   glm::vec2(tex->width, tex->height),

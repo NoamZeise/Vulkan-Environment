@@ -113,7 +113,7 @@ std::vector<Resource::QuadDraw> getDraws(FontData *font,
 	if(font->chars.count(*c) == 0)
 	    continue;
 	Character chr = font->chars.at(*c);
-	if(chr.tex.ID != 0) {
+	if(!chr.blank) {
 	    glm::vec4 pos = glm::vec4(position.x, position.y, 0, 0);
 	    pos.x += chr.bearing.x * size;
 	    pos.y += (chr.size.y - chr.bearing.y) * size;
@@ -136,6 +136,8 @@ CharData makeChar(unsigned char* buffer, const FT_Face &face, int size) {
     c.data = buffer;
     c.width = face->glyph->bitmap.width;
     c.height = face->glyph->bitmap.rows;
+    if(buffer == nullptr)
+	c.c.blank = true;
     c.c.size = glm::vec2(
 	    c.width / (float)size,
 	    c.height / (float)size);
