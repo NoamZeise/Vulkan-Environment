@@ -13,6 +13,10 @@ ResourcePool::~ResourcePool() {
     delete texLoader;
 }
 
+void ResourcePool::setUseGPUResources(bool value) {
+    this->UseGPUResources = value;
+}
+
 Resource::Model ResourcePool::loadModel(Resource::ModelType type, std::string path, std::vector<Resource::ModelAnimation> *pGetAnimations) {
     return modelLoader->loadModel(type, path, texLoader, pGetAnimations);
 }

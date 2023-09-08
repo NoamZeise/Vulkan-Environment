@@ -26,8 +26,7 @@
 
 namespace vkenv {
 
-bool Render::LoadVulkan()
-{
+bool Render::LoadVulkan() {
     if(volkInitialize() != VK_SUCCESS) {
       return false;
     }
@@ -39,22 +38,20 @@ void checkVolk() {
     if(volkGetInstanceVersion() == 0) {
 	// if user hasn't checked for vulkan support, try loading vulkan first.
 	if(!Render::LoadVulkan())
-	    throw std::runtime_error("Vulkan has not been loaded! Either the"
-				     " graphics devices does not support vulkan, "
+	    throw std::runtime_error("Vulkan has not been loaded! Either the "
+				     "graphics devices does not support vulkan, "
 				     "or Vulkan drivers aren't installed");		    
     }
- }
+}
 
-  VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
+VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
     return vkhelper::findSupportedFormat(
 	    physicalDevice,
 	    {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
 	    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-
-Render::Render(GLFWwindow *window, RenderConfig renderConf)
-{
+Render::Render(GLFWwindow *window, RenderConfig renderConf) {
     checkVolk();
     this->renderConf = renderConf;
     this->prevRenderConf = renderConf;
@@ -160,7 +157,7 @@ void Render::_initFrameResources() {
 						      AttachmentUse::Attachment,
 						      sampleCount, offscreenDepthFormat));
 
-	LOG("make new renderpasses");
+	LOG("making new renderpasses");
 	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
 					     renderConf.clear_colour);
         finalRenderPass =
@@ -295,7 +292,11 @@ void Render::_initFrameResources() {
 	textureSamplerCreated = true;
     }
 
+    // Load textures across all active resource pools
+    // into the texture view descriptor set data
     int pI = 0;
+    if(pools.size() < 1)
+	throw std::runtime_error("At least 1 pool must exist");
     ResourcePool *pool = pools[pI];
     VkImageView validView;
     bool foundValidView = false;
@@ -310,15 +311,14 @@ void Render::_initFrameResources() {
 		foundValidView = true;
 		validView = textureViews[i];
 	    }              
-	}
-	else {
+	} else {
 	    if(pools.size() < pI + 1)
 		goto next_pool;
 	    else if(foundValidView)
-              textureViews[i] = validView;
+		textureViews[i] = validView;
             else //TODO: change so we dont require a texture
-		LOG_ERROR("No textures were loaded. "
-			  "At least 1 Texture must be loaded");
+		throw std::runtime_error("No textures were loaded. "
+					 "At least 1 Texture must be loaded");
 	}
 	continue;
     next_pool:
@@ -463,46 +463,69 @@ void Render::_destroyFrameResources()
     _frameResourcesCreated = false;
 }
 
-  Resource::ResourcePool Render::CreateResourcePool() {
-      int index = pools.size();
-      if(freePools.empty()) {
-	  pools.push_back(nullptr);
-      } else {
-	  index = freePools.back();
-	  freePools.pop_back();
-      }
-      pools[index] = new ResourcePool(index,
-				      manager->deviceState,
-				      manager->generalCommandPool,
-				      renderConf);
-      return pools[index]->poolID;
+Resource::ResourcePool Render::CreateResourcePool() {
+    int index = pools.size();
+    if(freePools.empty()) {
+	pools.push_back(nullptr);
+    } else {
+	index = freePools.back();
+	freePools.pop_back();
+    }
+    pools[index] = new ResourcePool(index,
+				    manager->deviceState,
+				    manager->generalCommandPool,
+				    renderConf);
+    return pools[index]->poolID;
+}
+
+void Render::DestroyResourcePool(Resource::ResourcePool pool) {
+    bool reloadResources = false;
+    for(int i = 0; i < pools.size(); i++) {
+	if(pools[i]->poolID.ID == pool.ID) {
+	    if(pools[i]->usingGPUResources) {
+		reloadResources = true;
+		vkDeviceWaitIdle(manager->deviceState.device);
+		_destroyFrameResources();
+	    }
+	    delete pools[i];
+	    pools[i] = nullptr;
+	    freePools.push_back(i);
+	    if(reloadResources)
+		_initFrameResources();
+	}
+    }
+}
+
+  void Render::setResourcePoolInUse(Resource::ResourcePool pool, bool usePool) {
+      if(!_vaildPool(pool))
+	  return;
+      pools[pool.ID]->setUseGPUResources(usePool);
   }
 
-  void Render::DestroyResourcePool(Resource::ResourcePool pool) {
-      bool reloadResources = false;
-      for(int i = 0; i < pools.size(); i++) {
-	  if(pools[i]->poolID.ID == pool.ID) {
-	      if(pools[i]->usingGPUResources) {
-		  reloadResources = true;
-		  vkDeviceWaitIdle(manager->deviceState.device);
-		  _destroyFrameResources();
-	      }
-	      delete pools[i];
-	      pools[i] = nullptr;
-	      freePools.push_back(i);
-	      if(reloadResources)
-		  _initFrameResources();
-	  }
+  bool Render::_vaildPool(Resource::ResourcePool pool) {
+      if(pool.ID > pools.size() || pools[pool.ID] == nullptr) {
+	  LOG_ERROR("Passed Pool does not exist."
+		    " It has either been destroyed or was never created.");
+	  return false;
       }
+      return true;
+  }
+
+  void Render::_throwIfPoolInvaid(Resource::ResourcePool pool) {
+      if(!_vaildPool(pool))
+	  throw std::runtime_error("Tried to load resource "
+				   "with a pool that does not exist");
   }
 
 Resource::Texture Render::LoadTexture(std::string filepath) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->texLoader->LoadTexture(filepath);
 }
 
 Resource::Font Render::LoadFont(std::string filepath) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     try {
       return pools[pool.ID]->LoadFont(filepath);
     } catch (const std::exception &e) {
@@ -517,41 +540,48 @@ Resource::Model Render::LoadAnimatedModel(
 	std::string filepath,
 	std::vector<Resource::ModelAnimation> *pGetAnimations) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
 }
 
 Resource::Model Render::LoadAnimatedModel(ModelInfo::Model& model,
 					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
 }
 
 Resource::Model Render::Load2DModel(std::string filepath) {
-        Resource::ResourcePool pool(0);
+    Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(Resource::ModelType::m2D, filepath, nullptr);
 }
 
 Resource::Model Render::Load2DModel(ModelInfo::Model& model) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(Resource::ModelType::m2D, model, nullptr);
 }
 
 Resource::Model Render::Load3DModel(std::string filepath) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(Resource::ModelType::m3D, filepath, nullptr);
 }
 
 Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
 }
 
 void Render::LoadResourcesToGPU() {
     Resource::ResourcePool pool(0);
+    _throwIfPoolInvaid(pool);
     bool remakeFrameRes = false;
     if(pools[pool.ID]->usingGPUResources) {
       LOG("Loading resources for pool that is currently in use, "
-          "this requires remaking frame resources.");
+          "so recreating frame resources.");
       vkDeviceWaitIdle(manager->deviceState.device);
       _destroyFrameResources();
       remakeFrameRes = true;
@@ -759,6 +789,9 @@ float Render::MeasureString(Resource::Font font, std::string text, float size) {
       if(currentModelPool.ID != model.pool.ID) {
 	  if(_modelRuns > 0)
 	      _drawBatch();
+	  if(!_vaildPool(model.pool))
+	      throw std::runtime_error(
+		      "Treid to bind model pool that does not exist.");
 	  pools[model.pool.ID]->modelLoader->bindBuffers(currentCommandBuffer);
       }
   }

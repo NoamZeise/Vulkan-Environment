@@ -43,9 +43,16 @@ const int MAX_2D_INSTANCE = 100;
       Render(GLFWwindow *window, RenderConfig renderConf);
       ~Render();
 
+      /// Create a new pool to load resource into.
+      /// Pool will be in use by default.
       Resource::ResourcePool CreateResourcePool();
       void DestroyResourcePool(Resource::ResourcePool pool);
-      
+      /// enable or disable using this resource pool's GPU loaded resources
+      /// will only take effect after a frame resource recreation
+      /// (such as by calling UseLoadedResources() or if the framebuffer is resized)
+      void setResourcePoolInUse(Resource::ResourcePool pool, bool usePool);
+
+      /// Load a 2D image file
       Resource::Texture LoadTexture(std::string filepath);
       Resource::Font LoadFont(std::string filepath);
       /// Load model from the filepath and store as a 2D model.
@@ -66,8 +73,12 @@ const int MAX_2D_INSTANCE = 100;
       Resource::Model LoadAnimatedModel(ModelInfo::Model& model,
 					std::vector<Resource::ModelAnimation> *pGetAnimation);
 
-      
+      /// Load A pool's resource from CPU to GPU memory
+      /// This must be done before the pool's resources can be used.
       void LoadResourcesToGPU();
+      /// Reload frame resources, using any resources that have been loaded
+      /// to the GPU from resource pools, and that have useResourcePool
+      /// set to true.
       void UseLoadedResources();
 
       void Begin3DDraw();
@@ -114,6 +125,8 @@ const int MAX_2D_INSTANCE = 100;
       void _update3DProjectionMatrix();
       void _drawBatch();
       void _bindModelPool(Resource::Model model);
+      bool _vaildPool(Resource::ResourcePool pool);
+      void _throwIfPoolInvaid(Resource::ResourcePool pool);
 
       
       bool _framebufferResized = false;
