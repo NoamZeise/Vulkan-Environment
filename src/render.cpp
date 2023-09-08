@@ -303,9 +303,8 @@ void Render::_initFrameResources() {
     for(int i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
 	if(pool == nullptr || !pool->UseGPUResources)
 	    goto next_pool;
-	
+	pool->usingGPUResources = true;
 	if(texID < pool->texLoader->getImageCount()) {
-	    pool->usingGPUResources = true;
             textureViews[i] = pool->texLoader->getImageViewSetIndex(texID++, i);
             if (!foundValidView) {
 		foundValidView = true;
@@ -500,12 +499,12 @@ void Render::DestroyResourcePool(Resource::ResourcePool pool) {
 }
 
   void Render::setResourcePoolInUse(Resource::ResourcePool pool, bool usePool) {
-      if(!_vaildPool(pool))
+      if(!_validPool(pool))
 	  return;
       pools[pool.ID]->setUseGPUResources(usePool);
   }
 
-  bool Render::_vaildPool(Resource::ResourcePool pool) {
+  bool Render::_validPool(Resource::ResourcePool pool) {
       if(pool.ID > pools.size() || pools[pool.ID] == nullptr) {
 	  LOG_ERROR("Passed Pool does not exist."
 		    " It has either been destroyed or was never created.");
@@ -514,8 +513,12 @@ void Render::DestroyResourcePool(Resource::ResourcePool pool) {
       return true;
   }
 
+bool Render::_poolInUse(Resource::ResourcePool pool) {
+    return _validPool(pool) && pools[pool.ID]->usingGPUResources;
+}
+
   void Render::_throwIfPoolInvaid(Resource::ResourcePool pool) {
-      if(!_vaildPool(pool))
+      if(!_validPool(pool))
 	  throw std::runtime_error("Tried to load resource "
 				   "with a pool that does not exist");
   }
@@ -758,8 +761,10 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
       LOG("WARNING: ran out of 2D instance models!\n");
       return;
   }
-  if(!_vaildPool(texture.pool))
+  if(!_poolInUse(texture.pool)) {
+      LOG_ERROR("Tried Drawing with texture that is not in use");
       return;
+  }
    perFrame2DVertData[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
@@ -800,9 +805,9 @@ float Render::MeasureString(Resource::Font font, std::string text, float size) {
       if(currentModelPool.ID != model.pool.ID) {
 	  if(_modelRuns > 0)
 	      _drawBatch();
-	  if(!_vaildPool(model.pool))
+	  if(!_poolInUse(model.pool))
 	      throw std::runtime_error(
-		      "Treid to bind model pool that does not exist.");
+		      "Tried to bind model pool that is not in use");
 	  pools[model.pool.ID]->modelLoader->bindBuffers(currentCommandBuffer);
       }
   }
@@ -816,7 +821,8 @@ void Render::_drawBatch() {
 							   _currentModel,
 							   _modelRuns,
 							   _current3DInstanceIndex,
-							   _currentColour);
+							   _currentColour,
+							   pools[currentModelPool.ID]->texLoader);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;

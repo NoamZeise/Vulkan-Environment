@@ -41,7 +41,8 @@ namespace Resource
 
       void bindBuffers(VkCommandBuffer cmdBuff);
       void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
-		     uint32_t count, uint32_t instanceOffset, glm::vec4 colour);
+		     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
+		     TextureLoader *loader);
       void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
 		    uint32_t count, uint32_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
       size_t getAnimationIndex(Model model, std::string animationName);

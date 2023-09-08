@@ -36,7 +36,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   if(key == GLFW_KEY_RIGHT) camPos.y -= speed * frameElapsed;
   if(key == GLFW_KEY_SPACE) camPos.z += speed * frameElapsed;
   if(key == GLFW_KEY_LEFT_SHIFT) camPos.z -= speed * frameElapsed;
-  if(key == GLFW_KEY_V && action == GLFW_PRESS) vsyncToggle = true;
 }
 
 void error_callback(int error, const char *description) {
@@ -85,7 +84,7 @@ int main() {
 	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
 	
 	render.LoadResourcesToGPU();
-	render.LoadResourcesToGPU(pool1);
+	//	render.LoadResourcesToGPU(pool1);
 	render.LoadResourcesToGPU(pool2);
 	render.UseLoadedResources();
 
@@ -97,14 +96,8 @@ int main() {
 	float elapsedTime = 0;
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
-	    if(vsyncToggle) {
-		config.vsync = !config.vsync;
-		render.setRenderConf(config);
-		vsyncToggle = false;
-	    }
 
 	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
-	    render.setTime(elapsedTime);
 
 	    elapsedTime += frameElapsed / 1000.0f;
 	    rot += 0.1f * frameElapsed;

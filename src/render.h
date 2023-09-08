@@ -126,7 +126,8 @@ const int MAX_2D_INSTANCE = 100;
       void _update3DProjectionMatrix();
       void _drawBatch();
       void _bindModelPool(Resource::Model model);
-      bool _vaildPool(Resource::ResourcePool pool);
+      bool _validPool(Resource::ResourcePool pool);
+      bool _poolInUse(Resource::ResourcePool pool);
       void _throwIfPoolInvaid(Resource::ResourcePool pool);
 
       
