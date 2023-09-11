@@ -10,7 +10,7 @@
 #include <volk.h>
 #include <GLFW/glfw3.h>
 
-#include "render_structs/device_state.h"
+#include "device_state.h"
 
 struct VulkanManager {
     VulkanManager(GLFWwindow *window, EnabledFeatures featuresToEnable);

@@ -16,7 +16,7 @@
 #include <resource_loader/model_loader.h>
 #endif
 #include "texture_loader.h"
-#include "../render_structs/device_state.h"
+#include "../device_state.h"
 #include <resource_loader/vertex_model.h>
 
 namespace Resource

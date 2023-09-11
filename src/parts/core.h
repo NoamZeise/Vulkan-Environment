@@ -2,7 +2,7 @@
 #define PARTS_CORE_H
 
 #include <volk.h>
-#include "../render_structs/device_state.h"
+#include "../device_state.h"
 
 namespace part {
     namespace create {

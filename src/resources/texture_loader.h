@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 
-#include "../render_structs/device_state.h"
+#include "../device_state.h"
 #include <graphics/render_config.h>
 #include <graphics/resources.h>
 

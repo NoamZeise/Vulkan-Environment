@@ -1,11 +1,8 @@
 #ifndef VKHELPER_H
 #define VKHELPER_H
 
-
-#include "render_structs/device_state.h"
-
+#include "device_state.h"
 #include <volk.h>
-
 #include <vector>
 
 namespace vkhelper {

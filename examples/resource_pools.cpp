@@ -84,7 +84,7 @@ int main() {
 	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
 	
 	render.LoadResourcesToGPU();
-	//	render.LoadResourcesToGPU(pool1);
+	render.LoadResourcesToGPU(pool1);
 	render.LoadResourcesToGPU(pool2);
 	render.UseLoadedResources();
 
