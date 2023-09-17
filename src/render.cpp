@@ -263,6 +263,12 @@ void Render::_initFrameResources() {
 			       sizeof(shaderStructs::Lighting), 1);
     lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
 
+    
+    descriptor::Set palette_Set("Palette", descriptor::ShaderStage::Fragment);
+    palette_Set.AddDescriptor("Palette Props", descriptor::Type::UniformBuffer,
+			      sizeof(ShaderPalette), 1);
+    paletteDS = new DescSet(palette_Set, swapchainFrameCount, manager->deviceState.device);
+
     float minMipmapLevel = 100000.0f;
     for(auto& p: pools) {
 	float n = p->texLoader->getMinMipmapLevel();
@@ -365,7 +371,7 @@ void Render::_initFrameResources() {
     descriptorSets = {
 	VP3D, VP2D, perFrame3D, bones, emptyDS, perFrame2DVert,
 	perFrame2DFrag, offscreenTransform, lighting,
-	textures, offscreenTex};
+	textures, offscreenTex, paletteDS};
       
     LOG("Creating Descriptor pool and memory for set bindings");
       
@@ -415,7 +421,8 @@ void Render::_initFrameResources() {
     part::create::GraphicsPipeline(
 	    manager->deviceState.device, &_pipeline2D, sampleCount,
 	    offscreenRenderPass->getRenderPass(),
-	    {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set}, {},
+	    {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set,
+	    &paletteDS->set}, {},
 	    "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
 	    renderConf.multisampling, true,
 	    manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
@@ -752,6 +759,7 @@ void Render::Begin2DDraw()
   VP2DData.view = glm::mat4(1.0f);
 
   VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData, 0, 0, 0);
+  paletteDS->bindings[0].storeSetData(swapchainFrameIndex, &paletteData, 0, 0, 0);
 
   _pipeline2D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
@@ -978,6 +986,10 @@ void Render::setTargetResolution(glm::vec2 resolution) {
 
 glm::vec2 Render::getTargetResolution() {
     return glm::vec2(renderConf.target_resolution[0], renderConf.target_resolution[1]);
+}
+
+void Render::setPalette(ShaderPalette palette) {
+    paletteData = palette;
 }
 
 }//namespace

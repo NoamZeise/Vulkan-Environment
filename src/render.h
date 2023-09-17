@@ -11,6 +11,7 @@
 
 #include <graphics/resources.h>
 #include <graphics/render_config.h>
+#include <graphics/shader_structs.h>
 #include "vulkan_manager.h"
 #include "swapchain.h"
 #include "frame.h"
@@ -114,6 +115,8 @@ const int MAX_2D_INSTANCE = 100;
       void setTargetResolution(glm::vec2 resolution);
       glm::vec2 getTargetResolution();
 
+      void setPalette(ShaderPalette palette);
+
       void setTime(float time) {
 	  timeData.time = time;
       }
@@ -191,6 +194,9 @@ const int MAX_2D_INSTANCE = 100;
       float prevTexSamplerMinMipmap = 1.0f;
       VkSampler textureSampler;
       VkImageView textureViews[Resource::MAX_TEXTURES_SUPPORTED];
+      
+      DescSet *paletteDS;
+      ShaderPalette paletteData;
 
       std::vector<DescSet*> descriptorSets;
 
