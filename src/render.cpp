@@ -442,6 +442,8 @@ void Render::_initFrameResources() {
 	    glm::vec2((float)swapchainExtent.width,
 		      (float)swapchainExtent.height));
     LOG("Finished Creating Frame Resources");
+    for(int i = 0; i < swapchainFrameCount; i++)
+	paletteDS->bindings[0].storeSetData(i, &paletteData, 0, 0, 0);
     timeData.time = 0;
     prevRenderConf = renderConf;
     _frameResourcesCreated = true;
@@ -759,7 +761,6 @@ void Render::Begin2DDraw()
   VP2DData.view = glm::mat4(1.0f);
 
   VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData, 0, 0, 0);
-  paletteDS->bindings[0].storeSetData(swapchainFrameIndex, &paletteData, 0, 0, 0);
 
   _pipeline2D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
@@ -990,6 +991,8 @@ glm::vec2 Render::getTargetResolution() {
 
 void Render::setPalette(ShaderPalette palette) {
     paletteData = palette;
+    for(int i = 0; i < swapchainFrameCount; i++)
+	paletteDS->bindings[0].storeSetData(i, &paletteData, 0, 0, 0);
 }
 
 }//namespace

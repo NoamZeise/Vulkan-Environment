@@ -6,13 +6,12 @@
 #endif
 #include <glm/glm.hpp>
 
+#include <graphics/glm_helper.h>
+#include <graphics/resources.h>
+#include "texture_loader.h"
+
 #include <string>
 #include <vector>
-
-#include <graphics/glm_helper.h>
-
-#include "texture_loader.h"
-#include <graphics/resources.h>
 
 struct FontData;
 

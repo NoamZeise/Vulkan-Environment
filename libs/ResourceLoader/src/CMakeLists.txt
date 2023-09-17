@@ -1,6 +1,7 @@
 add_library(ResourceLoader
     stb_image_impl.cpp
     vertex_model.cpp
+    font_loader.cpp
 )
 if(NOT NO_ASSIMP)
   target_sources(ResourceLoader PRIVATE
@@ -8,7 +9,6 @@ if(NOT NO_ASSIMP)
   )
 endif()
 if(NOT NO_FREETYPE)
-  target_sources(ResourceLoader PRIVATE font_loader.cpp)
   add_dependencies(ResourceLoader freetype)
   target_link_libraries(ResourceLoader PRIVATE freetype)
 endif()

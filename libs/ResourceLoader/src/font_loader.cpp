@@ -5,6 +5,45 @@
 #include <stdexcept>
 #include <iostream>
 
+float measureString(FontData *font, const std::string &text, float size) {
+    float sz = 0;
+    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
+	if(font->chars.count(*c) == 0)
+	    continue;
+	sz += font->chars.at(*c).advance * size;
+    }
+    return sz;
+}
+
+std::vector<Resource::QuadDraw> getDraws(FontData *font,
+					 const std::string &text, float size,
+					 glm::vec2 position, float depth, glm::vec4 colour,
+					 float rotate) {
+    std::vector<Resource::QuadDraw> draws;
+    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
+	if(font->chars.count(*c) == 0)
+	    continue;
+	Character chr = font->chars.at(*c);
+	if(!chr.blank) {
+	    glm::vec4 pos = glm::vec4(position.x, position.y, 0, 0);
+	    pos.x += chr.bearing.x * size;
+	    pos.y += (chr.size.y - chr.bearing.y) * size;
+	    pos.y -= chr.size.y * size;
+	    pos.z = chr.size.x  * size;
+	    pos.w = chr.size.y * size;
+	    glm::mat4 model = glmhelper::calcMatFromRect(pos, rotate, depth);
+	    draws.push_back(
+		    Resource::QuadDraw(
+			    chr.tex, model, colour, chr.texOffset));
+	}
+	position.x += chr.advance * size;
+    }
+    return draws;
+}
+
+
+#ifndef NO_FREETYPE
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
@@ -94,43 +133,6 @@ FontData* loadFont(std::string path, int fontSize) {
 }
 
 
-float measureString(FontData *font, const std::string &text, float size) {
-    float sz = 0;
-    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
-	if(font->chars.count(*c) == 0)
-	    continue;
-	sz += font->chars.at(*c).advance * size;
-    }
-    return sz;
-}
-
-std::vector<Resource::QuadDraw> getDraws(FontData *font,
-					 const std::string &text, float size,
-					 glm::vec2 position, float depth, glm::vec4 colour,
-					 float rotate) {
-    std::vector<Resource::QuadDraw> draws;
-    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
-	if(font->chars.count(*c) == 0)
-	    continue;
-	Character chr = font->chars.at(*c);
-	if(!chr.blank) {
-	    glm::vec4 pos = glm::vec4(position.x, position.y, 0, 0);
-	    pos.x += chr.bearing.x * size;
-	    pos.y += (chr.size.y - chr.bearing.y) * size;
-	    pos.y -= chr.size.y * size;
-	    pos.z = chr.size.x  * size;
-	    pos.w = chr.size.y * size;
-	    glm::mat4 model = glmhelper::calcMatFromRect(pos, rotate, depth);
-	    draws.push_back(
-		    Resource::QuadDraw(
-			    chr.tex, model, colour, chr.texOffset));
-	}
-	position.x += chr.advance * size;
-    }
-    return draws;
-}
-
-
 CharData makeChar(unsigned char* buffer, const FT_Face &face, int size) {
     CharData c;
     c.data = buffer;
@@ -161,3 +163,13 @@ CharData loadChar(FT_Face face, char c, int size) {
     memcpy(data, face->glyph->bitmap.buffer, charSize);
     return makeChar(data, face, size);
 }
+
+#else
+
+#include <stdexcept>
+FontData* loadFont(std::string path, int fontSize) {
+    throw std::runtime_error("Tried to load font, but graphics env "
+			     "was build with NO_FREETYPE");
+}
+
+#endif
