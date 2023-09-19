@@ -260,7 +260,7 @@ void Render::_initFrameResources() {
 
     descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
     lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
-			       sizeof(shaderStructs::Lighting), 1);
+			       sizeof(Lighting3D), 1);
     lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
 
     
@@ -399,7 +399,8 @@ void Render::_initFrameResources() {
     part::create::GraphicsPipeline(
 	    manager->deviceState.device, &_pipeline3D,
 	    sampleCount, offscreenRenderPass->getRenderPass(),
-	    {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
+	    {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set,
+	    &paletteDS->set},
 	    {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	    "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	    renderConf.multisampling, true,
@@ -410,7 +411,8 @@ void Render::_initFrameResources() {
     part::create::GraphicsPipeline(
 	    manager->deviceState.device, &_pipelineAnim3D,
 	    sampleCount, offscreenRenderPass->getRenderPass(),
-	    {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set},
+	    {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set,
+	    &paletteDS->set},
 	    {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	    "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
 	    true, renderConf.multisampling, true,
@@ -994,5 +996,10 @@ void Render::setPalette(ShaderPalette palette) {
     for(int i = 0; i < swapchainFrameCount; i++)
 	paletteDS->bindings[0].storeSetData(i, &paletteData, 0, 0, 0);
 }
+
+void Render::setLighting3D(Lighting3D lighting) {
+    this->lightingData = lighting;
+}
+
 
 }//namespace

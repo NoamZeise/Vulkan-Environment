@@ -116,7 +116,8 @@ const int MAX_2D_INSTANCE = 500;
       glm::vec2 getTargetResolution();
 
       void setPalette(ShaderPalette palette);
-
+      void setLighting3D(Lighting3D lighting);
+      
       void setTime(float time) {
 	  timeData.time = time;
       }
@@ -182,7 +183,7 @@ const int MAX_2D_INSTANCE = 500;
       DescSet *perFrame2DFrag;
       shaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
       DescSet *lighting;
-      shaderStructs::Lighting lightingData;
+      Lighting3D lightingData;
       DescSet *offscreenTransform;
       glm::mat4 offscreenTransformData;
       DescSet *textures;
