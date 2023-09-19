@@ -147,6 +147,13 @@ CharData makeChar(unsigned char* buffer, const FT_Face &face, int size) {
 	    face->glyph->bitmap_left / (float)size,
 	    face->glyph->bitmap_top / (float)size);
     c.c.advance = (float)(face->glyph->advance.x >> 6) / (float)size;
+
+    const int CORRECTION_SIZE = 8;
+    c.c.size.x = (int)(c.c.size.x * CORRECTION_SIZE);
+    c.c.size.y = (int)(c.c.size.y * CORRECTION_SIZE);
+    c.c.advance = (int)(c.c.advance * CORRECTION_SIZE);
+    c.c.bearing.x = (int)(c.c.bearing.x * CORRECTION_SIZE);
+    c.c.bearing.y = (int)(c.c.bearing.y * CORRECTION_SIZE);
     return c;
 }
 
