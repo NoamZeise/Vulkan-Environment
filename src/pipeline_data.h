@@ -11,7 +11,7 @@
 struct fragPushConstants {
     glm::vec4 colour;
     glm::vec4 texOffset;
-    uint32_t TexID;
+    glm::ivec4 props;
 };
 
 namespace pipeline_inputs {

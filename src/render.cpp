@@ -680,7 +680,10 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
     
     _bindModelPool(model);
     
-    if ((_currentColour != colour || _currentModel.ID != model.ID) && _modelRuns != 0)
+    if ((_currentColour != colour
+	 || _currentModel.ID != model.ID
+	 || _currentModel.useShading != model.useShading)
+	&& _modelRuns != 0)
 	_drawBatch();
     
     _currentModel = model;

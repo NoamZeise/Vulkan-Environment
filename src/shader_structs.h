@@ -19,7 +19,7 @@ struct PerFrame3D {
 struct Frag2DData {
   alignas(16) glm::vec4 colour;
   alignas(16) glm::vec4 texOffset;
-  alignas(16) glm::ivec4 props;
+  alignas(4) uint32_t texID;
 };
 
 struct timeUbo {

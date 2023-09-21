@@ -60,6 +60,7 @@ namespace Resource {
       ResourcePool pool;
       ModelType type;
       size_t ID;
+      bool useShading = true;
   };
   
   struct Font {
