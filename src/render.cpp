@@ -682,7 +682,8 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
     
     if ((_currentColour != colour
 	 || _currentModel.ID != model.ID
-	 || _currentModel.useShading != model.useShading)
+	 || _currentModel.useShading != model.useShading
+	 || _currentModel.overrideTexID != model.overrideTexID)
 	&& _modelRuns != 0)
 	_drawBatch();
     

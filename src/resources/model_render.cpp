@@ -117,8 +117,10 @@ namespace Resource {
 	      colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
 	      glm::vec4(0, 0, 1, 1), //texOffset
 	      glm::ivec4(
-		      loader->getViewIndex((uint32_t)modelInfo->meshes[i].texture.ID),
-		      model.useShading ? 1 : 0, 0, 0),
+		      loader->getViewIndex(model.overrideTexID == -1 ? (uint32_t)modelInfo->meshes[i].texture.ID
+					   : model.overrideTexID),
+		      model.useShading ? 1 : 0,
+		      0, 0),
 	  };
 	  vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			     0, sizeof(fragPushConstants), &fps);

@@ -61,6 +61,7 @@ namespace Resource {
       ModelType type;
       size_t ID;
       bool useShading = true;
+      int overrideTexID = -1;
   };
   
   struct Font {
