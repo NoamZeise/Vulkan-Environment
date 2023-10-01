@@ -116,7 +116,7 @@ namespace Resource {
 	  fragPushConstants fps {
 	      colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
 	      glm::vec4(0, 0, 1, 1), //texOffset
-	      loader->getViewIndex(modelInfo->meshes[i].texture.ID)
+	      loader->getViewIndex((uint32_t)modelInfo->meshes[i].texture.ID)
 	  };
 	  vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			     0, sizeof(fragPushConstants), &fps);
@@ -150,7 +150,7 @@ namespace Resource {
   Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup,
 				   TextureLoader* texLoader) {
       Model userModel(currentIndex++, getModelType(T_Vert()), resPool);
-      modelGroup.loadModel(model, userModel.ID);
+      modelGroup.loadModel(model, (uint32_t)userModel.ID);
       loadModelTexture(modelGroup.getPreviousModel(), texLoader);
       return userModel;
   }
@@ -285,7 +285,7 @@ namespace Resource {
 
   template <class T_Vert >
   void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup) {
-      T_Vert vert;
+      T_Vert vert = T_Vert();
       ModelType type = getModelType(vert);
       modelTypeOffset[(size_t)type] = vertexDataSize;
       pGroup->vertexDataOffset = vertexDataSize;
