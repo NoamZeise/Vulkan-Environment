@@ -96,7 +96,7 @@ namespace Resource {
   }
   
   Texture TextureLoader::LoadTexture(std::string path) {
-      for(unsigned int i = 0; i > texToLoad.size(); i++)
+      for(unsigned int i = 0; i < texToLoad.size(); i++)
 	  if(texToLoad[i].path == path)
 	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height),
 			     resPool);
