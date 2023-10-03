@@ -11,6 +11,8 @@
 
 #include <graphics/resources.h>
 #include <graphics/render_config.h>
+#include <graphics/shader_structs.h>
+
 #include "vulkan_manager.h"
 #include "swapchain.h"
 #include "frame.h"
@@ -107,8 +109,7 @@ const int MAX_2D_INSTANCE = 100;
 
       void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
       void set2DViewMatrixAndScale(glm::mat4 view, float scale);
-      void setLightDirection(glm::vec4 lightDir);
-
+      void setLightingProps(BPLighting lighting);
       void setRenderConf(RenderConfig renderConf);
       RenderConfig getRenderConf();
       void setTargetResolution(glm::vec2 resolution);
@@ -179,7 +180,7 @@ const int MAX_2D_INSTANCE = 100;
       DescSet *perFrame2DFrag;
       shaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
       DescSet *lighting;
-      shaderStructs::Lighting lightingData;
+      BPLighting lightingData;
       DescSet *offscreenTransform;
       glm::mat4 offscreenTransformData;
       DescSet *textures;

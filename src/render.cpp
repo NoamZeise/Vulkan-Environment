@@ -260,7 +260,7 @@ void Render::_initFrameResources() {
 
     descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
     lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
-			       sizeof(shaderStructs::Lighting), 1);
+			       sizeof(lightingData), 1);
     lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
 
     float minMipmapLevel = 100000.0f;
@@ -954,8 +954,8 @@ void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale) {
   _scale2D = scale;
 }
 
-void Render::setLightDirection(glm::vec4 lightDir) {
-  lightingData.direction = lightDir;
+void Render::setLightingProps(BPLighting lighting) {
+    lightingData = lighting;
 }
 
 void Render::setRenderConf(RenderConfig renderConf) {
