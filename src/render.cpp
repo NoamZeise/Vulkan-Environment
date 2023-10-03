@@ -300,7 +300,8 @@ void Render::_initFrameResources() {
     ResourcePool *pool = pools[pI];
     VkImageView validView;
     bool foundValidView = false;
-    for(int i = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
+    //TODO: add dummy tex to ID 0 and use as validView
+    for(int i = 1; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
 	if(pool == nullptr || !pool->UseGPUResources)
 	    goto next_pool;
 	pool->usingGPUResources = true;
@@ -325,6 +326,8 @@ void Render::_initFrameResources() {
 	texID = 0;
 	i--;
     }
+    //temp: until dummy tex added
+    textureViews[0] = validView;
 
     descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
     texture_Set.AddSamplerDescriptor("sampler", 1, &textureSampler);

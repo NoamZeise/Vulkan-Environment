@@ -113,10 +113,15 @@ namespace Resource {
       ModelInGPU *modelInfo = &models[model.ID];
       bindGroupVertexBuffer(cmdBuff, modelInfo->type);
       for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
+	  size_t texID = modelInfo->meshes[i].texture.ID; 
+	  if(texID != UINT32_MAX) 
+	      texID = loader->getViewIndex(texID);
+	  else
+	      texID = 0;
 	  fragPushConstants fps {
 	      colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
 	      glm::vec4(0, 0, 1, 1), //texOffset
-	      loader->getViewIndex((uint32_t)modelInfo->meshes[i].texture.ID)
+	      (uint32_t)texID,
 	  };
 	  vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			     0, sizeof(fragPushConstants), &fps);
@@ -199,9 +204,12 @@ namespace Resource {
   
   template <class T_Vert>
   void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
-      for(auto& mesh: model->meshes)
+      for(auto& mesh: model->meshes) {
 	  if(mesh->texToLoad != "") 
-		  mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION + mesh->texToLoad);
+	      mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION + mesh->texToLoad);
+	  else
+	      mesh->texture.ID = UINT32_MAX;
+      }
   }
 
   void ModelRender::endLoading(VkCommandBuffer transferBuff) {

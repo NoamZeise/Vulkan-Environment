@@ -31,7 +31,6 @@ namespace Resource {
       uint32_t getViewIndex(uint32_t texID);
       
   private:
-      
       VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
 					    VkDeviceMemory &stagingMemory,
 					    uint32_t *pFinalMemType);

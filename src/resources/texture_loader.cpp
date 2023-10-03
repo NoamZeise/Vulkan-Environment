@@ -253,7 +253,8 @@ namespace Resource {
       if (texID < textures.size())
 	  return textures[texID].imageViewIndex;
       
-      LOG_ERROR("View Index's texID was out of range. Returning 0.");
+      LOG_ERROR("View Index's texID was out of range. given: " <<
+		texID << " , Returning 0.");
       return 0;
   }
 
