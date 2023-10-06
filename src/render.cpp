@@ -64,7 +64,7 @@ Render::Render(GLFWwindow *window, RenderConfig renderConf) {
     for(int i = 0; i < frameCount; i++)
 	frames[i] = new Frame(manager->deviceState.device,
 			      manager->deviceState.queue.graphicsPresentFamilyIndex);
-    CreateResourcePool();
+    defaultPool = CreateResourcePool();
 }
   
 Render::~Render()
@@ -520,11 +520,11 @@ bool Render::_poolInUse(Resource::ResourcePool pool) {
     return _validPool(pool) && pools[pool.ID]->usingGPUResources;
 }
 
-  void Render::_throwIfPoolInvaid(Resource::ResourcePool pool) {
-      if(!_validPool(pool))
-	  throw std::runtime_error("Tried to load resource "
-				   "with a pool that does not exist");
-  }
+void Render::_throwIfPoolInvaid(Resource::ResourcePool pool) {
+    if(!_validPool(pool))
+	throw std::runtime_error("Tried to load resource "
+				 "with a pool that does not exist");
+}
 
 Resource::Texture Render::LoadTexture(Resource::ResourcePool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
@@ -532,14 +532,23 @@ Resource::Texture Render::LoadTexture(Resource::ResourcePool pool, std::string f
 }
   
 Resource::Texture Render::LoadTexture(std::string filepath) {
-    return LoadTexture(Resource::ResourcePool(0), filepath);
+    return LoadTexture(defaultPool, filepath);
 }
 
-Resource::Font Render::LoadFont(std::string filepath) {
-    Resource::ResourcePool pool(0);
+Resource::Texture Render::LoadTexture(unsigned char* data, int width, int height) {
+    return LoadTexture(defaultPool, data, width, height);
+}
+  
+Resource::Texture Render::LoadTexture(Resource::ResourcePool pool, unsigned char* data,
+			      int width, int height) {
+    _throwIfPoolInvaid(pool);
+    return pools[pool.ID]->texLoader->LoadTexture(data, width, height, 4);
+}
+
+Resource::Font Render::LoadFont(Resource::ResourcePool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
     try {
-      return pools[pool.ID]->LoadFont(filepath);
+	return pools[pool.ID]->LoadFont(filepath);
     } catch (const std::exception &e) {
 	LOG_ERROR("Exception Occured when loading font, "
 		  "returning empty font. exception: "
@@ -548,43 +557,65 @@ Resource::Font Render::LoadFont(std::string filepath) {
     }
 }
 
+Resource::Font Render::LoadFont(std::string filepath) {
+    return LoadFont(defaultPool, filepath);
+}
+
+Resource::Model Render::LoadModel(Resource::ModelType type, std::string filepath,
+				  std::vector<Resource::ModelAnimation> *pAnimations) {
+    return LoadModel(defaultPool, type, filepath, pAnimations);
+}
+
+Resource::Model Render::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+				  std::string filepath,
+				  std::vector<Resource::ModelAnimation> *pAnimations) {
+    _throwIfPoolInvaid(pool);
+    return pools[pool.ID]->loadModel(type, filepath, pAnimations);
+}
+
+Resource::Model Render::LoadModel(Resource::ModelType type, ModelInfo::Model& model,
+			  std::vector<Resource::ModelAnimation> *pAnimations) {
+    return LoadModel(defaultPool, type, model, pAnimations);
+}
+  
+Resource::Model Render::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+			  ModelInfo::Model& model,
+			  std::vector<Resource::ModelAnimation> *pAnimations) {
+    _throwIfPoolInvaid(pool);
+    return pools[pool.ID]->loadModel(type, model, pAnimations);
+}
+  
 Resource::Model Render::LoadAnimatedModel(
 	std::string filepath,
 	std::vector<Resource::ModelAnimation> *pGetAnimations) {
-    Resource::ResourcePool pool(0);
-    _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
+    _throwIfPoolInvaid(defaultPool);
+    return pools[defaultPool .ID]->loadModel(Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
 }
 
 Resource::Model Render::LoadAnimatedModel(ModelInfo::Model& model,
 					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
-    Resource::ResourcePool pool(0);
-    _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
+    _throwIfPoolInvaid(defaultPool);
+    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
 }
 
 Resource::Model Render::Load2DModel(std::string filepath) {
-    Resource::ResourcePool pool(0);
-    _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(Resource::ModelType::m2D, filepath, nullptr);
+    _throwIfPoolInvaid(defaultPool);
+    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m2D, filepath, nullptr);
 }
 
 Resource::Model Render::Load2DModel(ModelInfo::Model& model) {
-    Resource::ResourcePool pool(0);
-    _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(Resource::ModelType::m2D, model, nullptr);
+    _throwIfPoolInvaid(defaultPool);
+    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m2D, model, nullptr);
 }
 
 Resource::Model Render::Load3DModel(std::string filepath) {
-    Resource::ResourcePool pool(0);
-    _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(Resource::ModelType::m3D, filepath, nullptr);
+    _throwIfPoolInvaid(defaultPool);
+    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D, filepath, nullptr);
 }
 
 Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
-    Resource::ResourcePool pool(0);
-    _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
+    _throwIfPoolInvaid(defaultPool);
+    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
 }
 
 void Render::LoadResourcesToGPU(Resource::ResourcePool pool) {
@@ -594,16 +625,15 @@ void Render::LoadResourcesToGPU(Resource::ResourcePool pool) {
       LOG("Loading resources for pool that is currently in use, "
           "so recreating frame resources.");
       vkDeviceWaitIdle(manager->deviceState.device);
-      _destroyFrameResources();
       remakeFrameRes = true;
     }
     pools[pool.ID]->loadPoolToGPU(manager->generalCommandBuffer);
     if(remakeFrameRes)
-	_initFrameResources();
+	UseLoadedResources();
 }
 
 void Render::LoadResourcesToGPU() {
-    LoadResourcesToGPU(Resource::ResourcePool(0));
+    LoadResourcesToGPU(defaultPool);
 }
 
 void Render::UseLoadedResources() {

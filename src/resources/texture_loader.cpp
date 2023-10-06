@@ -98,11 +98,8 @@ namespace Resource {
   Texture TextureLoader::LoadTexture(std::string path) {
       for(unsigned int i = 0; i < texToLoad.size(); i++)
 	  if(texToLoad[i].path == path)
-	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height),
-			     resPool);
-      
+	      return Texture(i, glm::vec2(texToLoad[i].width, texToLoad[i].height), resPool);
       LOG("loading texture: " << path);
-      
       const int CHANNELS_TO_LOAD = 4;
       texToLoad.push_back({ std::string(path.c_str()) });
       TextureInMemory* tex = &texToLoad.back();
@@ -113,19 +110,14 @@ namespace Resource {
 	  throw std::runtime_error("failed to load texture at " + path);
       }
       tex->nrChannels = CHANNELS_TO_LOAD;
-      
       tex->fileSize = tex->width * tex->height * tex->nrChannels;
-      
       if(srgb)
 	  tex->format = VK_FORMAT_R8G8B8A8_SRGB;
       else
 	  tex->format = VK_FORMAT_R8G8B8A8_UNORM;
-      
       LOG("  --- successfully loaded at ID: " << (int)(texToLoad.size() - 1));
-      
       return Texture((unsigned int)(texToLoad.size() - 1),
-		     glm::vec2(tex->width, tex->height),
-		     resPool);
+		     glm::vec2(tex->width, tex->height), resPool);
   }
 
   Texture TextureLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels) {
@@ -254,7 +246,7 @@ namespace Resource {
 	  return textures[texID].imageViewIndex;
       
       LOG_ERROR("View Index's texID was out of range. given: " <<
-		texID << " , Returning 0.");
+		texID << " , size: " << textures.size() << " . Returning 0.");
       return 0;
   }
 

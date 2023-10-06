@@ -47,7 +47,6 @@ namespace Resource {
       this->base = base;
       this->pool = pool;
       this->resPool = resPool;
-      loadQuad();
   }
 
   ModelRender::~ModelRender() {
@@ -59,6 +58,7 @@ namespace Resource {
       loaded2D.clearData();
       loaded3D.clearData();
       loadedAnim3D.clearData();
+      currentIndex = 0;
   }
 
   void ModelRender::unloadGPU() {
@@ -68,7 +68,6 @@ namespace Resource {
       
       vertexDataSize = 0;
       indexDataSize = 0;
-      currentIndex = 0;
       
       vkDestroyBuffer(base.device, buffer, nullptr);
       vkFreeMemory(base.device, memory, nullptr);
@@ -157,6 +156,7 @@ namespace Resource {
       Model userModel(currentIndex++, getModelType(T_Vert()), resPool);
       modelGroup.loadModel(model, (uint32_t)userModel.ID);
       loadModelTexture(modelGroup.getPreviousModel(), texLoader);
+      LOG("Model Loaded at ID: " << userModel.ID);
       return userModel;
   }
 
@@ -213,13 +213,7 @@ namespace Resource {
   }
 
   void ModelRender::endLoading(VkCommandBuffer transferBuff) {
-      if(loaded2D.models.size() == 0  &&
-	 loaded3D.models.size() == 0 &&
-	 loadedAnim3D.models.size() == 0) {
-	  LOG("no model data to load to gpu");
-	  return;
-      }
-      
+      loadQuad();
       int modelCount = currentIndex;
       unloadGPU();
       models.resize(modelCount);
@@ -253,6 +247,7 @@ namespace Resource {
       stageLoadGroup(pMem, &loaded2D, currentVertexOffset, currentIndexOffset);
       stageLoadGroup(pMem, &loaded3D, currentVertexOffset, currentIndexOffset);
       stageLoadGroup(pMem, &loadedAnim3D, currentVertexOffset, currentIndexOffset);
+      unloadStaged();
 
       LOG("finished staging model groups");
 

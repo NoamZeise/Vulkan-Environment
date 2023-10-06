@@ -50,6 +50,7 @@ const int MAX_2D_INSTANCE = 100;
       Resource::ResourcePool CreateResourcePool();
       void DestroyResourcePool(Resource::ResourcePool pool);
       /// enable or disable using this resource pool's GPU loaded resources
+      /// on by default
       /// will only take effect after a frame resource recreation
       /// (such as by calling UseLoadedResources() or if the framebuffer is resized)
       void setResourcePoolInUse(Resource::ResourcePool pool, bool usePool);
@@ -57,7 +58,24 @@ const int MAX_2D_INSTANCE = 100;
       /// Load a 2D image file
       Resource::Texture LoadTexture(std::string filepath);
       Resource::Texture LoadTexture(Resource::ResourcePool pool, std::string filepath);
+      // Load 2D image data, takes ownership of data
+      Resource::Texture LoadTexture(unsigned char* data, int width, int height);
+      Resource::Texture LoadTexture(Resource::ResourcePool pool, unsigned char* data,
+				    int width, int height);
       Resource::Font LoadFont(std::string filepath);
+      Resource::Font LoadFont(Resource::ResourcePool pool, std::string filepath);
+      /// Load Models of various types with optional pointer to
+      /// get animations if the model has them
+      Resource::Model LoadModel(Resource::ModelType type, std::string filepath,
+				std::vector<Resource::ModelAnimation> *pAnimations);
+      Resource::Model LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+				std::string filepath,
+				std::vector<Resource::ModelAnimation> *pAnimations);
+      Resource::Model LoadModel(Resource::ModelType type, ModelInfo::Model& model,
+				std::vector<Resource::ModelAnimation> *pAnimations);
+      Resource::Model LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+				ModelInfo::Model& model,
+				std::vector<Resource::ModelAnimation> *pAnimations);
       /// Load model from the filepath and store as a 2D model.
       /// Can be used in 2D draws, which will be drawn with orthographic projection.
       Resource::Model Load2DModel(std::string filepath);
@@ -195,6 +213,8 @@ const int MAX_2D_INSTANCE = 100;
 
       std::vector<DescSet*> descriptorSets;
 
+      Resource::ResourcePool defaultPool;
+      
       std::vector<ResourcePool*> pools;
       std::vector<int> freePools;
 
