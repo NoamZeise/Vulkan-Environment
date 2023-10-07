@@ -58,7 +58,7 @@ const int MAX_2D_INSTANCE = 100;
       /// Load a 2D image file
       Resource::Texture LoadTexture(std::string filepath);
       Resource::Texture LoadTexture(Resource::ResourcePool pool, std::string filepath);
-      // Load 2D image data, takes ownership of data
+      // Load 2D image data, takes ownership of data, 4 channels
       Resource::Texture LoadTexture(unsigned char* data, int width, int height);
       Resource::Texture LoadTexture(Resource::ResourcePool pool, unsigned char* data,
 				    int width, int height);
@@ -97,7 +97,7 @@ const int MAX_2D_INSTANCE = 100;
       /// Load A pool's resource from CPU to GPU memory
       /// This must be done before the pool's resources can be used.
       void LoadResourcesToGPU();
-      void LoadResourcesToGPU(Resource::ResourcePool);
+      void LoadResourcesToGPU(Resource::ResourcePool pool);
       /// Reload frame resources, using any resources that have been loaded
       /// to the GPU from resource pools, and that have useResourcePool
       /// set to true.
