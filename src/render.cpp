@@ -690,6 +690,13 @@ void Render::Begin3DDraw() {
     _pipeline3D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
 
+bool Render::_modelStateChange(Resource::Model model, glm::vec4 colour) {
+    return _modelRuns != 0 &&
+	(model.ID != _currentModel.ID ||
+	 model.pool.ID != _currentModel.pool.ID ||
+	 colour != _currentColour);
+}
+
 void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat) {
     DrawModel(model, modelMatrix, normalMat, glm::vec4(0.0f)); }
 
@@ -700,11 +707,9 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 	return;
     }
     
-    _bindModelPool(model);
-    
-    if ((_currentColour != colour || _currentModel.ID != model.ID) && _modelRuns != 0)
+    if (_modelStateChange(model, colour))
 	_drawBatch();
-    
+    _bindModelPool(model);
     _currentModel = model;
     _currentColour = colour;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
@@ -737,12 +742,10 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 	LOG("WARNING: Ran out of 3D Anim Instance models!\n");
 	return;
     }
-
-    _bindModelPool(model);
     
-    if (_currentModel.ID != model.ID && _modelRuns != 0)
+    if (_modelStateChange(model, glm::vec4(0)))
 	_drawBatch();
-
+    _bindModelPool(model);
     _currentModel = model;
     _currentColour = glm::vec4(0.0f);
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
@@ -842,6 +845,7 @@ float Render::MeasureString(Resource::Font font, std::string text, float size) {
 	      throw std::runtime_error(
 		      "Tried to bind model pool that is not in use");
 	  pools[model.pool.ID]->modelLoader->bindBuffers(currentCommandBuffer);
+	  currentModelPool = model.pool;
       }
   }
 

@@ -144,6 +144,7 @@ const int MAX_2D_INSTANCE = 100;
       void _resize();
       void _update3DProjectionMatrix();
       void _drawBatch();
+      bool _modelStateChange(Resource::Model model, glm::vec4 colour);
       void _bindModelPool(Resource::Model model);
       bool _validPool(Resource::ResourcePool pool);
       bool _poolInUse(Resource::ResourcePool pool);
