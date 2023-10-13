@@ -674,22 +674,51 @@ void Render::_startDraw() {
     _begunDraw = true;
 }
 
-void Render::Begin3DDraw() {
-    if (!_begunDraw)
-	_startDraw();
-    if (_modelRuns > 0)
-	_drawBatch();
-    if (_instance2Druns > 0)
-	_drawBatch();
-    _renderState = RenderState::Draw3D;
-    
+void Render::_store3DsetData() {
     VP3D->bindings[0].storeSetData(swapchainFrameIndex, &VP3DData, 0, 0, 0);
     VP3D->bindings[1].storeSetData(swapchainFrameIndex, &timeData, 0, 0, 0);
     lighting->bindings[0].storeSetData(swapchainFrameIndex, &lightingData, 0, 0, 0);
-    
-    _pipeline3D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
 
+void Render::_store2DsetData() {
+    VP2DData.proj = glm::ortho(
+	    0.0f, (float)offscreenRenderPass->getExtent().width*_scale2D, 0.0f,
+	    (float)offscreenRenderPass->getExtent().height*_scale2D,
+	    renderConf.depth_range_2D[0], renderConf.depth_range_2D[1]);
+    VP2DData.view = glm::mat4(1.0f);
+    
+    VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData, 0, 0, 0);
+}
+
+void Render::_begin(RenderState state) {
+    if (!_begunDraw)
+	_startDraw();
+    else if(_renderState == state)
+	return;
+    if (_modelRuns > 0 || _instance2Druns > 0)
+	_drawBatch();
+    _renderState = state;
+    if(_current3DInstanceIndex == 0 && state != RenderState::Draw2D)
+	_store3DsetData();
+    if(_current2DInstanceIndex == 0 && state == RenderState::Draw2D)
+	_store2DsetData();
+    Pipeline* p = nullptr;
+    switch(state) {
+    case RenderState::Draw2D:
+	p = &_pipeline2D;
+	break;
+    case RenderState::Draw3D:
+	p = &_pipeline3D;
+	break;
+    case RenderState::DrawAnim3D:
+	p = &_pipelineAnim3D;
+	break;
+    default:
+	throw std::runtime_error("begin draw not implemented for this render state");
+    }
+    p->begin(currentCommandBuffer, swapchainFrameIndex);
+}
+  
 bool Render::_modelStateChange(Resource::Model model, glm::vec4 colour) {
     return _modelRuns != 0 &&
 	(model.ID != _currentModel.ID ||
@@ -706,6 +735,11 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 	LOG("WARNING: ran out of 3D instances!\n");
 	return;
     }
+    if(!_poolInUse(model.pool)) {
+	LOG_ERROR("Tried Drawing with model in pool that is not in use");
+	return;
+    }
+    _begin(RenderState::Draw3D);
     
     if (_modelStateChange(model, colour))
 	_drawBatch();
@@ -715,25 +749,12 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
+
+    if(_current3DInstanceIndex == 0)
+	_store3DsetData();
     
     if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
 	_drawBatch();
-}
-
-void Render::BeginAnim3DDraw()
-{
-  if (!_begunDraw)
-    _startDraw();  VP3D->bindings[1].storeSetData(swapchainFrameIndex, &timeData, 0, 0, 0);
-  if (_modelRuns > 0)
-    _drawBatch();
-  if (_instance2Druns > 0)
-    _drawBatch();
-  _renderState = RenderState::DrawAnim3D;
-
-  VP3D->bindings[0].storeSetData(swapchainFrameIndex, &VP3DData, 0, 0, 0);
-  VP3D->bindings[1].storeSetData(swapchainFrameIndex, &timeData, 0, 0, 0);
-  lighting->bindings[0].storeSetData(swapchainFrameIndex, &lightingData, 0, 0, 0);
-  _pipelineAnim3D.begin(currentCommandBuffer, swapchainFrameIndex);
 }
 
 void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
@@ -742,7 +763,11 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 	LOG("WARNING: Ran out of 3D Anim Instance models!\n");
 	return;
     }
-    
+    if(!_poolInUse(model.pool)) {
+	LOG_ERROR("Tried Drawing with model in pool that is not in use");
+	return;
+    }
+    _begin(RenderState::DrawAnim3D);
     if (_modelStateChange(model, glm::vec4(0)))
 	_drawBatch();
     _bindModelPool(model);
@@ -771,36 +796,16 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
     currentBonesDynamicOffset++;
 }
 
-void Render::Begin2DDraw()
-{
-  if (!_begunDraw)
-    _startDraw();
-  if (_modelRuns > 0)
-    _drawBatch();
-  if (_instance2Druns > 0)
-    _drawBatch();
-  _renderState = RenderState::Draw2D;
-
-  VP2DData.proj = glm::ortho(
-      0.0f, (float)offscreenRenderPass->getExtent().width*_scale2D, 0.0f,
-      (float)offscreenRenderPass->getExtent().height*_scale2D,
-      renderConf.depth_range_2D[0], renderConf.depth_range_2D[1]);
-  VP2DData.view = glm::mat4(1.0f);
-
-  VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData, 0, 0, 0);
-
-  _pipeline2D.begin(currentCommandBuffer, swapchainFrameIndex);
-}
-
 void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset) {
   if (_current2DInstanceIndex >= MAX_2D_INSTANCE) {
       LOG("WARNING: ran out of 2D instance models!\n");
       return;
   }
   if(!_poolInUse(texture.pool)) {
-      LOG_ERROR("Tried Drawing with texture that is not in use");
+      LOG_ERROR("Tried Drawing with texture in pool that is not in use");
       return;
   }
+  _begin(RenderState::Draw2D);
    perFrame2DVertData[_current2DInstanceIndex + _instance2Druns] = modelMatrix;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;

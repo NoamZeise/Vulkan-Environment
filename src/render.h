@@ -103,9 +103,6 @@ const int MAX_2D_INSTANCE = 100;
       /// set to true.
       void UseLoadedResources();
 
-      void Begin3DDraw();
-      void BeginAnim3DDraw();
-      void Begin2DDraw();
       //switching between models that are in different pools often is slow
       void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
       void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
@@ -138,9 +135,18 @@ const int MAX_2D_INSTANCE = 100;
       }
     
   private:
+      enum class RenderState {
+	  Draw2D,
+	  Draw3D,
+	  DrawAnim3D,
+      };
+      
       void _initFrameResources();
       void _destroyFrameResources();
       void _startDraw();
+      void _begin(RenderState state);
+      void _store3DsetData();
+      void _store2DsetData();
       void _resize();
       void _update3DProjectionMatrix();
       void _drawBatch();
@@ -218,12 +224,6 @@ const int MAX_2D_INSTANCE = 100;
       
       std::vector<ResourcePool*> pools;
       std::vector<int> freePools;
-
-      enum class RenderState {
-	  Draw2D,
-	  Draw3D,
-	  DrawAnim3D,
-      };
 
       bool _begunDraw = false;
       RenderState _renderState;
