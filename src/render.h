@@ -9,8 +9,7 @@
 #endif
 #include <glm/glm.hpp>
 
-#include <graphics/resources.h>
-#include <graphics/render_config.h>
+#include <graphics/render.h>
 #include <graphics/shader_structs.h>
 
 #include "vulkan_manager.h"
@@ -32,7 +31,7 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
 const int MAX_3D_INSTANCE = 50;
 const int MAX_2D_INSTANCE = 100;
 
-  class Render {
+  class RenderVk : public Render {
   public:
       /// Try and load Vulkan functions from the installed driver.
       /// Returns whether the operation succeeded or not.
@@ -42,8 +41,8 @@ const int MAX_2D_INSTANCE = 100;
       /// Iniltialise the renderer. Chooses a GPU and sets up resources loaders.
       /// Do any resource loading, then call LoadResourcesToGPU(), then UseLoadedResources() 
       /// before the draw loop.
-      Render(GLFWwindow *window, RenderConfig renderConf);
-      ~Render();
+      RenderVk(GLFWwindow *window, RenderConfig renderConf);
+      ~RenderVk();
 
       /// Create a new pool to load resource into.
       /// Pool will be in use by default.

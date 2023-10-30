@@ -26,7 +26,7 @@
 
 namespace vkenv {
 
-bool Render::LoadVulkan() {
+bool RenderVk::LoadVulkan() {
     if(volkInitialize() != VK_SUCCESS) {
       return false;
     }
@@ -37,7 +37,7 @@ bool Render::LoadVulkan() {
 void checkVolk() {
     if(volkGetInstanceVersion() == 0) {
 	// if user hasn't checked for vulkan support, try loading vulkan first.
-	if(!Render::LoadVulkan())
+	if(!RenderVk::LoadVulkan())
 	    throw std::runtime_error("Vulkan has not been loaded! Either the "
 				     "graphics devices does not support vulkan, "
 				     "or Vulkan drivers aren't installed");		    
@@ -51,7 +51,7 @@ VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
 	    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-Render::Render(GLFWwindow *window, RenderConfig renderConf) {
+  RenderVk::RenderVk(GLFWwindow *window, RenderConfig renderConf) : Render(window, renderConf) {
     checkVolk();
     this->renderConf = renderConf;
     this->prevRenderConf = renderConf;
@@ -67,7 +67,7 @@ Render::Render(GLFWwindow *window, RenderConfig renderConf) {
     defaultPool = CreateResourcePool();
 }
   
-Render::~Render()
+RenderVk::~RenderVk()
 {
   vkDeviceWaitIdle(manager->deviceState.device);
 
@@ -97,7 +97,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	result == VK_ERROR_OUT_OF_DATE_KHR;
 }
 
-void Render::_initFrameResources() {
+void RenderVk::_initFrameResources() {
     LOG("Creating Swapchain");
 
     if(_frameResourcesCreated)
@@ -443,7 +443,7 @@ void Render::_initFrameResources() {
     _frameResourcesCreated = true;
 }
 
-void Render::_destroyFrameResources()
+void RenderVk::_destroyFrameResources()
 {
     if(!_frameResourcesCreated)
 	return;
@@ -468,7 +468,7 @@ void Render::_destroyFrameResources()
     _frameResourcesCreated = false;
 }
 
-Resource::ResourcePool Render::CreateResourcePool() {
+Resource::ResourcePool RenderVk::CreateResourcePool() {
     int index = pools.size();
     if(freePools.empty()) {
 	pools.push_back(nullptr);
@@ -483,7 +483,7 @@ Resource::ResourcePool Render::CreateResourcePool() {
     return pools[index]->poolID;
 }
 
-void Render::DestroyResourcePool(Resource::ResourcePool pool) {
+void RenderVk::DestroyResourcePool(Resource::ResourcePool pool) {
     bool reloadResources = false;
     for(int i = 0; i < pools.size(); i++) {
 	if(pools[i]->poolID.ID == pool.ID) {
@@ -501,13 +501,13 @@ void Render::DestroyResourcePool(Resource::ResourcePool pool) {
     }
 }
 
-  void Render::setResourcePoolInUse(Resource::ResourcePool pool, bool usePool) {
+  void RenderVk::setResourcePoolInUse(Resource::ResourcePool pool, bool usePool) {
       if(!_validPool(pool))
 	  return;
       pools[pool.ID]->setUseGPUResources(usePool);
   }
 
-  bool Render::_validPool(Resource::ResourcePool pool) {
+  bool RenderVk::_validPool(Resource::ResourcePool pool) {
       if(pool.ID > pools.size() || pools[pool.ID] == nullptr) {
 	  LOG_ERROR("Passed Pool does not exist."
 		    " It has either been destroyed or was never created.");
@@ -516,36 +516,36 @@ void Render::DestroyResourcePool(Resource::ResourcePool pool) {
       return true;
   }
 
-bool Render::_poolInUse(Resource::ResourcePool pool) {
+bool RenderVk::_poolInUse(Resource::ResourcePool pool) {
     return _validPool(pool) && pools[pool.ID]->usingGPUResources;
 }
 
-void Render::_throwIfPoolInvaid(Resource::ResourcePool pool) {
+void RenderVk::_throwIfPoolInvaid(Resource::ResourcePool pool) {
     if(!_validPool(pool))
 	throw std::runtime_error("Tried to load resource "
 				 "with a pool that does not exist");
 }
 
-Resource::Texture Render::LoadTexture(Resource::ResourcePool pool, std::string filepath) {
+Resource::Texture RenderVk::LoadTexture(Resource::ResourcePool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->texLoader->LoadTexture(filepath);
 }
   
-Resource::Texture Render::LoadTexture(std::string filepath) {
+Resource::Texture RenderVk::LoadTexture(std::string filepath) {
     return LoadTexture(defaultPool, filepath);
 }
 
-Resource::Texture Render::LoadTexture(unsigned char* data, int width, int height) {
+Resource::Texture RenderVk::LoadTexture(unsigned char* data, int width, int height) {
     return LoadTexture(defaultPool, data, width, height);
 }
   
-Resource::Texture Render::LoadTexture(Resource::ResourcePool pool, unsigned char* data,
+Resource::Texture RenderVk::LoadTexture(Resource::ResourcePool pool, unsigned char* data,
 			      int width, int height) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->texLoader->LoadTexture(data, width, height, 4);
 }
 
-Resource::Font Render::LoadFont(Resource::ResourcePool pool, std::string filepath) {
+Resource::Font RenderVk::LoadFont(Resource::ResourcePool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
     try {
 	return pools[pool.ID]->LoadFont(filepath);
@@ -557,68 +557,68 @@ Resource::Font Render::LoadFont(Resource::ResourcePool pool, std::string filepat
     }
 }
 
-Resource::Font Render::LoadFont(std::string filepath) {
+Resource::Font RenderVk::LoadFont(std::string filepath) {
     return LoadFont(defaultPool, filepath);
 }
 
-Resource::Model Render::LoadModel(Resource::ModelType type, std::string filepath,
+Resource::Model RenderVk::LoadModel(Resource::ModelType type, std::string filepath,
 				  std::vector<Resource::ModelAnimation> *pAnimations) {
     return LoadModel(defaultPool, type, filepath, pAnimations);
 }
 
-Resource::Model Render::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+Resource::Model RenderVk::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
 				  std::string filepath,
 				  std::vector<Resource::ModelAnimation> *pAnimations) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(type, filepath, pAnimations);
 }
 
-Resource::Model Render::LoadModel(Resource::ModelType type, ModelInfo::Model& model,
+Resource::Model RenderVk::LoadModel(Resource::ModelType type, ModelInfo::Model& model,
 			  std::vector<Resource::ModelAnimation> *pAnimations) {
     return LoadModel(defaultPool, type, model, pAnimations);
 }
   
-Resource::Model Render::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+Resource::Model RenderVk::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
 			  ModelInfo::Model& model,
 			  std::vector<Resource::ModelAnimation> *pAnimations) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->loadModel(type, model, pAnimations);
 }
   
-Resource::Model Render::LoadAnimatedModel(
+Resource::Model RenderVk::LoadAnimatedModel(
 	std::string filepath,
 	std::vector<Resource::ModelAnimation> *pGetAnimations) {
     _throwIfPoolInvaid(defaultPool);
     return pools[defaultPool .ID]->loadModel(Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
 }
 
-Resource::Model Render::LoadAnimatedModel(ModelInfo::Model& model,
+Resource::Model RenderVk::LoadAnimatedModel(ModelInfo::Model& model,
 					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
     _throwIfPoolInvaid(defaultPool);
     return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
 }
 
-Resource::Model Render::Load2DModel(std::string filepath) {
+Resource::Model RenderVk::Load2DModel(std::string filepath) {
     _throwIfPoolInvaid(defaultPool);
     return pools[defaultPool.ID]->loadModel(Resource::ModelType::m2D, filepath, nullptr);
 }
 
-Resource::Model Render::Load2DModel(ModelInfo::Model& model) {
+Resource::Model RenderVk::Load2DModel(ModelInfo::Model& model) {
     _throwIfPoolInvaid(defaultPool);
     return pools[defaultPool.ID]->loadModel(Resource::ModelType::m2D, model, nullptr);
 }
 
-Resource::Model Render::Load3DModel(std::string filepath) {
+Resource::Model RenderVk::Load3DModel(std::string filepath) {
     _throwIfPoolInvaid(defaultPool);
     return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D, filepath, nullptr);
 }
 
-Resource::Model Render::Load3DModel(ModelInfo::Model& model) {
+Resource::Model RenderVk::Load3DModel(ModelInfo::Model& model) {
     _throwIfPoolInvaid(defaultPool);
     return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
 }
 
-void Render::LoadResourcesToGPU(Resource::ResourcePool pool) {
+void RenderVk::LoadResourcesToGPU(Resource::ResourcePool pool) {
     _throwIfPoolInvaid(pool);
     bool remakeFrameRes = false;
     if(pools[pool.ID]->usingGPUResources) {
@@ -632,23 +632,23 @@ void Render::LoadResourcesToGPU(Resource::ResourcePool pool) {
 	UseLoadedResources();
 }
 
-void Render::LoadResourcesToGPU() {
+void RenderVk::LoadResourcesToGPU() {
     LoadResourcesToGPU(defaultPool);
 }
 
-void Render::UseLoadedResources() {
+void RenderVk::UseLoadedResources() {
     vkDeviceWaitIdle(manager->deviceState.device);
     _initFrameResources();
 }
 
-void Render::_resize() {
+void RenderVk::_resize() {
     LOG("resizing");
     _framebufferResized = false;
     UseLoadedResources();
     _update3DProjectionMatrix();
 }
 
-void Render::_startDraw() {
+void RenderVk::_startDraw() {
     if (!_frameResourcesCreated) {
       throw std::runtime_error("Tried to start draw when no"
                                " frame resources have been created"
@@ -674,13 +674,13 @@ void Render::_startDraw() {
     _begunDraw = true;
 }
 
-void Render::_store3DsetData() {
+void RenderVk::_store3DsetData() {
     VP3D->bindings[0].storeSetData(swapchainFrameIndex, &VP3DData, 0, 0, 0);
     VP3D->bindings[1].storeSetData(swapchainFrameIndex, &timeData, 0, 0, 0);
     lighting->bindings[0].storeSetData(swapchainFrameIndex, &lightingData, 0, 0, 0);
 }
 
-void Render::_store2DsetData() {
+void RenderVk::_store2DsetData() {
     VP2DData.proj = glm::ortho(
 	    0.0f, (float)offscreenRenderPass->getExtent().width*_scale2D, 0.0f,
 	    (float)offscreenRenderPass->getExtent().height*_scale2D,
@@ -690,7 +690,7 @@ void Render::_store2DsetData() {
     VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData, 0, 0, 0);
 }
 
-void Render::_begin(RenderState state) {
+void RenderVk::_begin(RenderState state) {
     if (!_begunDraw)
 	_startDraw();
     else if(_renderState == state)
@@ -719,17 +719,17 @@ void Render::_begin(RenderState state) {
     p->begin(currentCommandBuffer, swapchainFrameIndex);
 }
   
-bool Render::_modelStateChange(Resource::Model model, glm::vec4 colour) {
+bool RenderVk::_modelStateChange(Resource::Model model, glm::vec4 colour) {
     return _modelRuns != 0 &&
 	(model.ID != _currentModel.ID ||
 	 model.pool.ID != _currentModel.pool.ID ||
 	 colour != _currentColour);
 }
 
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat) {
+void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat) {
     DrawModel(model, modelMatrix, normalMat, glm::vec4(0.0f)); }
 
-void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
+void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
 		       glm::vec4 colour) {
     if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
 	LOG("WARNING: ran out of 3D instances!\n");
@@ -757,7 +757,7 @@ void Render::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 n
 	_drawBatch();
 }
 
-void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
+void RenderVk::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 			   glm::mat4 normalMat, Resource::ModelAnimation *animation) {
     if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
 	LOG("WARNING: Ran out of 3D Anim Instance models!\n");
@@ -796,7 +796,7 @@ void Render::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
     currentBonesDynamicOffset++;
 }
 
-void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset) {
+void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset) {
   if (_current2DInstanceIndex >= MAX_2D_INSTANCE) {
       LOG("WARNING: ran out of 2D instance models!\n");
       return;
@@ -817,32 +817,32 @@ void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec
     _drawBatch();
 }
 
-void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour)
+void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour)
 {
   DrawQuad(texture, modelMatrix, colour, glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix) {
+void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix) {
   DrawQuad(texture, modelMatrix, glm::vec4(1), glm::vec4(0, 0, 1, 1));
 }
 
-void Render::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate) {
+void RenderVk::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate) {
   auto draws = pools[font.pool.ID]->fontLoader->DrawString(font, text, position,
 							   size, depth, colour, rotate);
   for (const auto &draw : draws) {
     DrawQuad(draw.tex, draw.model, draw.colour, draw.texOffset);
   }
 }
-void Render::DrawString(Resource::Font font, std::string text,
+void RenderVk::DrawString(Resource::Font font, std::string text,
 			glm::vec2 position, float size, float depth, glm::vec4 colour) {
   DrawString(font, text, position, size, depth, colour, 0.0);
 }
 
-float Render::MeasureString(Resource::Font font, std::string text, float size) {
+float RenderVk::MeasureString(Resource::Font font, std::string text, float size) {
   return pools[font.pool.ID]->fontLoader->MeasureString(font, text, size);
 }
 
-  void Render::_bindModelPool(Resource::Model model) {
+  void RenderVk::_bindModelPool(Resource::Model model) {
       if(currentModelPool.ID != model.pool.ID) {
 	  if(_modelRuns > 0)
 	      _drawBatch();
@@ -854,7 +854,7 @@ float Render::MeasureString(Resource::Font font, std::string text, float size) {
       }
   }
 
-void Render::_drawBatch() {
+void RenderVk::_drawBatch() {
     switch(_renderState) {
     case RenderState::DrawAnim3D:
     case RenderState::Draw3D:
@@ -910,7 +910,7 @@ void Render::_drawBatch() {
     return result;
   }
 
-void Render::EndDraw(std::atomic<bool> &submit) {
+void RenderVk::EndDraw(std::atomic<bool> &submit) {
   if (!_begunDraw)
     throw std::runtime_error("Tried to end draw before starting it");
 
@@ -970,7 +970,7 @@ void Render::EndDraw(std::atomic<bool> &submit) {
   submit = true;
 }
 
-void Render::_update3DProjectionMatrix() {
+void RenderVk::_update3DProjectionMatrix() {
   VP3DData.proj =
       glm::perspective(glm::radians(_projectionFov),
                        ((float)offscreenRenderPass->getExtent().width) /
@@ -980,36 +980,36 @@ void Render::_update3DProjectionMatrix() {
 }
 
 //recreates frame resources, so any state change for rendering will be updated on next draw if this is called
-void Render::FramebufferResize() {
+void RenderVk::FramebufferResize() {
     _framebufferResized = true;
 }
 
-void Render::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
+void RenderVk::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
   VP3DData.view = view;
   _projectionFov = fov;
   lightingData.camPos = camPos;
   _update3DProjectionMatrix();
 }
 
-void Render::set2DViewMatrixAndScale(glm::mat4 view, float scale) {
+void RenderVk::set2DViewMatrixAndScale(glm::mat4 view, float scale) {
   VP2DData.view = view;
   _scale2D = scale;
 }
 
-void Render::setLightingProps(BPLighting lighting) {
+void RenderVk::setLightingProps(BPLighting lighting) {
     lightingData = lighting;
 }
 
-void Render::setRenderConf(RenderConfig renderConf) {
+void RenderVk::setRenderConf(RenderConfig renderConf) {
     this->renderConf = renderConf;
     FramebufferResize();
 }
 
-RenderConfig Render::getRenderConf() {
+RenderConfig RenderVk::getRenderConf() {
     return renderConf;
 }
 
-void Render::setTargetResolution(glm::vec2 resolution) {
+void RenderVk::setTargetResolution(glm::vec2 resolution) {
     if(renderConf.target_resolution[0] == resolution.x &&
        renderConf.target_resolution[1] == resolution.y)
 	return;
@@ -1018,7 +1018,7 @@ void Render::setTargetResolution(glm::vec2 resolution) {
     FramebufferResize();
 }
 
-glm::vec2 Render::getTargetResolution() {
+glm::vec2 RenderVk::getTargetResolution() {
     return glm::vec2(renderConf.target_resolution[0], renderConf.target_resolution[1]);
 }
 

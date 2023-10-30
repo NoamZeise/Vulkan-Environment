@@ -59,7 +59,7 @@ int main() {
       std::cerr << "Error: failed to initialise GLFW!\n";
       return 1;
     }
-    if(!vkenv::Render::LoadVulkan()) {
+    if(!vkenv::RenderVk::LoadVulkan()) {
 	std::cerr << "Error: failed to load Vulkan!\n";
 	return 1;
     }
@@ -73,7 +73,7 @@ int main() {
     RenderConfig config;
     
     try {
-	vkenv::Render render(window, config);
+	vkenv::RenderVk render(window, config);
 
 	Resource::ResourcePool pool1 = render.CreateResourcePool();
 	Resource::ResourcePool pool2 = render.CreateResourcePool();

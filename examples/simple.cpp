@@ -58,7 +58,7 @@ int main() {
     }
 
     // Vulkan Must be loaded before a window is created
-    if(!vkenv::Render::LoadVulkan()) {
+    if(!vkenv::RenderVk::LoadVulkan()) {
 	std::cerr << "Error: failed to load Vulkan!\n";
     }
     
@@ -70,7 +70,7 @@ int main() {
     RenderConfig config;
     
     try {
-	vkenv::Render render(window, config);
+	vkenv::RenderVk render(window, config);
 	
 	std::cout << "Framebuffer Size:"
 	             "\nwidth: "  << render.getTargetResolution().x
