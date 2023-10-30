@@ -11,6 +11,7 @@
 class Render {
  public:
     Render(GLFWwindow* window, RenderConfig conf) {}
+    virtual ~Render() {};
     
     virtual Resource::ResourcePool CreateResourcePool() = 0;
     virtual void DestroyResourcePool(Resource::ResourcePool pool) = 0;
