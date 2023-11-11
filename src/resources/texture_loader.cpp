@@ -1,7 +1,6 @@
 #include "texture_loader.h"
 
 #include <cstring>
-
 #include "../logger.h"
 #include "../vkhelper.h"
 #include "../parts/images.h"
@@ -40,8 +39,6 @@ struct TextureInGPU {
     void createMipMaps(VkCommandBuffer &cmdBuff);
     VkResult createImageView(VkDevice device);
 };
-
-/// --- texture loader ---
   
 TexLoaderVk::TexLoaderVk(DeviceState base, VkCommandPool cmdpool,
 			 Resource::ResourcePool pool, RenderConfig config)

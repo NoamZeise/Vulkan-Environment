@@ -1,11 +1,8 @@
 #ifndef TEXTURE_LOADER_H
 #define TEXTURE_LOADER_H
 
-#include <vector>
-#include <stdexcept>
-
-#include "../device_state.h"
 #include <resource_loader/texture_loader.h>
+#include "../device_state.h"
 
 struct TextureInGPU;
 
