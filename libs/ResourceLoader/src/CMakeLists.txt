@@ -1,6 +1,7 @@
 add_library(ResourceLoader
     stb_image_impl.cpp
     vertex_model.cpp
+    texture_loader.cpp
 )
 if(NOT NO_ASSIMP)
   target_sources(ResourceLoader PRIVATE
