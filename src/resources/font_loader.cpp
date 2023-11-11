@@ -14,7 +14,7 @@ namespace Resource {
       UnloadFonts();
   }
 
-  Font FontLoader::LoadFont(std::string file, TextureLoader *texLoader) {
+  Font FontLoader::LoadFont(std::string file, TexLoaderVk *texLoader) {
       LOG("Loading font: " << file);
       FontData* d = loadFont(file, FONT_LOAD_SIZE);
       Resource::Texture t = texLoader->LoadTexture(d->textureData,

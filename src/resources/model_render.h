@@ -30,8 +30,8 @@ namespace Resource
 		  ResourcePool resPool);
       ~ModelRender();
 
-      Model loadModel(ModelType type, std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
-      Model loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
+      Model loadModel(ModelType type, std::string path, TexLoaderVk* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
+      Model loadModel(ModelType type, ModelInfo::Model& model, TexLoaderVk* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations);
       
       void endLoading(VkCommandBuffer transferBuff);
 
@@ -42,7 +42,7 @@ namespace Resource
       void bindBuffers(VkCommandBuffer cmdBuff);
       void drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
 		     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
-		     TextureLoader *loader);
+		     TexLoaderVk *loader);
       void drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
 		    uint32_t count, uint32_t instanceOffset, glm::vec4 colour, glm::vec4 texOffset);
       size_t getAnimationIndex(Model model, std::string animationName);
@@ -52,10 +52,10 @@ namespace Resource
       void loadQuad();
       template <class T_Vert>
       Model loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup,
-			  TextureLoader* texLoader);
+			  TexLoaderVk* texLoader);
       ModelInfo::Model loadModelFromFile(std::string path);
       template <class T_Vert>
-      void loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader);
+      void loadModelTexture(LoadedModel<T_Vert> *model, TexLoaderVk* texLoader);
       template <class T_Vert>
       void processLoadGroup(ModelGroup<T_Vert>* pGroup);
       template <class T_Vert>

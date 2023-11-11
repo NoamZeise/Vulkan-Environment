@@ -31,11 +31,11 @@ endif()
 add_subdirectory(libs)
 add_subdirectory(src)
 
-if(BUILD_TESTS)
+if(VKENV_BUILD_TESTS)
   add_subdirectory(test)
 endif()
 
-if(BUILD_EXAMPLES)
+if(VKENV_BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 

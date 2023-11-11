@@ -2,7 +2,7 @@
 
 ResourcePool::ResourcePool(uint32_t ID, DeviceState base, VkCommandPool pool, RenderConfig config) {
     poolID = Resource::ResourcePool(ID);
-    texLoader = new Resource::TextureLoader(base, pool, poolID, config);
+    texLoader = new TexLoaderVk(base, pool, poolID, config);
     modelLoader = new Resource::ModelRender(base, pool, poolID);
     fontLoader = new Resource::FontLoader(poolID);
 }
@@ -31,7 +31,7 @@ Resource::Font ResourcePool::LoadFont(std::string file) {
 }
 
 void ResourcePool::loadPoolToGPU(VkCommandBuffer generalCmdBuff) {
-    texLoader->endLoading();
+    texLoader->loadGPU();
     fontLoader->EndLoading();
     modelLoader->endLoading(generalCmdBuff);
     UseGPUResources = true;
@@ -39,13 +39,13 @@ void ResourcePool::loadPoolToGPU(VkCommandBuffer generalCmdBuff) {
 }
 
 void ResourcePool::unloadStaged() {
-    texLoader->UnloadStaged();
+    texLoader->clearStaged();
     modelLoader->unloadStaged();
     fontLoader->UnloadStaged();
 }
 
 void ResourcePool::unloadGPU() {
-    texLoader->UnloadGPU();
+    texLoader->clearGPU();
     modelLoader->unloadGPU();
     fontLoader->UnloadFonts();
     UseGPUResources = false;

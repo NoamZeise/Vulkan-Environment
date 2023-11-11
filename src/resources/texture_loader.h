@@ -2,53 +2,36 @@
 #define TEXTURE_LOADER_H
 
 #include <vector>
-#include <string>
+#include <stdexcept>
 
 #include "../device_state.h"
-#include <graphics/render_config.h>
-#include <graphics/resources.h>
+#include <resource_loader/texture_loader.h>
 
-namespace Resource {
+struct TextureInGPU;
 
-  //for internal texture storage
-  struct TextureInMemory;
-  struct TextureInGPU;
+class TexLoaderVk : public InternalTexLoader {
+public:
+    TexLoaderVk(DeviceState base, VkCommandPool pool,
+		Resource::ResourcePool resPool, RenderConfig config);
+    void clearGPU() override;
+    void loadGPU() override;
+    float getMinMipmapLevel();
+    uint32_t getImageCount();
+    VkImageView getImageViewSetIndex(uint32_t texID, uint32_t imageViewIndex);
+    uint32_t getViewIndex(uint32_t texID);
+      
+private:
+    VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
+					  VkDeviceMemory &stagingMemory,
+					  uint32_t *pFinalMemType);
+    void textureDataStagingToFinal(VkBuffer stagingBuffer,
+				   VkCommandBuffer &cmdbuff);
+            
+    DeviceState base;
+    VkCommandPool cmdpool;
+    std::vector<TextureInGPU*> textures;
+    VkDeviceMemory memory;
+    uint32_t minimumMipmapLevel;
+};
 
-  class TextureLoader {
-  public:
-      TextureLoader(DeviceState base, VkCommandPool pool,
-		    ResourcePool resPool, RenderConfig config);
-      ~TextureLoader();
-      void UnloadGPU();
-      void UnloadStaged(); 
-      Texture LoadTexture(std::string path);
-      // takes ownership of data
-      Texture LoadTexture(unsigned char* data, int width, int height, int nrChannels);
-      void endLoading();
-      float getMinMipmapLevel();
-      uint32_t getImageCount();
-      VkImageView getImageViewSetIndex(uint32_t texID, uint32_t imageViewIndex);
-      uint32_t getViewIndex(uint32_t texID);
-      
-  private:
-      VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,
-					    VkDeviceMemory &stagingMemory,
-					    uint32_t *pFinalMemType);
-      void textureDataStagingToFinal(VkBuffer stagingBuffer,
-				     VkCommandBuffer &cmdbuff);
-      
-      bool srgb;
-      bool mipmapping;
-      bool useNearestTextureFilter;
-      
-      DeviceState base;
-      ResourcePool resPool;
-      VkCommandPool pool;
-      
-      std::vector<TextureInMemory> texToLoad;
-      std::vector<TextureInGPU> textures;
-      VkDeviceMemory memory;
-      uint32_t minimumMipmapLevel;
-  };
-}
 #endif

@@ -104,7 +104,7 @@ namespace Resource {
 
   void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
 			      uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
-			      TextureLoader *loader) {
+			      TexLoaderVk *loader) {
       if(model.ID >= models.size()) {
 	  LOG("the model ID is out of range, ID: " << model.ID);
 	  return;
@@ -152,7 +152,7 @@ namespace Resource {
 
   template <class T_Vert>
   Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup,
-				   TextureLoader* texLoader) {
+				   TexLoaderVk* texLoader) {
       Model userModel(currentIndex++, getModelType(T_Vert()), resPool);
       modelGroup.loadModel(model, (uint32_t)userModel.ID);
       loadModelTexture(modelGroup.getPreviousModel(), texLoader);
@@ -160,7 +160,7 @@ namespace Resource {
       return userModel;
   }
 
-  Model ModelRender::loadModel(ModelType type, ModelInfo::Model& model, TextureLoader* texLoader,
+  Model ModelRender::loadModel(ModelType type, ModelInfo::Model& model, TexLoaderVk* texLoader,
 			       std::vector<Resource::ModelAnimation> *pGetAnimations) {
       switch(type) {
       case ModelType::m2D:
@@ -182,7 +182,7 @@ namespace Resource {
       throw std::runtime_error("Model type not implemented when trying to load model!");
   }
 
-  Model ModelRender::loadModel(ModelType type, std::string path, TextureLoader* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
+  Model ModelRender::loadModel(ModelType type, std::string path, TexLoaderVk* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
       ModelInfo::Model fileModel = loadModelFromFile(path);
       return loadModel(type, fileModel, texLoader, pGetAnimations);
   }
@@ -203,7 +203,7 @@ namespace Resource {
   }
   
   template <class T_Vert>
-  void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TextureLoader* texLoader) {
+  void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TexLoaderVk* texLoader) {
       for(auto& mesh: model->meshes) {
 	  if(mesh->texToLoad != "") 
 	      mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION + mesh->texToLoad);

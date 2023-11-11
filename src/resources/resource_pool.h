@@ -20,7 +20,7 @@ struct ResourcePool {
     Resource::Model loadModel(Resource::ModelType type, ModelInfo::Model& model, std::vector<Resource::ModelAnimation> *pGetAnimations);
     Resource::Font LoadFont(std::string file);
 
-    Resource::TextureLoader* texLoader;
+    TexLoaderVk* texLoader;
     Resource::ModelRender* modelLoader;
     Resource::FontLoader* fontLoader;
     Resource::ResourcePool poolID;

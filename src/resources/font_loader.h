@@ -22,7 +22,7 @@ class FontLoader
 public:
     FontLoader(ResourcePool resPool);
     ~FontLoader();
-    Font LoadFont(std::string file, TextureLoader* texLoader);
+    Font LoadFont(std::string file, TexLoaderVk* texLoader);
     std::vector<QuadDraw> DrawString(Font drawfont, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate);
     float MeasureString(Font font, std::string text, float size);
     // must be called when texture_loader.end_loading() is called

@@ -102,7 +102,6 @@ int main() {
 	    elapsedTime += frameElapsed / 1000.0f;
 	    rot += 0.1f * frameElapsed;
 
-	    render.Begin2DDraw();
 	    render.DrawQuad(texture1,
 			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
 	    render.DrawQuad(texture2,

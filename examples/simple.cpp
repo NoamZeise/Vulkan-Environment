@@ -111,7 +111,6 @@ int main() {
 	    
 	    currentWolfAnimation.Update((float)frameElapsed);
 	    otherWolfAnimation.Update((float)frameElapsed);
-	    render.Begin2DDraw();
 	
 	    render.DrawQuad(testTex,
 			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
@@ -120,7 +119,6 @@ int main() {
 
 	    render.DrawString(font, "Demo", glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 
-	    render.Begin3DDraw();
 
 	    auto monkeyMat =
 			glm::rotate(
@@ -143,8 +141,6 @@ int main() {
 	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
 	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
 			     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
-
-	    render.BeginAnim3DDraw();
 
 	    auto wolfMat = glm::translate(
 		glm::scale(
