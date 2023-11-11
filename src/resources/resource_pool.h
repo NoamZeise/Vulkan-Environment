@@ -3,7 +3,7 @@
 
 #include "texture_loader.h"
 #include "model_render.h"
-#include "font_loader.h"
+#include <resource_loader/font_loader.h>
 
 struct ResourcePool {
     ResourcePool(uint32_t ID, DeviceState base, VkCommandPool pool, RenderConfig config);
@@ -22,7 +22,7 @@ struct ResourcePool {
 
     TexLoaderVk* texLoader;
     Resource::ModelRender* modelLoader;
-    Resource::FontLoader* fontLoader;
+    InternalFontLoader* fontLoader;
     Resource::ResourcePool poolID;
 
     bool UseGPUResources = false;

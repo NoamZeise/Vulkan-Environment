@@ -1,9 +1,8 @@
 #include <resource_loader/font_loader.h>
 
 #include <graphics/glm_helper.h>
-#include <string>
+#include <graphics/logger.h>
 #include <stdexcept>
-#include <iostream>
 
 float measureString(FontData *font, const std::string &text, float size) {
     float sz = 0;
@@ -42,6 +41,72 @@ std::vector<Resource::QuadDraw> getDraws(FontData *font,
 }
 
 
+InternalFontLoader::InternalFontLoader(Resource::ResourcePool pool, TextureLoader * texLoader) {
+    this->pool = pool;
+    this->texLoader = texLoader;
+}
+
+InternalFontLoader::~InternalFontLoader() {
+    clearStaged();
+    clearGPU();
+}
+
+Resource::Font InternalFontLoader::LoadFont(std::string file) {
+    FontData* d = loadFont(file, FONT_LOAD_SIZE);
+    Resource::Texture t = texLoader->LoadTexture(d->textureData,
+						 d->width,
+						 d->height,
+						 d->nrChannels);
+    d->textureData = nullptr; // ownership taken by texloader
+    for(auto& c: d->chars)
+	c.second.tex = t;
+    staged.push_back(d);
+    Resource::Font f(staged.size() - 1, pool);
+    LOG("Font Loaded - pool: " << pool.ID <<
+	" - id: " << f.ID <<
+	" - path: " << file);
+    return f;
+}
+
+void InternalFontLoader::loadGPU() {
+    clearGPU();
+    fonts = staged;
+    staged.clear();
+}
+
+void InternalFontLoader::clearFonts(std::vector<FontData *> &fonts) {
+    for(int i = 0; i < fonts.size(); i++)
+	delete fonts[i];
+    fonts.clear();
+}
+
+void InternalFontLoader::clearGPU() { clearFonts(fonts); }
+
+void InternalFontLoader::clearStaged() { clearFonts(staged); }
+
+float InternalFontLoader::MeasureString(Resource::Font font, std::string text, float size) {
+    if(font.ID >= fonts.size()) {
+	LOG_ERROR("font ID: " << font.ID << " was out of range: " << fonts.size());
+	return 0.0f;
+    }
+    return measureString(fonts[font.ID], text, size);
+}
+
+std::vector<Resource::QuadDraw> InternalFontLoader::DrawString(Resource::Font font,
+							       std::string text,
+							       glm::vec2 pos,
+							       float size,
+							       float depth,
+							       glm::vec4 colour,
+							       float rotate) {
+    if(font.ID >= fonts.size()) {
+	LOG_ERROR("font ID: " << font.ID << " was out of range: " << fonts.size());
+	return {};
+    }
+    return getDraws(fonts[font.ID], text, size, pos, depth, colour, rotate);
+}
+
+
 #ifndef NO_FREETYPE
 
 #include <ft2build.h>
@@ -75,7 +140,6 @@ CharData makeChar(unsigned char* buffer, const FT_Face &face, int size);
 CharData blankChar(const FT_Face &face, int size) {
     return makeChar(nullptr, face, size);
 }
-
 
 CharData loadChar(FT_Face face, char c, int size);
 
@@ -171,5 +235,4 @@ FontData* loadFont(std::string path, int fontSize) {
     throw std::runtime_error("Tried to load font, but graphics env "
 			     "was build with NO_FREETYPE");
 }
-
 #endif

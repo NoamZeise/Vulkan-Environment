@@ -1,7 +1,7 @@
 #ifndef OUTFACING_TEXTURE_LOADER
 #define OUTFACING_TEXTURE_LOADER
 
-#include <graphics/resources.h>
+#include "resources.h"
 
 class TextureLoader {
  public:
