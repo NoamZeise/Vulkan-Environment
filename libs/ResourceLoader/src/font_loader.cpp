@@ -4,42 +4,24 @@
 #include <graphics/logger.h>
 #include <stdexcept>
 
-float measureString(FontData *font, const std::string &text, float size) {
-    float sz = 0;
-    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
-	if(font->chars.count(*c) == 0)
-	    continue;
-	sz += font->chars.at(*c).advance * size;
-    }
-    return sz;
-}
+const int FONT_LOAD_SIZE = 100;
 
-std::vector<Resource::QuadDraw> getDraws(FontData *font,
-					 const std::string &text, float size,
-					 glm::vec2 position, float depth, glm::vec4 colour,
-					 float rotate) {
-    std::vector<Resource::QuadDraw> draws;
-    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
-	if(font->chars.count(*c) == 0)
-	    continue;
-	Character chr = font->chars.at(*c);
-	if(!chr.blank) {
-	    glm::vec4 pos = glm::vec4(position.x, position.y, 0, 0);
-	    pos.x += chr.bearing.x * size;
-	    pos.y += (chr.size.y - chr.bearing.y) * size;
-	    pos.y -= chr.size.y * size;
-	    pos.z = chr.size.x  * size;
-	    pos.w = chr.size.y * size;
-	    glm::mat4 model = glmhelper::calcMatFromRect(pos, rotate, depth);
-	    draws.push_back(
-		    Resource::QuadDraw(
-			    chr.tex, model, colour, chr.texOffset));
-	}
-	position.x += chr.advance * size;
-    }
-    return draws;
-}
+struct Character {
+    Resource::Texture tex;
+    bool blank = false;
+    glm::vec4 texOffset;
+    glm::vec2 size;
+    glm::vec2 bearing;
+    float advance;
+};
 
+struct FontData {
+    unsigned char* textureData;
+    unsigned int width;
+    unsigned int height;
+    unsigned int nrChannels;
+    std::map<char, Character> chars;
+};
 
 InternalFontLoader::InternalFontLoader(Resource::ResourcePool pool, TextureLoader * texLoader) {
     this->pool = pool;
@@ -50,6 +32,8 @@ InternalFontLoader::~InternalFontLoader() {
     clearStaged();
     clearGPU();
 }
+
+FontData* loadFont(std::string path, int fontSize);
 
 Resource::Font InternalFontLoader::LoadFont(std::string file) {
     FontData* d = loadFont(file, FONT_LOAD_SIZE);
@@ -89,7 +73,13 @@ float InternalFontLoader::MeasureString(Resource::Font font, std::string text, f
 	LOG_ERROR("font ID: " << font.ID << " was out of range: " << fonts.size());
 	return 0.0f;
     }
-    return measureString(fonts[font.ID], text, size);
+    float sz = 0;
+    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
+	if(fonts[font.ID]->chars.count(*c) == 0)
+	    continue;
+	sz += fonts[font.ID]->chars.at(*c).advance * size;
+    }
+    return sz;
 }
 
 std::vector<Resource::QuadDraw> InternalFontLoader::DrawString(Resource::Font font,
@@ -103,11 +93,41 @@ std::vector<Resource::QuadDraw> InternalFontLoader::DrawString(Resource::Font fo
 	LOG_ERROR("font ID: " << font.ID << " was out of range: " << fonts.size());
 	return {};
     }
-    return getDraws(fonts[font.ID], text, size, pos, depth, colour, rotate);
+    std::vector<Resource::QuadDraw> draws;
+    for(std::string::const_iterator c = text.begin(); c != text.end(); c++) {
+	if(fonts[font.ID]->chars.count(*c) == 0)
+	    continue;
+	Character chr = fonts[font.ID]->chars.at(*c);
+	if(!chr.blank) {
+	    glm::vec4 p = glm::vec4(pos.x, pos.y, 0, 0);
+	    p.x += chr.bearing.x * size;
+	    p.y += (chr.size.y - chr.bearing.y) * size;
+	    p.y -= chr.size.y * size;
+	    p.z = chr.size.x  * size;
+	    p.w = chr.size.y * size;
+	    glm::mat4 model = glmhelper::calcMatFromRect(p, rotate, depth);
+	    draws.push_back(
+		    Resource::QuadDraw(
+			    chr.tex, model, colour, chr.texOffset));
+	}
+	pos.x += chr.advance * size;
+    }
+    return draws;
 }
 
 
-#ifndef NO_FREETYPE
+
+/// ---- Freetype Font Loader ----
+
+#ifdef NO_FREETYPE
+
+#include <stdexcept>
+FontData* loadFont(std::string path, int fontSize) {
+    throw std::runtime_error("Tried to load font, but application "
+			     "was build without the freetype library");
+}
+
+#else
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -226,13 +246,5 @@ CharData loadChar(FT_Face face, char c, int size) {
     unsigned char* data = new unsigned char[charSize];
     memcpy(data, face->glyph->bitmap.buffer, charSize);
     return makeChar(data, face, size);
-}
-
-#else
-
-#include <stdexcept>
-FontData* loadFont(std::string path, int fontSize) {
-    throw std::runtime_error("Tried to load font, but graphics env "
-			     "was build with NO_FREETYPE");
 }
 #endif

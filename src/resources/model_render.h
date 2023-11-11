@@ -69,7 +69,7 @@ namespace Resource
 		    uint32_t instanceOffset);
 
 #ifndef NO_ASSIMP
-      ModelLoader modelLoader;
+      AssimpLoader modelLoader;
 #endif
       DeviceState base;
       VkCommandPool pool;

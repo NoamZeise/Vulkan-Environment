@@ -1,11 +1,5 @@
 #include <resource_loader/model_loader.h>
 
-#include <assimp/anim.h>
-#include <assimp/material.h>
-#include <assimp/matrix4x4.h>
-#include <assimp/postprocess.h>
-#include <assimp/mesh.h>
-
 #include <glm/fwd.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -14,6 +8,14 @@
 #include <iostream>
 #include <stdexcept>
 
+
+
+#ifndef NO_ASSIMP
+#include <assimp/anim.h>
+#include <assimp/material.h>
+#include <assimp/matrix4x4.h>
+#include <assimp/postprocess.h>
+#include <assimp/mesh.h>
 
 namespace Resource
 {
@@ -62,9 +64,9 @@ namespace Resource
         return aiMat;
     }
 
-ModelLoader::ModelLoader() {}
+AssimpLoader::AssimpLoader() {}
 
-ModelInfo::Model ModelLoader::LoadModel(std::string path)
+ModelInfo::Model AssimpLoader::LoadModel(std::string path)
 {
     auto model = ModelInfo::Model{};
 
@@ -96,7 +98,7 @@ ModelInfo::Model ModelLoader::LoadModel(std::string path)
     return model;            
 }
 
-void ModelLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform, int parentNode)
+void AssimpLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene, aiMatrix4x4 parentTransform, int parentNode)
 {
     //std::cout << "processing node: " << node->mName.C_Str() << std::endl;
 	aiMatrix4x4 transform = parentTransform * node->mTransformation;
@@ -121,7 +123,7 @@ void ModelLoader::processNode(ModelInfo::Model* model, aiNode* node, const aiSce
 	processNode(model, node->mChildren[i], scene, transform, thisID);
     }
 }
-void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene, aiMatrix4x4 transform)
+void AssimpLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene, aiMatrix4x4 transform)
 {
 
     ModelInfo::Mesh* mesh = &model->meshes[model->meshes.size() - 1];
@@ -211,7 +213,7 @@ void ModelLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiS
 
 }
 
-void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
+void AssimpLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
 {
     model->animations.push_back(ModelInfo::Animation());
     model->animationMap[aiAnim->mName.C_Str()] = static_cast<unsigned int>(model->animations.size());
@@ -273,3 +275,4 @@ void ModelLoader::buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim)
     }
 }
 }
+#endif
