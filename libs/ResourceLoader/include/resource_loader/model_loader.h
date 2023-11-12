@@ -47,19 +47,20 @@ public:
     void clearStaged();
 
 protected:
-
+    
     Resource::Pool pool;
     InternalTexLoader *texLoader;
     unsigned int currentIndex = 0;
     ModelGroup<Vertex2D> stage2D;
     ModelGroup<Vertex3D> stage3D;
     ModelGroup<VertexAnim3D> stageAnim3D;
-    
+    Resource::Model quad;
     Resource::AssimpLoader loader;
     template <class T_Vert>
     Resource::Model load(ModelInfo::Model& model,
 			 ModelGroup<T_Vert>& modelGroup,
 			 std::vector<Resource::ModelAnimation> *pAnimations);
+    void loadQuad();
 };
 
 

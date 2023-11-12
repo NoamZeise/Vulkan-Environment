@@ -71,6 +71,11 @@ Resource::Model InternalModelLoader::load(ModelInfo::Model& model,
     return usermodel;
 }
 
+void InternalModelLoader::loadQuad() {
+    ModelInfo::Model q = makeQuadModel();
+    quad = LoadModel(Resource::ModelType::m2D, q, nullptr);
+}
+
 #ifndef NO_ASSIMP
 #include <assimp/anim.h>
 #include <assimp/material.h>

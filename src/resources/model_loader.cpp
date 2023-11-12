@@ -1,4 +1,4 @@
-#include "model_render.h"
+#include "model_loader.h"
 
 #include <stdint.h>
 #include <array>
@@ -121,7 +121,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 			     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
 			     glm::vec4 texOffset) {
       bindGroupVertexBuffer(cmdBuff, Resource::ModelType::m2D);
-      ModelInGPU *modelInfo = models[static_cast<int>(quadID)];
+      ModelInGPU *modelInfo = models[quad.ID];
       drawMesh(cmdBuff, modelInfo, 0, count, instanceOffset);
   }
 
@@ -137,11 +137,6 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 	      modelInfo->meshes[meshIndex].vertexOffset
 	      + modelInfo->vertexOffset,
 	      instanceOffset);
-  }
-
-  void ModelLoaderVk::loadQuad() {
-      ModelInfo::Model quad = makeQuadModel();
-      quadID = LoadModel(Resource::ModelType::m2D, quad, nullptr).ID;
   }
 
   void ModelLoaderVk::loadGPU(VkCommandBuffer transferBuff) {

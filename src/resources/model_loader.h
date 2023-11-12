@@ -7,7 +7,7 @@
 
 #include "../device_state.h"
 
-  struct ModelInGPU;
+struct ModelInGPU;
 
 class ModelLoaderVk : public InternalModelLoader {
 public:
@@ -28,8 +28,6 @@ public:
 					  int index) override;
 
 private:
-    void loadQuad();
-
     template <class T_Vert>
     void processLoadGroup(ModelGroup<T_Vert>* pGroup);
     template <class T_Vert>
@@ -41,7 +39,6 @@ private:
 		  uint32_t meshIndex,
 		  uint32_t instanceCount,
 		  uint32_t instanceOffset);
-
 
     DeviceState base;
     VkCommandPool cmdpool;
@@ -55,8 +52,6 @@ private:
 
     bool boundThisFrame = false;
     Resource::ModelType prevBoundType;
-
-    size_t quadID;
 };
 
 

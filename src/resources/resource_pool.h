@@ -2,7 +2,7 @@
 #define VK_ENV_RESOURCE_POOL_H
 
 #include "texture_loader.h"
-#include "model_render.h"
+#include "model_loader.h"
 #include <resource_loader/font_loader.h>
 
 struct ResourcePool {
