@@ -13,26 +13,26 @@ class Render {
     Render(GLFWwindow* window, RenderConfig conf) {}
     virtual ~Render() {};
     
-    virtual Resource::ResourcePool CreateResourcePool() = 0;
-    virtual void DestroyResourcePool(Resource::ResourcePool pool) = 0;
-    virtual void setResourcePoolInUse(Resource::ResourcePool pool, bool usePool) = 0;
+    virtual Resource::Pool CreateResourcePool() = 0;
+    virtual void DestroyResourcePool(Resource::Pool pool) = 0;
+    virtual void setResourcePoolInUse(Resource::Pool pool, bool usePool) = 0;
 
     virtual Resource::Texture LoadTexture(std::string filepath) = 0;
-    virtual Resource::Texture LoadTexture(Resource::ResourcePool pool, std::string filepath) = 0;
+    virtual Resource::Texture LoadTexture(Resource::Pool pool, std::string filepath) = 0;
     // Load 2D image data, takes ownership of data, 4 channels
     virtual Resource::Texture LoadTexture(unsigned char* data, int width, int height) = 0;
-    virtual Resource::Texture LoadTexture(Resource::ResourcePool pool, unsigned char* data,
+    virtual Resource::Texture LoadTexture(Resource::Pool pool, unsigned char* data,
 					  int width, int height) = 0;
     virtual Resource::Font LoadFont(std::string filepath) = 0;
     
     virtual Resource::Model LoadModel(Resource::ModelType type, std::string filepath,
 				      std::vector<Resource::ModelAnimation> *pAnimations) = 0;
-    virtual Resource::Model LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+    virtual Resource::Model LoadModel(Resource::Pool pool, Resource::ModelType type,
 				      std::string filepath,
 				      std::vector<Resource::ModelAnimation> *pAnimations) = 0;
     virtual Resource::Model LoadModel(Resource::ModelType type, ModelInfo::Model& model,
 				      std::vector<Resource::ModelAnimation> *pAnimations) = 0;
-    virtual Resource::Model LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+    virtual Resource::Model LoadModel(Resource::Pool pool, Resource::ModelType type,
 				      ModelInfo::Model& model,
 				      std::vector<Resource::ModelAnimation> *pAnimations) = 0;
     virtual Resource::Model Load3DModel(std::string filepath) = 0;
@@ -41,7 +41,7 @@ class Render {
 	    std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations) = 0;
 	
     virtual void LoadResourcesToGPU() = 0;
-    virtual void LoadResourcesToGPU(Resource::ResourcePool pool) = 0;
+    virtual void LoadResourcesToGPU(Resource::Pool pool) = 0;
     virtual void UseLoadedResources() = 0;
     
     virtual void DrawModel(Resource::Model model, glm::mat4 modelMatrix,

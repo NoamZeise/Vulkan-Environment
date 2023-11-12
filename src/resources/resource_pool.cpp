@@ -1,9 +1,9 @@
 #include "resource_pool.h"
 
 ResourcePool::ResourcePool(uint32_t ID, DeviceState base, VkCommandPool pool, RenderConfig config) {
-    poolID = Resource::ResourcePool(ID);
+    poolID = Resource::Pool(ID);
     texLoader = new TexLoaderVk(base, pool, poolID, config);
-    modelLoader = new Resource::ModelRender(base, pool, poolID);
+    modelLoader = new ModelLoaderVk(base, pool, poolID, texLoader);
     fontLoader = new InternalFontLoader(poolID, texLoader);
 }
 
@@ -17,36 +17,23 @@ void ResourcePool::setUseGPUResources(bool value) {
     this->UseGPUResources = value;
 }
 
-Resource::Model ResourcePool::loadModel(Resource::ModelType type, std::string path, std::vector<Resource::ModelAnimation> *pGetAnimations) {
-    return modelLoader->loadModel(type, path, texLoader, pGetAnimations);
-}
-
-Resource::Model ResourcePool::loadModel(Resource::ModelType type, ModelInfo::Model &model,
-					std::vector<Resource::ModelAnimation> *pGetAnimations) {
-    return modelLoader->loadModel(type, model, texLoader, pGetAnimations);
-}
-
-Resource::Font ResourcePool::LoadFont(std::string file) {
-    return fontLoader->LoadFont(file);
-}
-
 void ResourcePool::loadPoolToGPU(VkCommandBuffer generalCmdBuff) {
     texLoader->loadGPU();
     fontLoader->loadGPU();
-    modelLoader->endLoading(generalCmdBuff);
+    modelLoader->loadGPU(generalCmdBuff);
     UseGPUResources = true;
     usingGPUResources = false;
 }
 
 void ResourcePool::unloadStaged() {
     texLoader->clearStaged();
-    modelLoader->unloadStaged();
+    modelLoader->clearStaged();
     fontLoader->clearStaged();
 }
 
 void ResourcePool::unloadGPU() {
     texLoader->clearGPU();
-    modelLoader->unloadGPU();
+    modelLoader->clearGPU();
     fontLoader->clearGPU();
     UseGPUResources = false;
     usingGPUResources = false;

@@ -14,6 +14,10 @@ class ModelLoader {
 	    Resource::ModelType type,
 	    ModelInfo::Model &modelData,
 	    std::vector<Resource::ModelAnimation>* pAnimations) = 0;
+    virtual Resource::ModelAnimation getAnimation(Resource::Model model,
+						  std::string animation) = 0;
+    virtual Resource::ModelAnimation getAnimation(Resource::Model model,
+						  int index) = 0;
 };
 
 #endif /* OUTFACING_MODEL_LOADER */

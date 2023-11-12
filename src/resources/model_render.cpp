@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <cmath>
 #include <cstring>
-#include <iostream>
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -13,11 +12,10 @@
 #include "../logger.h"
 #include "../pipeline_data.h"
 
-namespace Resource {
   struct MeshInfo {
       MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
       MeshInfo(uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset,
-	       Texture texture, glm::vec4 diffuseColour) {
+	       Resource::Texture texture, glm::vec4 diffuseColour) {
 	  this->indexCount = indexCount;
 	  this->indexOffset = indexOffset;
 	  this->vertexOffset = vertexOffset;
@@ -27,7 +25,7 @@ namespace Resource {
       uint32_t indexCount;
       uint32_t indexOffset;
       uint32_t vertexOffset;
-      Texture texture;
+      Resource::Texture texture;
       glm::vec4 diffuseColour;
   };
 
@@ -38,32 +36,23 @@ namespace Resource {
       uint32_t indexOffset = 0;
       std::vector<MeshInfo> meshes;
 
-      std::vector<ModelAnimation> animations;
+      std::vector<Resource::ModelAnimation> animations;
       std::map<std::string, int> animationMap;
-      ModelType type;
+      Resource::ModelType type;
   };
 	
-  ModelRender::ModelRender(DeviceState base, VkCommandPool pool, ResourcePool resPool) {
+ModelLoaderVk::ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
+			     Resource::Pool pool, InternalTexLoader* texLoader)
+    : InternalModelLoader(pool, texLoader){
       this->base = base;
-      this->pool = pool;
-      this->resPool = resPool;
+      this->cmdpool = cmdpool;
   }
 
-  ModelRender::~ModelRender() {
-      unloadStaged();
-      unloadGPU();
-  }
-
-  void ModelRender::unloadStaged() {
-      loaded2D.clearData();
-      loaded3D.clearData();
-      loadedAnim3D.clearData();
-      currentIndex = 0;
-  }
-
-  void ModelRender::unloadGPU() {
+  void ModelLoaderVk::clearGPU() {
       if(models.empty())
 	  return;
+      for(ModelInGPU* model: models)
+	  delete model;
       models.clear();
       
       vertexDataSize = 0;
@@ -73,70 +62,70 @@ namespace Resource {
       vkFreeMemory(base.device, memory, nullptr);
   }
 
-  void ModelRender::bindBuffers(VkCommandBuffer cmdBuff) {
+  void ModelLoaderVk::bindBuffers(VkCommandBuffer cmdBuff) {
       boundThisFrame = false;
       //bind index buffer - can only have one index buffer
       vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
   }
 
-  void ModelRender::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, ModelType type) {
-      if(boundThisFrame && type == prevBoundType)
-	  return;
-      boundThisFrame = true;
-      prevBoundType = type;
-      size_t vOffset = modelTypeOffset[(size_t)type];
-      VkBuffer vertexBuffers[] = { buffer };
-      VkDeviceSize offsets[] = { vOffset };
-      vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
-  }
+void ModelLoaderVk::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, Resource::ModelType type) {
+    if(boundThisFrame && type == prevBoundType)
+	return;
+    boundThisFrame = true;
+    prevBoundType = type;
+    size_t vOffset = modelTypeOffset[(size_t)type];
+    VkBuffer vertexBuffers[] = { buffer };
+    VkDeviceSize offsets[] = { vOffset };
+    vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
+}
 
-  size_t ModelRender::getAnimationIndex(Model model, std::string animation) {
-      if(models[model.ID].animationMap.find(animation) == models[model.ID].animationMap.end())
-	  throw std::runtime_error("the animation " + animation + " could not be found on model");
-      return models[model.ID].animationMap[animation];
-  }
+Resource::ModelAnimation ModelLoaderVk::getAnimation(Resource::Model model, std::string animation) {
+    if(models[model.ID]->animationMap.find(animation) == models[model.ID]->animationMap.end())
+	throw std::runtime_error("the animation " + animation + " could not be found on model");
+    return getAnimation(model, models[model.ID]->animationMap[animation]);
+}
 
-  ModelAnimation* ModelRender::getpAnimation(Model model, int animationIndex) {
-      if(animationIndex >= models[model.ID].animations.size())
-	  throw std::runtime_error("the animation index was out of range");
-      return &models[model.ID].animations[animationIndex];
-  }
+Resource::ModelAnimation ModelLoaderVk::getAnimation(Resource::Model model, int animationIndex) {
+    if(animationIndex >= models[model.ID]->animations.size())
+	throw std::runtime_error("the animation index was out of range");
+    return models[model.ID]->animations[animationIndex];
+}
 
-  void ModelRender::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout, Model model,
-			      uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
-			      TexLoaderVk *loader) {
-      if(model.ID >= models.size()) {
-	  LOG("the model ID is out of range, ID: " << model.ID);
-	  return;
-      } 
-      ModelInGPU *modelInfo = &models[model.ID];
-      bindGroupVertexBuffer(cmdBuff, modelInfo->type);
-      for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
-	  size_t texID = modelInfo->meshes[i].texture.ID; 
-	  if(texID != UINT32_MAX) 
-	      texID = loader->getViewIndex(texID);
-	  else
-	      texID = 0;
-	  fragPushConstants fps {
-	      colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
-	      glm::vec4(0, 0, 1, 1), //texOffset
-	      (uint32_t)texID,
-	  };
-	  vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
-			     0, sizeof(fragPushConstants), &fps);
-	  drawMesh(cmdBuff, modelInfo, (uint32_t)i, count, instanceOffset);
-      }
-  }
+void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
+			      Resource::Model model,
+			      uint32_t count, uint32_t instanceOffset, glm::vec4 colour) {
+    if(model.ID >= models.size()) {
+	LOG("the model ID is out of range, ID: " << model.ID);
+	return;
+    } 
+    ModelInGPU *modelInfo = models[model.ID];
+    bindGroupVertexBuffer(cmdBuff, modelInfo->type);
+    for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
+	size_t texID = modelInfo->meshes[i].texture.ID; 
+	if(texID != UINT32_MAX) 
+	    texID = texLoader->getViewIndex(texID);
+	else
+	    texID = 0;
+	fragPushConstants fps {
+	    colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
+	    glm::vec4(0, 0, 1, 1), //texOffset
+	    (uint32_t)texID,
+	};
+	vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
+			   0, sizeof(fragPushConstants), &fps);
+	drawMesh(cmdBuff, modelInfo, (uint32_t)i, count, instanceOffset);
+    }
+}
 
-  void ModelRender::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
+  void ModelLoaderVk::drawQuad(VkCommandBuffer cmdBuff, VkPipelineLayout layout, unsigned int texID,
 			     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
 			     glm::vec4 texOffset) {
-      bindGroupVertexBuffer(cmdBuff, ModelType::m2D);
-      ModelInGPU *modelInfo = &models[static_cast<int>(quadID)];
+      bindGroupVertexBuffer(cmdBuff, Resource::ModelType::m2D);
+      ModelInGPU *modelInfo = models[static_cast<int>(quadID)];
       drawMesh(cmdBuff, modelInfo, 0, count, instanceOffset);
   }
 
-  void ModelRender::drawMesh(VkCommandBuffer cmdBuff,
+  void ModelLoaderVk::drawMesh(VkCommandBuffer cmdBuff,
 			     ModelInGPU *modelInfo,
 			     uint32_t meshIndex, uint32_t instanceCount, uint32_t instanceOffset) {
     vkCmdDrawIndexed(
@@ -150,77 +139,21 @@ namespace Resource {
 	      instanceOffset);
   }
 
-  template <class T_Vert>
-  Model ModelRender::loadModelInfo(ModelInfo::Model& model, ModelGroup<T_Vert>& modelGroup,
-				   TexLoaderVk* texLoader) {
-      Model userModel(currentIndex++, getModelType(T_Vert()), resPool);
-      modelGroup.loadModel(model, (uint32_t)userModel.ID);
-      loadModelTexture(modelGroup.getPreviousModel(), texLoader);
-      LOG("Model Loaded at ID: " << userModel.ID);
-      return userModel;
-  }
-
-  Model ModelRender::loadModel(ModelType type, ModelInfo::Model& model, TexLoaderVk* texLoader,
-			       std::vector<Resource::ModelAnimation> *pGetAnimations) {
-      switch(type) {
-      case ModelType::m2D:
-	  return loadModelInfo(model, loaded2D, texLoader);
-      case ModelType::m3D:
-	  return loadModelInfo(model, loaded3D, texLoader);
-      case ModelType::m3D_Anim:
-	  Model userModel = loadModelInfo(model, loadedAnim3D, texLoader);
-	  if(pGetAnimations != nullptr)
-	      for(ModelInfo::Animation anim : model.animations) {
-		  loadedAnim3D.getPreviousModel()->animations
-		      .push_back(ModelAnimation(model.bones, anim));
-		  pGetAnimations->push_back(
-			  loadedAnim3D.getPreviousModel()->
-			  animations[loadedAnim3D.getPreviousModel()->animations.size() - 1]);
-	      }
-	  return userModel;
-      }
-      throw std::runtime_error("Model type not implemented when trying to load model!");
-  }
-
-  Model ModelRender::loadModel(ModelType type, std::string path, TexLoaderVk* texLoader, std::vector<Resource::ModelAnimation> *pGetAnimations) {
-      ModelInfo::Model fileModel = loadModelFromFile(path);
-      return loadModel(type, fileModel, texLoader, pGetAnimations);
-  }
-
-  ModelInfo::Model ModelRender::loadModelFromFile(std::string path) {
-#ifndef NO_ASSIMP
-      LOG("loading model: " << path);
-      return modelLoader.LoadModel(path);
-#else
-      throw std::runtime_error("tried to load model from file, but NO_ASSIMP is defined"
-" so that feature is disabled!");
-#endif
-  }
-
-  void ModelRender::loadQuad() {
+  void ModelLoaderVk::loadQuad() {
       ModelInfo::Model quad = makeQuadModel();
-      quadID = loadModel(ModelType::m2D, quad, nullptr, nullptr).ID;
-  }
-  
-  template <class T_Vert>
-  void ModelRender::loadModelTexture(LoadedModel<T_Vert> *model, TexLoaderVk* texLoader) {
-      for(auto& mesh: model->meshes) {
-	  if(mesh->texToLoad != "") 
-	      mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION + mesh->texToLoad);
-	  else
-	      mesh->texture.ID = UINT32_MAX;
-      }
+      quadID = LoadModel(Resource::ModelType::m2D, quad, nullptr).ID;
   }
 
-  void ModelRender::endLoading(VkCommandBuffer transferBuff) {
+  void ModelLoaderVk::loadGPU(VkCommandBuffer transferBuff) {
       loadQuad();
       int modelCount = currentIndex;
-      unloadGPU();
+      clearGPU();
+      LOG("Model count: " << modelCount);
       models.resize(modelCount);
       //get size of vertex data + offsets
-      processLoadGroup(&loaded2D);
-      processLoadGroup(&loaded3D);
-      processLoadGroup(&loadedAnim3D);
+      processLoadGroup(&stage2D);
+      processLoadGroup(&stage3D);
+      processLoadGroup(&stageAnim3D);
 
       LOG("finished processing model groups");
 
@@ -244,10 +177,10 @@ namespace Resource {
       size_t currentVertexOffset = 0;
       size_t currentIndexOffset = vertexDataSize;
 
-      stageLoadGroup(pMem, &loaded2D, currentVertexOffset, currentIndexOffset);
-      stageLoadGroup(pMem, &loaded3D, currentVertexOffset, currentIndexOffset);
-      stageLoadGroup(pMem, &loadedAnim3D, currentVertexOffset, currentIndexOffset);
-      unloadStaged();
+      stageLoadGroup(pMem, &stage2D, currentVertexOffset, currentIndexOffset);
+      stageLoadGroup(pMem, &stage3D, currentVertexOffset, currentIndexOffset);
+      stageLoadGroup(pMem, &stageAnim3D, currentVertexOffset, currentIndexOffset);
+      clearStaged();
 
       LOG("finished staging model groups");
 
@@ -287,16 +220,16 @@ namespace Resource {
   }
 
   template <class T_Vert >
-  void ModelRender::processLoadGroup(ModelGroup<T_Vert>* pGroup) {
+  void ModelLoaderVk::processLoadGroup(ModelGroup<T_Vert>* pGroup) {
       T_Vert vert = T_Vert();
-      ModelType type = getModelType(vert);
+      Resource::ModelType type = getModelType(vert);
       modelTypeOffset[(size_t)type] = vertexDataSize;
       pGroup->vertexDataOffset = vertexDataSize;
       uint32_t modelVertexOffset = 0;
       for(size_t i = 0; i < pGroup->models.size(); i++) {
-	  models[pGroup->models[i].ID] = ModelInGPU();
+	  models[pGroup->models[i].ID] = new ModelInGPU();
 
-	  ModelInGPU* model = &models[pGroup->models[i].ID];
+	  ModelInGPU* model = models[pGroup->models[i].ID];
 
 	  model->type = type;
 	  model->vertexOffset = modelVertexOffset;
@@ -329,7 +262,7 @@ namespace Resource {
   }
 
   template <class T_Vert >
-  void ModelRender::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup,
+  void ModelLoaderVk::stageLoadGroup(void* pMem, ModelGroup<T_Vert >* pGroup,
 				   size_t &pVertexDataOffset, size_t &pIndexDataOffset) {
       for(auto& model: pGroup->models) {
 	  for(size_t i = 0; i < model.meshes.size(); i++) {
@@ -353,4 +286,3 @@ namespace Resource {
       }
       pGroup->models.clear();
   }
-} //end namespace

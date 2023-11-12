@@ -23,7 +23,7 @@ struct FontData {
     std::map<char, Character> chars;
 };
 
-InternalFontLoader::InternalFontLoader(Resource::ResourcePool pool, TextureLoader * texLoader) {
+InternalFontLoader::InternalFontLoader(Resource::Pool pool, TextureLoader * texLoader) {
     this->pool = pool;
     this->texLoader = texLoader;
 }

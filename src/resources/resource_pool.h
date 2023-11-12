@@ -15,15 +15,10 @@ struct ResourcePool {
 
     void setUseGPUResources(bool value);
 
-    //injects TextureLoader ref into calls to model+font loaders
-    Resource::Model loadModel(Resource::ModelType type, std::string path, std::vector<Resource::ModelAnimation> *pGetAnimations);
-    Resource::Model loadModel(Resource::ModelType type, ModelInfo::Model& model, std::vector<Resource::ModelAnimation> *pGetAnimations);
-    Resource::Font LoadFont(std::string file);
-
     TexLoaderVk* texLoader;
-    Resource::ModelRender* modelLoader;
+    ModelLoaderVk* modelLoader;
     InternalFontLoader* fontLoader;
-    Resource::ResourcePool poolID;
+    Resource::Pool poolID;
 
     bool UseGPUResources = false;
     bool usingGPUResources = false;

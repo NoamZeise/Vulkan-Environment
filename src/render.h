@@ -46,33 +46,33 @@ const int MAX_2D_INSTANCE = 100;
 
       /// Create a new pool to load resource into.
       /// Pool will be in use by default.
-      Resource::ResourcePool CreateResourcePool();
-      void DestroyResourcePool(Resource::ResourcePool pool);
+      Resource::Pool CreateResourcePool();
+      void DestroyResourcePool(Resource::Pool pool);
       /// enable or disable using this resource pool's GPU loaded resources
       /// on by default
       /// will only take effect after a frame resource recreation
       /// (such as by calling UseLoadedResources() or if the framebuffer is resized)
-      void setResourcePoolInUse(Resource::ResourcePool pool, bool usePool);
+      void setResourcePoolInUse(Resource::Pool pool, bool usePool);
 
       /// Load a 2D image file
       Resource::Texture LoadTexture(std::string filepath);
-      Resource::Texture LoadTexture(Resource::ResourcePool pool, std::string filepath);
+      Resource::Texture LoadTexture(Resource::Pool pool, std::string filepath);
       // Load 2D image data, takes ownership of data, 4 channels
       Resource::Texture LoadTexture(unsigned char* data, int width, int height);
-      Resource::Texture LoadTexture(Resource::ResourcePool pool, unsigned char* data,
+      Resource::Texture LoadTexture(Resource::Pool pool, unsigned char* data,
 				    int width, int height);
       Resource::Font LoadFont(std::string filepath);
-      Resource::Font LoadFont(Resource::ResourcePool pool, std::string filepath);
+      Resource::Font LoadFont(Resource::Pool pool, std::string filepath);
       /// Load Models of various types with optional pointer to
       /// get animations if the model has them
       Resource::Model LoadModel(Resource::ModelType type, std::string filepath,
 				std::vector<Resource::ModelAnimation> *pAnimations);
-      Resource::Model LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+      Resource::Model LoadModel(Resource::Pool pool, Resource::ModelType type,
 				std::string filepath,
 				std::vector<Resource::ModelAnimation> *pAnimations);
       Resource::Model LoadModel(Resource::ModelType type, ModelInfo::Model& model,
 				std::vector<Resource::ModelAnimation> *pAnimations);
-      Resource::Model LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+      Resource::Model LoadModel(Resource::Pool pool, Resource::ModelType type,
 				ModelInfo::Model& model,
 				std::vector<Resource::ModelAnimation> *pAnimations);
       /// Load model from the filepath and store as a 2D model.
@@ -96,7 +96,7 @@ const int MAX_2D_INSTANCE = 100;
       /// Load A pool's resource from CPU to GPU memory
       /// This must be done before the pool's resources can be used.
       void LoadResourcesToGPU();
-      void LoadResourcesToGPU(Resource::ResourcePool pool);
+      void LoadResourcesToGPU(Resource::Pool pool);
       /// Reload frame resources, using any resources that have been loaded
       /// to the GPU from resource pools, and that have useResourcePool
       /// set to true.
@@ -151,9 +151,9 @@ const int MAX_2D_INSTANCE = 100;
       void _drawBatch();
       bool _modelStateChange(Resource::Model model, glm::vec4 colour);
       void _bindModelPool(Resource::Model model);
-      bool _validPool(Resource::ResourcePool pool);
-      bool _poolInUse(Resource::ResourcePool pool);
-      void _throwIfPoolInvaid(Resource::ResourcePool pool);
+      bool _validPool(Resource::Pool pool);
+      bool _poolInUse(Resource::Pool pool);
+      void _throwIfPoolInvaid(Resource::Pool pool);
 
       
       bool _framebufferResized = false;
@@ -219,7 +219,7 @@ const int MAX_2D_INSTANCE = 100;
 
       std::vector<DescSet*> descriptorSets;
 
-      Resource::ResourcePool defaultPool;
+      Resource::Pool defaultPool;
       
       std::vector<ResourcePool*> pools;
       std::vector<int> freePools;
@@ -240,7 +240,7 @@ const int MAX_2D_INSTANCE = 100;
       unsigned int _instance2Druns = 0;
       unsigned int _current2DInstanceIndex = 0;
 
-      Resource::ResourcePool currentModelPool;
+      Resource::Pool currentModelPool;
   };
 
 } //namespace

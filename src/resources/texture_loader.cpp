@@ -41,7 +41,7 @@ struct TextureInGPU {
 };
   
 TexLoaderVk::TexLoaderVk(DeviceState base, VkCommandPool cmdpool,
-			 Resource::ResourcePool pool, RenderConfig config)
+			 Resource::Pool pool, RenderConfig config)
     : InternalTexLoader(pool, config) {
     this->base = base;
     this->cmdpool = cmdpool;
@@ -144,7 +144,7 @@ VkImageView TexLoaderVk::getImageViewSetIndex(uint32_t texID, uint32_t imageView
 	throw std::runtime_error("no textures to replace error id with");
 }
 
-uint32_t TexLoaderVk::getViewIndex(uint32_t texID) {
+unsigned int TexLoaderVk::getViewIndex(unsigned int texID) {
     if (texID < textures.size())
 	return textures[texID]->imageViewIndex;
       

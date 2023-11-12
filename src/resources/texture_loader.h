@@ -9,13 +9,13 @@ struct TextureInGPU;
 class TexLoaderVk : public InternalTexLoader {
 public:
     TexLoaderVk(DeviceState base, VkCommandPool pool,
-		Resource::ResourcePool resPool, RenderConfig config);
+		Resource::Pool resPool, RenderConfig config);
     void clearGPU() override;
     void loadGPU() override;
     float getMinMipmapLevel();
     uint32_t getImageCount();
     VkImageView getImageViewSetIndex(uint32_t texID, uint32_t imageViewIndex);
-    uint32_t getViewIndex(uint32_t texID);
+    unsigned int getViewIndex(unsigned int texID) override;
       
 private:
     VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,

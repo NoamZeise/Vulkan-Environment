@@ -4,7 +4,7 @@
 
 #include <stdexcept>
 
-InternalTexLoader::InternalTexLoader(Resource::ResourcePool pool, RenderConfig conf) {
+InternalTexLoader::InternalTexLoader(Resource::Pool pool, RenderConfig conf) {
     this->pool = pool;
     this->srgb = conf.srgb;
     this->mipmapping = conf.mip_mapping;

@@ -15,7 +15,7 @@ struct StagedTex {
 
 class InternalTexLoader : public TextureLoader {
 public:
-    InternalTexLoader(Resource::ResourcePool pool, RenderConfig conf);
+    InternalTexLoader(Resource::Pool pool, RenderConfig conf);
     ~InternalTexLoader();
     Resource::Texture LoadTexture(std::string path) override;
     Resource::Texture LoadTexture(unsigned char* data,
@@ -27,9 +27,11 @@ public:
     void clearStaged();
     virtual void clearGPU() {};
 
+    virtual unsigned int getViewIndex(unsigned int texID) { return texID; }
+
  protected:
     bool srgb, mipmapping, filterNearest;
-    Resource::ResourcePool pool;
+    Resource::Pool pool;
     int desiredChannels = 4;
 
     std::vector<StagedTex> staged;

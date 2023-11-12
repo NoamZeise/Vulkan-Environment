@@ -75,8 +75,8 @@ int main() {
     try {
 	vkenv::RenderVk render(window, config);
 
-	Resource::ResourcePool pool1 = render.CreateResourcePool();
-	Resource::ResourcePool pool2 = render.CreateResourcePool();
+	Resource::Pool pool1 = render.CreateResourcePool();
+	Resource::Pool pool2 = render.CreateResourcePool();
 
 	Resource::Texture texture1 = render.LoadTexture(pool1, "textures/ROOM.fbm/PolyCat.jpg");
 	Resource::Texture texture2 = render.LoadTexture(pool2, "textures/ROOM.fbm/PolyHearts.jpg");

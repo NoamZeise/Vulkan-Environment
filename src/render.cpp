@@ -468,7 +468,7 @@ void RenderVk::_destroyFrameResources()
     _frameResourcesCreated = false;
 }
 
-Resource::ResourcePool RenderVk::CreateResourcePool() {
+Resource::Pool RenderVk::CreateResourcePool() {
     int index = pools.size();
     if(freePools.empty()) {
 	pools.push_back(nullptr);
@@ -483,7 +483,7 @@ Resource::ResourcePool RenderVk::CreateResourcePool() {
     return pools[index]->poolID;
 }
 
-void RenderVk::DestroyResourcePool(Resource::ResourcePool pool) {
+void RenderVk::DestroyResourcePool(Resource::Pool pool) {
     bool reloadResources = false;
     for(int i = 0; i < pools.size(); i++) {
 	if(pools[i]->poolID.ID == pool.ID) {
@@ -501,13 +501,13 @@ void RenderVk::DestroyResourcePool(Resource::ResourcePool pool) {
     }
 }
 
-  void RenderVk::setResourcePoolInUse(Resource::ResourcePool pool, bool usePool) {
+  void RenderVk::setResourcePoolInUse(Resource::Pool pool, bool usePool) {
       if(!_validPool(pool))
 	  return;
       pools[pool.ID]->setUseGPUResources(usePool);
   }
 
-  bool RenderVk::_validPool(Resource::ResourcePool pool) {
+  bool RenderVk::_validPool(Resource::Pool pool) {
       if(pool.ID > pools.size() || pools[pool.ID] == nullptr) {
 	  LOG_ERROR("Passed Pool does not exist."
 		    " It has either been destroyed or was never created.");
@@ -516,17 +516,17 @@ void RenderVk::DestroyResourcePool(Resource::ResourcePool pool) {
       return true;
   }
 
-bool RenderVk::_poolInUse(Resource::ResourcePool pool) {
+bool RenderVk::_poolInUse(Resource::Pool pool) {
     return _validPool(pool) && pools[pool.ID]->usingGPUResources;
 }
 
-void RenderVk::_throwIfPoolInvaid(Resource::ResourcePool pool) {
+void RenderVk::_throwIfPoolInvaid(Resource::Pool pool) {
     if(!_validPool(pool))
 	throw std::runtime_error("Tried to load resource "
 				 "with a pool that does not exist");
 }
 
-Resource::Texture RenderVk::LoadTexture(Resource::ResourcePool pool, std::string filepath) {
+Resource::Texture RenderVk::LoadTexture(Resource::Pool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->texLoader->LoadTexture(filepath);
 }
@@ -539,16 +539,16 @@ Resource::Texture RenderVk::LoadTexture(unsigned char* data, int width, int heig
     return LoadTexture(defaultPool, data, width, height);
 }
   
-Resource::Texture RenderVk::LoadTexture(Resource::ResourcePool pool, unsigned char* data,
+Resource::Texture RenderVk::LoadTexture(Resource::Pool pool, unsigned char* data,
 			      int width, int height) {
     _throwIfPoolInvaid(pool);
     return pools[pool.ID]->texLoader->LoadTexture(data, width, height, 4);
 }
 
-Resource::Font RenderVk::LoadFont(Resource::ResourcePool pool, std::string filepath) {
+Resource::Font RenderVk::LoadFont(Resource::Pool pool, std::string filepath) {
     _throwIfPoolInvaid(pool);
     try {
-	return pools[pool.ID]->LoadFont(filepath);
+	return pools[pool.ID]->fontLoader->LoadFont(filepath);
     } catch (const std::exception &e) {
 	LOG_ERROR("Exception Occured when loading font, "
 		  "returning empty font. exception: "
@@ -566,11 +566,11 @@ Resource::Model RenderVk::LoadModel(Resource::ModelType type, std::string filepa
     return LoadModel(defaultPool, type, filepath, pAnimations);
 }
 
-Resource::Model RenderVk::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+Resource::Model RenderVk::LoadModel(Resource::Pool pool, Resource::ModelType type,
 				  std::string filepath,
 				  std::vector<Resource::ModelAnimation> *pAnimations) {
     _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(type, filepath, pAnimations);
+    return pools[pool.ID]->modelLoader->LoadModel(type, filepath, pAnimations);
 }
 
 Resource::Model RenderVk::LoadModel(Resource::ModelType type, ModelInfo::Model& model,
@@ -578,47 +578,48 @@ Resource::Model RenderVk::LoadModel(Resource::ModelType type, ModelInfo::Model& 
     return LoadModel(defaultPool, type, model, pAnimations);
 }
   
-Resource::Model RenderVk::LoadModel(Resource::ResourcePool pool, Resource::ModelType type,
+Resource::Model RenderVk::LoadModel(Resource::Pool pool, Resource::ModelType type,
 			  ModelInfo::Model& model,
 			  std::vector<Resource::ModelAnimation> *pAnimations) {
     _throwIfPoolInvaid(pool);
-    return pools[pool.ID]->loadModel(type, model, pAnimations);
+    return pools[pool.ID]->modelLoader->LoadModel(type, model, pAnimations);
 }
   
 Resource::Model RenderVk::LoadAnimatedModel(
 	std::string filepath,
 	std::vector<Resource::ModelAnimation> *pGetAnimations) {
     _throwIfPoolInvaid(defaultPool);
-    return pools[defaultPool .ID]->loadModel(Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
+    return pools[defaultPool .ID]->modelLoader->LoadModel(
+	    Resource::ModelType::m3D_Anim, filepath, pGetAnimations);
 }
 
 Resource::Model RenderVk::LoadAnimatedModel(ModelInfo::Model& model,
 					  std::vector<Resource::ModelAnimation> *pGetAnimation) {
     _throwIfPoolInvaid(defaultPool);
-    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
+    return pools[defaultPool.ID]->modelLoader->LoadModel(Resource::ModelType::m3D_Anim, model, pGetAnimation);
 }
 
 Resource::Model RenderVk::Load2DModel(std::string filepath) {
     _throwIfPoolInvaid(defaultPool);
-    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m2D, filepath, nullptr);
+    return pools[defaultPool.ID]->modelLoader->LoadModel(Resource::ModelType::m2D, filepath, nullptr);
 }
 
 Resource::Model RenderVk::Load2DModel(ModelInfo::Model& model) {
     _throwIfPoolInvaid(defaultPool);
-    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m2D, model, nullptr);
+    return pools[defaultPool.ID]->modelLoader->LoadModel(Resource::ModelType::m2D, model, nullptr);
 }
 
 Resource::Model RenderVk::Load3DModel(std::string filepath) {
     _throwIfPoolInvaid(defaultPool);
-    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D, filepath, nullptr);
+    return pools[defaultPool.ID]->modelLoader->LoadModel(Resource::ModelType::m3D, filepath, nullptr);
 }
 
 Resource::Model RenderVk::Load3DModel(ModelInfo::Model& model) {
     _throwIfPoolInvaid(defaultPool);
-    return pools[defaultPool.ID]->loadModel(Resource::ModelType::m3D, model, nullptr);
+    return pools[defaultPool.ID]->modelLoader->LoadModel(Resource::ModelType::m3D, model, nullptr);
 }
 
-void RenderVk::LoadResourcesToGPU(Resource::ResourcePool pool) {
+void RenderVk::LoadResourcesToGPU(Resource::Pool pool) {
     _throwIfPoolInvaid(pool);
     bool remakeFrameRes = false;
     if(pools[pool.ID]->usingGPUResources) {
@@ -863,8 +864,7 @@ void RenderVk::_drawBatch() {
 							   _currentModel,
 							   _modelRuns,
 							   _current3DInstanceIndex,
-							   _currentColour,
-							   pools[currentModelPool.ID]->texLoader);
+							   _currentColour);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;
