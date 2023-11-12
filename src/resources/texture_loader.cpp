@@ -144,12 +144,12 @@ VkImageView TexLoaderVk::getImageViewSetIndex(uint32_t texID, uint32_t imageView
 	throw std::runtime_error("no textures to replace error id with");
 }
 
-unsigned int TexLoaderVk::getViewIndex(unsigned int texID) {
-    if (texID < textures.size())
-	return textures[texID]->imageViewIndex;
+unsigned int TexLoaderVk::getViewIndex(Resource::Texture tex) {
+    if (tex.ID < textures.size())
+	return textures[tex.ID]->imageViewIndex;
       
-    LOG_ERROR("View Index's texID was out of range. given: " <<
-	      texID << " , size: " << textures.size() << " . Returning 0.");
+    LOG_ERROR("View Index's texture was out of range. given id: " <<
+	      tex.ID << " , size: " << textures.size() << " . Returning 0.");
     return 0;
 }
 

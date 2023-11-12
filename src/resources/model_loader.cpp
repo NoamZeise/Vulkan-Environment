@@ -103,7 +103,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
     for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
 	size_t texID = modelInfo->meshes[i].texture.ID; 
 	if(texID != UINT32_MAX) 
-	    texID = texLoader->getViewIndex(texID);
+	    texID = texLoader->getViewIndex(modelInfo->meshes[i].texture);
 	else
 	    texID = 0;
 	fragPushConstants fps {

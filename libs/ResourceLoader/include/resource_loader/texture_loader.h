@@ -27,7 +27,7 @@ public:
     void clearStaged();
     virtual void clearGPU() {};
 
-    virtual unsigned int getViewIndex(unsigned int texID) { return texID; }
+    virtual unsigned int getViewIndex(Resource::Texture tex) { return tex.ID; }
 
  protected:
     bool srgb, mipmapping, filterNearest;

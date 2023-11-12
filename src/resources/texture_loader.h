@@ -15,7 +15,7 @@ public:
     float getMinMipmapLevel();
     uint32_t getImageCount();
     VkImageView getImageViewSetIndex(uint32_t texID, uint32_t imageViewIndex);
-    unsigned int getViewIndex(unsigned int texID) override;
+    unsigned int getViewIndex(Resource::Texture tex) override;
       
 private:
     VkDeviceSize stageTexDataCreateImages(VkBuffer &stagingBuffer,

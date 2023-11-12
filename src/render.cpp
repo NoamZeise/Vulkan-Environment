@@ -811,7 +811,7 @@ void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::v
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texID =
-       pools[texture.pool.ID]->texLoader->getViewIndex(texture.ID);
+       pools[texture.pool.ID]->texLoader->getViewIndex(texture);
   _instance2Druns++;
 
   if (_current2DInstanceIndex + _instance2Druns == MAX_2D_INSTANCE)
