@@ -52,7 +52,6 @@ private:
 
     uint32_t vertexDataSize = 0;
     uint32_t indexDataSize = 0;
-    uint32_t currentIndex = 0;
 
     bool boundThisFrame = false;
     Resource::ModelType prevBoundType;

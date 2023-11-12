@@ -148,7 +148,6 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
       loadQuad();
       int modelCount = currentIndex;
       clearGPU();
-      LOG("Model count: " << modelCount);
       models.resize(modelCount);
       //get size of vertex data + offsets
       processLoadGroup(&stage2D);
