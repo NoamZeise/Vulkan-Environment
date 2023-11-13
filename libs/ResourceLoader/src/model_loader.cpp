@@ -76,6 +76,38 @@ void InternalModelLoader::loadQuad() {
     quad = LoadModel(Resource::ModelType::m2D, q, nullptr);
 }
 
+Resource::ModelAnimation InternalModelLoader::getAnimation(Resource::Model model,
+							   std::string animation) {
+    if (model.ID >= models.size()) {
+        LOG_ERROR("Requested animation with out of range model. id: "
+                  << model.ID << " -  model count: " << models.size());
+	return Resource::ModelAnimation();
+    }
+    if (models[model.ID]->animationMap.find(animation) == models[model.ID]->animationMap.end()) {
+        LOG_ERROR("No animation called " << animation << " could be found in the"
+		  " animation map for model with id" << model.ID);
+	return Resource::ModelAnimation();
+    }        
+    return getAnimation(model, models[model.ID]->animationMap[animation]);       
+}
+
+Resource::ModelAnimation InternalModelLoader::getAnimation(Resource::Model model, int index) {
+    if (model.ID >= models.size()) {
+        LOG_ERROR("Requested animation with out of range model. id: "
+                  << model.ID << " -  model count: " << models.size());
+	return Resource::ModelAnimation();
+    }
+    if (index >= models[model.ID]->animations.size()) {
+        LOG_ERROR("Model animation index was out of range. "
+                  "model id: "
+                  << model.ID << " index: " << index
+                  << " - size: " << models[model.ID]->animations.size());
+	return Resource::ModelAnimation();
+    }        
+    return models[model.ID]->animations[index];
+}
+
+
 #ifndef NO_ASSIMP
 #include <assimp/anim.h>
 #include <assimp/material.h>
@@ -250,7 +282,7 @@ ModelInfo::Model AssimpLoader::LoadModel(std::string path) {
       for(unsigned int i = 0; i < aimesh->mNumFaces; i++) {
 	  aiFace face = aimesh->mFaces[i];
 	  for(unsigned int j = 0; j < face.mNumIndices; j++)
-	      mesh->indicies.push_back(face.mIndices[j]);
+	      mesh->indices.push_back(face.mIndices[j]);
       }
   }
 

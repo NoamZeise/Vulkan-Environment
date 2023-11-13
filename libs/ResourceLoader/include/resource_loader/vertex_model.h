@@ -18,7 +18,7 @@ template <class T_Vert>
 struct Mesh {
     Mesh() {}
     std::vector<T_Vert> verticies;
-    std::vector<unsigned int> indicies;
+    std::vector<unsigned int> indices;
     Resource::Texture texture;
     glm::vec4 diffuseColour;
 
@@ -79,7 +79,7 @@ void Mesh<T_Vert>::processMeshInfo(ModelInfo::Mesh &dataMesh) {
 	this->texToLoad = dataMesh.diffuseTextures[0];
     this->diffuseColour = dataMesh.diffuseColour;
     loadVertices(this, dataMesh);
-    this->indicies = dataMesh.indicies;
+    this->indices = dataMesh.indices;
 }
 
 ModelInfo::Model makeQuadModel();

@@ -26,7 +26,36 @@ namespace Resource {
 
 } // namespace Resource
 
+#include <map>
 
+struct GPUMesh {
+    Resource::Texture texture;
+    glm::vec4 diffuseColour;
+
+    template <typename T_Vert>
+    void load(LoadedModel<T_Vert>* data) {
+	diffuseColour = data->diffuseColour;
+	texture = data->texture;
+    }
+};
+
+struct GPUModel {
+    std::vector<Resource::ModelAnimation> animations;
+    std::map<std::string, int> animationMap;
+    Resource::ModelType type;
+
+    template <typename T_Vert>
+    void load(LoadedModel<T_Vert> data) {}
+  
+    template <typename T_Vert>
+    void setAnimations(LoadedModel<T_Vert>* data) {
+	animations.resize(data->animations.size());
+	for (int i = 0; i < data->animations.size(); i++) {
+	    animations[i] = data->animations[i];
+	    animationMap[data->animations[i].getName()] = i;
+	}   
+    }
+};
 
 class InternalModelLoader : public ModelLoader {
 public:
@@ -42,11 +71,15 @@ public:
 	    ModelInfo::Model &modelData,
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
 
-    virtual void loadGPU() {};
+    virtual void loadGPU();
     virtual void clearGPU() {};
     void clearStaged();
 
+    Resource::ModelAnimation getAnimation(Resource::Model model, std::string animation);
+    Resource::ModelAnimation getAnimation(Resource::Model model, int index);
 protected:
+
+    virtual std::vector<GPUModel*> getModel() { return {}; }
     
     Resource::Pool pool;
     InternalTexLoader *texLoader;

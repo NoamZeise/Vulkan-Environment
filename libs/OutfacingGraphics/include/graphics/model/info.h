@@ -35,7 +35,7 @@ namespace ModelInfo {
       std::vector<Vertex> verticies;
       /// indicies index into the vertex array, to build triangles, which allows for vertex reuse
       /// when mutliple triangles share a vertex.
-      std::vector<unsigned int> indicies;
+      std::vector<unsigned int> indices;
       /// Diffuse textures change the look of the model.
       std::vector<std::string> diffuseTextures;
       /// The diffuse color gives the overall color of the model, or tint if using diffuse textures too.

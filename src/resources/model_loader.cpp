@@ -1,44 +1,56 @@
 #include "model_loader.h"
 
 #include <stdint.h>
-#include <array>
 #include <stdexcept>
 #include <cmath>
 #include <cstring>
-
-#include <glm/gtc/matrix_inverse.hpp>
 
 #include "../vkhelper.h"
 #include "../logger.h"
 #include "../pipeline_data.h"
 
-  struct MeshInfo {
-      MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
-      MeshInfo(uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset,
-	       Resource::Texture texture, glm::vec4 diffuseColour) {
-	  this->indexCount = indexCount;
-	  this->indexOffset = indexOffset;
-	  this->vertexOffset = vertexOffset;
-	  this->texture = texture;
-	  this->diffuseColour = diffuseColour;
-      }
-      uint32_t indexCount;
-      uint32_t indexOffset;
-      uint32_t vertexOffset;
-      Resource::Texture texture;
-      glm::vec4 diffuseColour;
-  };
+struct MeshInfo : public GPUMesh {
+    MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
+    MeshInfo(uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset,
+	     Resource::Texture texture, glm::vec4 diffuseColour) {
+	this->indexCount = indexCount;
+	this->indexOffset = indexOffset;
+	this->vertexOffset = vertexOffset;
+	this->texture = texture;
+	this->diffuseColour = diffuseColour;
+    }
+    uint32_t indexCount;
+    uint32_t indexOffset;
+    uint32_t vertexOffset;
+};
 
-  struct ModelInGPU {
-      uint32_t vertexCount = 0;
-      uint32_t indexCount  = 0;
-      uint32_t vertexOffset = 0;
-      uint32_t indexOffset = 0;
-      std::vector<MeshInfo> meshes;
-
-      std::vector<Resource::ModelAnimation> animations;
-      std::map<std::string, int> animationMap;
-      Resource::ModelType type;
+struct ModelInGPU : public GPUModel {
+    std::vector<MeshInfo> meshes;
+    uint32_t vertexCount = 0;
+    uint32_t indexCount  = 0;
+    uint32_t vertexOffset = 0;
+    uint32_t indexOffset = 0;
+    
+    void draw(VkCommandBuffer cmdBuff,
+	      uint32_t meshIndex,
+	      uint32_t instanceCount,
+	      uint32_t instanceOffset) {
+	if(meshIndex >= meshes.size()) {
+	    LOG_ERROR("Mesh Index out of range. "
+		      " - index: " << meshIndex <<
+		      " - mesh count: " << meshes.size());
+	    return;
+	}
+	vkCmdDrawIndexed(
+		cmdBuff,
+		meshes[meshIndex].indexCount,
+		instanceCount,
+		meshes[meshIndex].indexOffset
+		+ indexOffset,
+		meshes[meshIndex].vertexOffset
+		+ vertexOffset,
+		instanceOffset);
+    }
   };
 	
 ModelLoaderVk::ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
@@ -79,16 +91,35 @@ void ModelLoaderVk::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, Resource::Mod
     vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
 }
 
+///TODO: move to abstract model loader
 Resource::ModelAnimation ModelLoaderVk::getAnimation(Resource::Model model, std::string animation) {
-    if(models[model.ID]->animationMap.find(animation) == models[model.ID]->animationMap.end())
-	throw std::runtime_error("the animation " + animation + " could not be found on model");
-    return getAnimation(model, models[model.ID]->animationMap[animation]);
+    if (model.ID >= models.size()) {
+        LOG_ERROR("Requested animation with out of range model. id: "
+                  << model.ID << " -  model count: " << models.size());
+	return Resource::ModelAnimation();
+    }
+    if (models[model.ID]->animationMap.find(animation) == models[model.ID]->animationMap.end()) {
+        LOG_ERROR("No animation called " << animation << " could be found in the"
+		  " animation map for model with id" << model.ID);
+	return Resource::ModelAnimation();
+    }        
+    return getAnimation(model, models[model.ID]->animationMap[animation]);    
 }
 
-Resource::ModelAnimation ModelLoaderVk::getAnimation(Resource::Model model, int animationIndex) {
-    if(animationIndex >= models[model.ID]->animations.size())
-	throw std::runtime_error("the animation index was out of range");
-    return models[model.ID]->animations[animationIndex];
+Resource::ModelAnimation ModelLoaderVk::getAnimation(Resource::Model model, int index) {
+    if (model.ID >= models.size()) {
+        LOG_ERROR("Requested animation with out of range model. id: "
+                  << model.ID << " -  model count: " << models.size());
+	return Resource::ModelAnimation();
+    }
+    if (index >= models[model.ID]->animations.size()) {
+        LOG_ERROR("Model animation index was out of range. "
+                  "model id: "
+                  << model.ID << " index: " << index
+                  << " - size: " << models[model.ID]->animations.size());
+	return Resource::ModelAnimation();
+    }
+    return models[model.ID]->animations[index];
 }
 
 void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
@@ -113,7 +144,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 	};
 	vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			   0, sizeof(fragPushConstants), &fps);
-	drawMesh(cmdBuff, modelInfo, (uint32_t)i, count, instanceOffset);
+	modelInfo->draw(cmdBuff, (uint32_t)i, count, instanceOffset);
     }
 }
 
@@ -121,29 +152,13 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 			     uint32_t count, uint32_t instanceOffset, glm::vec4 colour,
 			     glm::vec4 texOffset) {
       bindGroupVertexBuffer(cmdBuff, Resource::ModelType::m2D);
-      ModelInGPU *modelInfo = models[quad.ID];
-      drawMesh(cmdBuff, modelInfo, 0, count, instanceOffset);
-  }
-
-  void ModelLoaderVk::drawMesh(VkCommandBuffer cmdBuff,
-			     ModelInGPU *modelInfo,
-			     uint32_t meshIndex, uint32_t instanceCount, uint32_t instanceOffset) {
-    vkCmdDrawIndexed(
-	      cmdBuff,
-	      modelInfo->meshes[meshIndex].indexCount,
-	      instanceCount,
-	      modelInfo->meshes[meshIndex].indexOffset
-	      + modelInfo->indexOffset,
-	      modelInfo->meshes[meshIndex].vertexOffset
-	      + modelInfo->vertexOffset,
-	      instanceOffset);
+      models[quad.ID]->draw(cmdBuff, 0, count, instanceOffset);
   }
 
   void ModelLoaderVk::loadGPU(VkCommandBuffer transferBuff) {
-      loadQuad();
-      int modelCount = currentIndex;
       clearGPU();
-      models.resize(modelCount);
+      loadQuad();
+      models.resize(currentIndex);
       //get size of vertex data + offsets
       processLoadGroup(&stage2D);
       processLoadGroup(&stage3D);
@@ -220,37 +235,35 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
       modelTypeOffset[(size_t)type] = vertexDataSize;
       pGroup->vertexDataOffset = vertexDataSize;
       uint32_t modelVertexOffset = 0;
-      for(size_t i = 0; i < pGroup->models.size(); i++) {
+      for(int i = 0; i < pGroup->models.size(); i++) {
 	  models[pGroup->models[i].ID] = new ModelInGPU();
-
 	  ModelInGPU* model = models[pGroup->models[i].ID];
 
 	  model->type = type;
 	  model->vertexOffset = modelVertexOffset;
-	  model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indicies[0]);
+	  model->indexOffset = indexDataSize / sizeof(pGroup->models[i].meshes[0]->indices[0]);
 	  model->meshes.resize(pGroup->models[i].meshes.size());
-	  for(size_t j = 0 ; j <  pGroup->models[i].meshes.size(); j++) {
+	  for(int j = 0 ; j <  pGroup->models[i].meshes.size(); j++) {
+	      Mesh<T_Vert>* mesh = pGroup->models[i].meshes[j];
 	      model->meshes[j] = MeshInfo(
-		      (uint32_t)pGroup->models[i].meshes[j]->indicies.size(),
+		      (uint32_t)mesh->indices.size(),
 		      model->indexCount,  //as offset
 		      model->vertexCount, //as offset
-		      pGroup->models[i].meshes[j]->texture,
-		      pGroup->models[i].meshes[j]->diffuseColour);
-	      model->vertexCount += (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
-	      model->indexCount  += (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+		      mesh->texture,
+		      mesh->diffuseColour);
+	      model->vertexCount += (uint32_t)mesh->verticies.size();
+	      model->indexCount  += (uint32_t)mesh->indices.size();
 	      vertexDataSize += sizeof(T_Vert)
-		  * (uint32_t)pGroup->models[i].meshes[j]->verticies.size();
-	      indexDataSize +=  sizeof(pGroup->models[i].meshes[j]->indicies[0])
-		  * (uint32_t)pGroup->models[i].meshes[j]->indicies.size();
+		  * (uint32_t)mesh->verticies.size();
+	      indexDataSize +=  sizeof(mesh->indices[0])
+		  * (uint32_t)mesh->indices.size();
 	  }
 	  modelVertexOffset += model->vertexCount;
-
-	  for(size_t anim = 0; anim < pGroup->models[i].animations.size(); anim++) {
-	      model->animations.push_back(pGroup->models[i].animations[anim]);
-	      model->animationMap[pGroup->models[i].animations[anim].getName()] = static_cast<int>(
-		      pGroup->models[i].animations.size() - 1);
+	  model->animations.resize(pGroup->models[i].animations.size());
+	  for(int j = 0; j < pGroup->models[i].animations.size(); j++) {
+	      model->animations[j] = pGroup->models[i].animations[j];
+	      model->animationMap[pGroup->models[i].animations[j].getName()] = j;
 	  }
-
       }
       pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
   }
@@ -268,12 +281,12 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 	      pVertexDataOffset += sizeof(T_Vert ) * model.meshes[i]->verticies.size();
 	      
 	      std::memcpy(static_cast<char*>(pMem) + pIndexDataOffset,
-			  model.meshes[i]->indicies.data(),
-			  sizeof(model.meshes[i]->indicies[0])
-			  * model.meshes[i]->indicies.size());
+			  model.meshes[i]->indices.data(),
+			  sizeof(model.meshes[i]->indices[0])
+			  * model.meshes[i]->indices.size());
 	      
-	      pIndexDataOffset += sizeof(model.meshes[i]->indicies[0])
-		  * model.meshes[i]->indicies.size();
+	      pIndexDataOffset += sizeof(model.meshes[i]->indices[0])
+		  * model.meshes[i]->indices.size();
 	      
 	      delete model.meshes[i];
 	  }

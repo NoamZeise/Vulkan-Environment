@@ -66,7 +66,7 @@ ModelInfo::Model makeQuadModel() {
     mesh.verticies[2].TexCoord = {1.0f, 1.0f};
     mesh.verticies[3].Position = {0.0f, 1.0f, 0.0f};
     mesh.verticies[3].TexCoord = {0.0f, 1.0f};
-    mesh.indicies = { 0, 3, 2, 2, 1, 0};
+    mesh.indices = { 0, 3, 2, 2, 1, 0};
     ModelInfo::Model quad;
     quad.meshes.push_back(mesh);
     return quad;
