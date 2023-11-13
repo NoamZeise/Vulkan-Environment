@@ -79,7 +79,7 @@ public:
     Resource::ModelAnimation getAnimation(Resource::Model model, int index);
 protected:
 
-    virtual std::vector<GPUModel*> getModel() { return {}; }
+    virtual GPUModel getModel() { return {}; }
     
     Resource::Pool pool;
     InternalTexLoader *texLoader;
