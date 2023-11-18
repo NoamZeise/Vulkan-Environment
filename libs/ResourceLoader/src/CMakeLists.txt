@@ -2,12 +2,9 @@ add_library(ResourceLoader
     stb_image_impl.cpp
     vertex_model.cpp
     texture_loader.cpp
-)
-if(NOT NO_ASSIMP)
-  target_sources(ResourceLoader PRIVATE
     model_loader.cpp
-  )
-endif()
+    assimp_loader.cpp
+)
 if(NOT NO_FREETYPE)
   target_sources(ResourceLoader PRIVATE font_loader.cpp)
   add_dependencies(ResourceLoader freetype)
