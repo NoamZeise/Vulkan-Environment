@@ -4,28 +4,11 @@
 #include "texture_loader.h"
 #include <resource_loader/vertex_model.h>
 #include <graphics/model_loader.h>
-
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-
-namespace Resource {
-  
-  class AssimpLoader {
-  public:
-      AssimpLoader();
-      ModelInfo::Model LoadModel(std::string path);
-  private:
-      Assimp::Importer importer;
-      void processNode(ModelInfo::Model* model, aiNode* node, const aiScene* scene,
-		       aiMatrix4x4 parentTransform, int parentNode);
-      void processMesh(ModelInfo::Model* model, aiMesh* aimesh, const aiScene* scene,
-		       aiMatrix4x4 transform);
-      void buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim);
-  };
-
-} // namespace Resource
+#include <graphics/logger.h>
 
 #include <map>
+
+class AssimpLoader;
 
 struct GPUMesh {
     Resource::Texture texture;
@@ -51,6 +34,25 @@ struct GPUModel {
 	    animationMap[model.animations[i].getName()] = i;
 	}   
     }
+
+    Resource::ModelAnimation getAnimation(int index) {
+	if (index >= animations.size()) {
+	    LOG_ERROR("Model animation index was out of range. "
+		      "animation index: " << index
+		      << " - size: " << animations.size());
+	    return Resource::ModelAnimation();
+	}
+	return animations[index];
+    }
+
+    Resource::ModelAnimation getAnimation(std::string animation) {
+	if (animationMap.find(animation) == animationMap.end()) {
+	    LOG_ERROR("No animation called " << animation << " could be found in the"
+		  " animation map for model");
+	return Resource::ModelAnimation();
+    }        
+	return getAnimation(animationMap[animation]);  
+    }
 };
 
 class InternalModelLoader : public ModelLoader {
@@ -70,13 +72,8 @@ public:
     virtual void loadGPU() = 0;
     virtual void clearGPU() {};
     void clearStaged();
-
-    /*    Resource::ModelAnimation getAnimation(Resource::Model model, std::string animation) override;
-    Resource::ModelAnimation getAnimation(Resource::Model model, int index) override;*/
-protected:
-
-    //  virtual GPUModel getModel() { return {}; }
     
+protected:
     Resource::Pool pool;
     InternalTexLoader *texLoader;
     unsigned int currentIndex = 0;
@@ -84,7 +81,7 @@ protected:
     ModelGroup<Vertex3D> stage3D;
     ModelGroup<VertexAnim3D> stageAnim3D;
     Resource::Model quad;
-    Resource::AssimpLoader loader;
+    AssimpLoader* loader;
     template <class T_Vert>
     Resource::Model load(ModelInfo::Model& model,
 			 ModelGroup<T_Vert>& modelGroup,
