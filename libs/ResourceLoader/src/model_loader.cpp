@@ -75,7 +75,7 @@ void InternalModelLoader::loadQuad() {
     ModelInfo::Model q = makeQuadModel();
     quad = LoadModel(Resource::ModelType::m2D, q, nullptr);
 }
-
+/*
 Resource::ModelAnimation InternalModelLoader::getAnimation(Resource::Model model,
 							   std::string animation) {
     if (model.ID >= models.size()) {
@@ -105,7 +105,7 @@ Resource::ModelAnimation InternalModelLoader::getAnimation(Resource::Model model
 	return Resource::ModelAnimation();
     }        
     return models[model.ID]->animations[index];
-}
+    }*/
 
 
 #ifndef NO_ASSIMP

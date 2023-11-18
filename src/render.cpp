@@ -479,6 +479,7 @@ Resource::Pool RenderVk::CreateResourcePool() {
     pools[index] = new ResourcePool(index,
 				    manager->deviceState,
 				    manager->generalCommandPool,
+				    manager->generalCommandBuffer,
 				    renderConf);
     return pools[index]->poolID;
 }
@@ -628,7 +629,7 @@ void RenderVk::LoadResourcesToGPU(Resource::Pool pool) {
       vkDeviceWaitIdle(manager->deviceState.device);
       remakeFrameRes = true;
     }
-    pools[pool.ID]->loadPoolToGPU(manager->generalCommandBuffer);
+    pools[pool.ID]->loadPoolToGPU();
     if(remakeFrameRes)
 	UseLoadedResources();
 }

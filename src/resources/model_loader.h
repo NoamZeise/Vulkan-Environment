@@ -11,10 +11,10 @@ struct ModelInGPU;
 
 class ModelLoaderVk : public InternalModelLoader {
 public:
-    ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
+    ModelLoaderVk(DeviceState base, VkCommandPool cmdpool, VkCommandBuffer generalCmdBuff,
 		  Resource::Pool pool, InternalTexLoader *texLoader);
       
-    void loadGPU(VkCommandBuffer transferBuff);
+    void loadGPU() override;
     void clearGPU() override;
 
     void bindBuffers(VkCommandBuffer cmdBuff);
@@ -42,6 +42,7 @@ private:
 
     DeviceState base;
     VkCommandPool cmdpool;
+    VkCommandBuffer cmdbuff;
     std::vector<ModelInGPU*> models;
     size_t modelTypeOffset[(size_t)Resource::ModelType::m3D_Anim + 1];
     VkBuffer buffer;

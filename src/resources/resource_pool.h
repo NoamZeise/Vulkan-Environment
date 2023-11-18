@@ -6,10 +6,11 @@
 #include <resource_loader/font_loader.h>
 
 struct ResourcePool {
-    ResourcePool(uint32_t ID, DeviceState base, VkCommandPool pool, RenderConfig config);
+    ResourcePool(uint32_t ID, DeviceState base, VkCommandPool pool,
+		 VkCommandBuffer cmdbuff, RenderConfig config);
     ~ResourcePool();
 
-    void loadPoolToGPU(VkCommandBuffer generalCmdBuff);
+    void loadPoolToGPU();
     void unloadStaged();
     void unloadGPU();
 

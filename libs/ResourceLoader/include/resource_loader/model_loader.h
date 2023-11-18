@@ -5,7 +5,6 @@
 #include <resource_loader/vertex_model.h>
 #include <graphics/model_loader.h>
 
-
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
@@ -33,7 +32,7 @@ struct GPUMesh {
     glm::vec4 diffuseColour;
 
     template <typename T_Vert>
-    void load(LoadedModel<T_Vert>* data) {
+    void load(Mesh<T_Vert>* data) {
 	diffuseColour = data->diffuseColour;
 	texture = data->texture;
     }
@@ -45,14 +44,11 @@ struct GPUModel {
     Resource::ModelType type;
 
     template <typename T_Vert>
-    void load(LoadedModel<T_Vert> data) {}
-  
-    template <typename T_Vert>
-    void setAnimations(LoadedModel<T_Vert>* data) {
-	animations.resize(data->animations.size());
-	for (int i = 0; i < data->animations.size(); i++) {
-	    animations[i] = data->animations[i];
-	    animationMap[data->animations[i].getName()] = i;
+    GPUModel(LoadedModel<T_Vert> &model) {
+	animations.resize(model.animations.size());
+	for (int i = 0; i < model.animations.size(); i++) {
+	    animations[i] = model.animations[i];
+	    animationMap[model.animations[i].getName()] = i;
 	}   
     }
 };
@@ -71,15 +67,15 @@ public:
 	    ModelInfo::Model &modelData,
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
 
-    virtual void loadGPU();
+    virtual void loadGPU() = 0;
     virtual void clearGPU() {};
     void clearStaged();
 
-    Resource::ModelAnimation getAnimation(Resource::Model model, std::string animation);
-    Resource::ModelAnimation getAnimation(Resource::Model model, int index);
+    /*    Resource::ModelAnimation getAnimation(Resource::Model model, std::string animation) override;
+    Resource::ModelAnimation getAnimation(Resource::Model model, int index) override;*/
 protected:
 
-    virtual GPUModel getModel() { return {}; }
+    //  virtual GPUModel getModel() { return {}; }
     
     Resource::Pool pool;
     InternalTexLoader *texLoader;

@@ -11,13 +11,13 @@
 
 struct MeshInfo : public GPUMesh {
     MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
+    template <typename T_Vert>
     MeshInfo(uint32_t indexCount, uint32_t indexOffset, uint32_t vertexOffset,
-	     Resource::Texture texture, glm::vec4 diffuseColour) {
+	     Mesh<T_Vert> *mesh) {
 	this->indexCount = indexCount;
 	this->indexOffset = indexOffset;
 	this->vertexOffset = vertexOffset;
-	this->texture = texture;
-	this->diffuseColour = diffuseColour;
+	this->load(mesh);
     }
     uint32_t indexCount;
     uint32_t indexOffset;
@@ -30,6 +30,9 @@ struct ModelInGPU : public GPUModel {
     uint32_t indexCount  = 0;
     uint32_t vertexOffset = 0;
     uint32_t indexOffset = 0;
+
+    template <typename T_Vert>
+    ModelInGPU(LoadedModel<T_Vert> &model) : GPUModel(model){}
     
     void draw(VkCommandBuffer cmdBuff,
 	      uint32_t meshIndex,
@@ -54,10 +57,12 @@ struct ModelInGPU : public GPUModel {
   };
 	
 ModelLoaderVk::ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
+			     VkCommandBuffer generalCmdBuff,
 			     Resource::Pool pool, InternalTexLoader* texLoader)
     : InternalModelLoader(pool, texLoader){
       this->base = base;
       this->cmdpool = cmdpool;
+      this->cmdbuff = generalCmdBuff;
   }
 
   void ModelLoaderVk::clearGPU() {
@@ -155,7 +160,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
       models[quad.ID]->draw(cmdBuff, 0, count, instanceOffset);
   }
 
-  void ModelLoaderVk::loadGPU(VkCommandBuffer transferBuff) {
+  void ModelLoaderVk::loadGPU() {
       clearGPU();
       loadQuad();
       models.resize(currentIndex);
@@ -206,18 +211,18 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 
       VkCommandBufferBeginInfo beginInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
       beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-      vkBeginCommandBuffer(transferBuff, &beginInfo);
+      vkBeginCommandBuffer(cmdbuff, &beginInfo);
 
       VkBufferCopy copyRegion{};
       copyRegion.srcOffset = 0;
       copyRegion.dstOffset = 0;
       copyRegion.size = vertexDataSize + indexDataSize;
-      vkCmdCopyBuffer(transferBuff, stagingBuffer, buffer, 1, &copyRegion);
-      vkEndCommandBuffer(transferBuff);
+      vkCmdCopyBuffer(cmdbuff, stagingBuffer, buffer, 1, &copyRegion);
+      vkEndCommandBuffer(cmdbuff);
 
       VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
       submitInfo.commandBufferCount = 1;
-      submitInfo.pCommandBuffers = &transferBuff;
+      submitInfo.pCommandBuffers = &cmdbuff;
       vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
       vkQueueWaitIdle(base.queue.graphicsPresentQueue);
 
@@ -236,7 +241,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
       pGroup->vertexDataOffset = vertexDataSize;
       uint32_t modelVertexOffset = 0;
       for(int i = 0; i < pGroup->models.size(); i++) {
-	  models[pGroup->models[i].ID] = new ModelInGPU();
+	  models[pGroup->models[i].ID] = new ModelInGPU(pGroup->models[i]);
 	  ModelInGPU* model = models[pGroup->models[i].ID];
 
 	  model->type = type;
@@ -249,8 +254,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 		      (uint32_t)mesh->indices.size(),
 		      model->indexCount,  //as offset
 		      model->vertexCount, //as offset
-		      mesh->texture,
-		      mesh->diffuseColour);
+		      mesh);
 	      model->vertexCount += (uint32_t)mesh->verticies.size();
 	      model->indexCount  += (uint32_t)mesh->indices.size();
 	      vertexDataSize += sizeof(T_Vert)
@@ -259,11 +263,6 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 		  * (uint32_t)mesh->indices.size();
 	  }
 	  modelVertexOffset += model->vertexCount;
-	  model->animations.resize(pGroup->models[i].animations.size());
-	  for(int j = 0; j < pGroup->models[i].animations.size(); j++) {
-	      model->animations[j] = pGroup->models[i].animations[j];
-	      model->animationMap[pGroup->models[i].animations[j].getName()] = j;
-	  }
       }
       pGroup->vertexDataSize = vertexDataSize - pGroup->vertexDataOffset;
   }
