@@ -297,7 +297,7 @@ void RenderVk::_initFrameResources() {
     int texID = 0;
     if(pools.size() < 1)
 	throw std::runtime_error("At least 1 pool must exist");
-    ResourcePool *pool = pools[pI];
+    ResourcePoolVk *pool = pools[pI];
     VkImageView validView;
     bool foundValidView = false;
     //TODO: add dummy tex to ID 0 and use as validView
@@ -476,7 +476,7 @@ Resource::Pool RenderVk::CreateResourcePool() {
 	index = freePools.back();
 	freePools.pop_back();
     }
-    pools[index] = new ResourcePool(index,
+    pools[index] = new ResourcePoolVk(index,
 				    manager->deviceState,
 				    manager->generalCommandPool,
 				    manager->generalCommandBuffer,

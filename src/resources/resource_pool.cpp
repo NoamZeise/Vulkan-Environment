@@ -1,23 +1,23 @@
 #include "resource_pool.h"
 
-ResourcePool::ResourcePool(uint32_t ID, DeviceState base, VkCommandPool pool, VkCommandBuffer cmdbuff, RenderConfig config) {
+ResourcePoolVk::ResourcePoolVk(uint32_t ID, DeviceState base, VkCommandPool pool, VkCommandBuffer cmdbuff, RenderConfig config) {
     poolID = Resource::Pool(ID);
     texLoader = new TexLoaderVk(base, pool, poolID, config);
     modelLoader = new ModelLoaderVk(base, pool, cmdbuff, poolID, texLoader);
     fontLoader = new InternalFontLoader(poolID, texLoader);
 }
 
-ResourcePool::~ResourcePool() {
+ResourcePoolVk::~ResourcePoolVk() {
     delete fontLoader;
     delete modelLoader;
     delete texLoader;
 }
 
-void ResourcePool::setUseGPUResources(bool value) {
+void ResourcePoolVk::setUseGPUResources(bool value) {
     this->UseGPUResources = value;
 }
 
-void ResourcePool::loadPoolToGPU() {
+void ResourcePoolVk::loadPoolToGPU() {
     texLoader->loadGPU();
     fontLoader->loadGPU();
     modelLoader->loadGPU();
@@ -25,13 +25,13 @@ void ResourcePool::loadPoolToGPU() {
     usingGPUResources = false;
 }
 
-void ResourcePool::unloadStaged() {
+void ResourcePoolVk::unloadStaged() {
     texLoader->clearStaged();
     modelLoader->clearStaged();
     fontLoader->clearStaged();
 }
 
-void ResourcePool::unloadGPU() {
+void ResourcePoolVk::unloadGPU() {
     texLoader->clearGPU();
     modelLoader->clearGPU();
     fontLoader->clearGPU();

@@ -23,7 +23,7 @@
 #include <atomic>
 #include <vector>
 
-struct ResourcePool;
+struct ResourcePoolVk;
 
 namespace vkenv {
 
@@ -221,7 +221,7 @@ const int MAX_2D_INSTANCE = 100;
 
       Resource::Pool defaultPool;
       
-      std::vector<ResourcePool*> pools;
+      std::vector<ResourcePoolVk*> pools;
       std::vector<int> freePools;
 
       bool _begunDraw = false;
