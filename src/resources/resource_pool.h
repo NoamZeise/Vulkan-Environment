@@ -23,7 +23,7 @@ class ResourcePoolVk : public ResourcePool {
 
     void setUseGPUResources(bool value);
 
- private:
+    // private:
 
     TexLoaderVk* texLoader;
     ModelLoaderVk* modelLoader;
