@@ -54,6 +54,8 @@ const int MAX_2D_INSTANCE = 100;
       /// (such as by calling UseLoadedResources() or if the framebuffer is resized)
       void setResourcePoolInUse(Resource::Pool pool, bool usePool);
 
+      ResourcePool* pool(Resource::Pool pool) override;
+
       /// Load a 2D image file
       Resource::Texture LoadTexture(std::string filepath);
       Resource::Texture LoadTexture(Resource::Pool pool, std::string filepath);

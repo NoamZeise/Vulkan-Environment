@@ -18,7 +18,7 @@ class ResourcePoolVk : public ResourcePool {
 
     ModelLoader* model() override { return modelLoader; }
     TextureLoader* tex() override { return texLoader; }
-    FontLoader* font() override { return fontLoader; }
+    FontLoader* font()   override { return fontLoader; }
     
 
     void setUseGPUResources(bool value);

@@ -4,9 +4,9 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <atomic>
-#include "resources.h"
 #include "render_config.h"
 #include "shader_structs.h"
+#include "resource_pool.h"
 
 class Render {
  public:
@@ -16,6 +16,8 @@ class Render {
     virtual Resource::Pool CreateResourcePool() = 0;
     virtual void DestroyResourcePool(Resource::Pool pool) = 0;
     virtual void setResourcePoolInUse(Resource::Pool pool, bool usePool) = 0;
+
+    virtual ResourcePool* pool(Resource::Pool pool) = 0;
 
     virtual Resource::Texture LoadTexture(std::string filepath) = 0;
     virtual Resource::Texture LoadTexture(Resource::Pool pool, std::string filepath) = 0;

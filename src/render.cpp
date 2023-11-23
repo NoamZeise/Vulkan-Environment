@@ -508,6 +508,11 @@ void RenderVk::DestroyResourcePool(Resource::Pool pool) {
       pools[pool.ID]->setUseGPUResources(usePool);
   }
 
+  ResourcePool* RenderVk::pool(Resource::Pool pool) {
+      _throwIfPoolInvaid(pool);
+      return pools[pool.ID];
+  }
+
   bool RenderVk::_validPool(Resource::Pool pool) {
       if(pool.ID > pools.size() || pools[pool.ID] == nullptr) {
 	  LOG_ERROR("Passed Pool does not exist."
