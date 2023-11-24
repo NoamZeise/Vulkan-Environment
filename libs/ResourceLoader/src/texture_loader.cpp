@@ -16,7 +16,7 @@ InternalTexLoader::~InternalTexLoader() {
     clearGPU();
 }
 
-Resource::Texture InternalTexLoader::LoadTexture(std::string path) {
+Resource::Texture InternalTexLoader::load(std::string path) {
     for(int i = 0; i < staged.size(); i++)
 	if(staged[i].pathedTex && staged[i].path == path) {
 	    return Resource::Texture(
@@ -42,7 +42,7 @@ Resource::Texture InternalTexLoader::LoadTexture(std::string path) {
 			     glm::vec2(tex.width, tex.height), pool);
 }
 
-Resource::Texture InternalTexLoader::LoadTexture(unsigned char* data, int width, int height, int nrChannels) {
+Resource::Texture InternalTexLoader::load(unsigned char* data, int width, int height, int nrChannels) {
     StagedTex tex;
     tex.data = data;
     tex.width = width;

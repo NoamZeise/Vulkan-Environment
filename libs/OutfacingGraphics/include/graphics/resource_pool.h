@@ -10,7 +10,7 @@ class ResourcePool {
     virtual ModelLoader* model() = 0;
     virtual TextureLoader* tex() = 0;
     virtual FontLoader* font() = 0;
-    Resource::Pool resPool() { return pool; }
+    Resource::Pool id() { return pool; }
     
 protected:
     Resource::Pool pool;

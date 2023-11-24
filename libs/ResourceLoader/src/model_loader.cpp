@@ -21,23 +21,23 @@ void InternalModelLoader::clearStaged() {
     currentIndex = 0;
 }
 
-Resource::Model InternalModelLoader::LoadModel(
+Resource::Model InternalModelLoader::load(
 	Resource::ModelType type, std::string path,
 	std::vector<Resource::ModelAnimation> *pAnimations) {
     ModelInfo::Model model = loader->LoadModel(path);
-    return LoadModel(type, model, pAnimations);
+    return load(type, model, pAnimations);
 }
 
-Resource::Model InternalModelLoader::LoadModel(
+Resource::Model InternalModelLoader::load(
 	Resource::ModelType type, ModelInfo::Model &modelData,
 	std::vector<Resource::ModelAnimation>* pAnimations) {
     switch(type) {
     case Resource::ModelType::m2D:
-	return load(modelData, stage2D, pAnimations);
+	return loadData(modelData, stage2D, pAnimations);
     case Resource::ModelType::m3D:
-	return load(modelData, stage3D, pAnimations);
+	return loadData(modelData, stage3D, pAnimations);
     case Resource::ModelType::m3D_Anim:
-	return load(modelData, stageAnim3D, pAnimations);
+	return loadData(modelData, stageAnim3D, pAnimations);
     default:
 	throw std::runtime_error("Model Type Not implemented in "
 				 "InternalModelLoader");
@@ -45,7 +45,7 @@ Resource::Model InternalModelLoader::LoadModel(
 }
 
 template <class T_Vert>
-Resource::Model InternalModelLoader::load(ModelInfo::Model& model,
+Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
 					  ModelGroup<T_Vert>& modelGroup,
 					  std::vector<Resource::ModelAnimation> *pAnimations) {
     Resource::Model usermodel(currentIndex++, getModelType(T_Vert()), pool);
@@ -54,7 +54,7 @@ Resource::Model InternalModelLoader::load(ModelInfo::Model& model,
 
     for(Mesh<T_Vert> *mesh: loaded->meshes) {
 	if(mesh->texToLoad != "")
-	    mesh->texture = texLoader->LoadTexture(MODEL_TEXTURE_LOCATION
+	    mesh->texture = texLoader->load(MODEL_TEXTURE_LOCATION
 						   + mesh->texToLoad);
 	else
 	    mesh->texture.ID = UINT32_MAX;
@@ -74,5 +74,5 @@ Resource::Model InternalModelLoader::load(ModelInfo::Model& model,
 
 void InternalModelLoader::loadQuad() {
     ModelInfo::Model q = makeQuadModel();
-    quad = LoadModel(Resource::ModelType::m2D, q, nullptr);
+    quad = load(Resource::ModelType::m2D, q, nullptr);
 }

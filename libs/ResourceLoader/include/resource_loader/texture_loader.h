@@ -17,8 +17,8 @@ class InternalTexLoader : public TextureLoader {
 public:
     InternalTexLoader(Resource::Pool pool, RenderConfig conf);
     ~InternalTexLoader();
-    Resource::Texture LoadTexture(std::string path) override;
-    Resource::Texture LoadTexture(unsigned char* data,
+    Resource::Texture load(std::string path) override;
+    Resource::Texture load(unsigned char* data,
 				  int width,
 				  int height,
 				  int nrChannels) override;

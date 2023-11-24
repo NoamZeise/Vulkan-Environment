@@ -5,9 +5,9 @@
 
 class TextureLoader {
  public:
-    virtual Resource::Texture LoadTexture(std::string path) = 0;
+    virtual Resource::Texture load(std::string path) = 0;
     /// takes ownership of data
-    virtual Resource::Texture LoadTexture(unsigned char* data,
+    virtual Resource::Texture load(unsigned char* data,
 					  int width,
 					  int height,
 					  int nrChannels) = 0;

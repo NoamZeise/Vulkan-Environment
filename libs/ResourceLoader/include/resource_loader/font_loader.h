@@ -12,8 +12,8 @@ class InternalFontLoader : public FontLoader {
 public:
     InternalFontLoader(Resource::Pool pool, TextureLoader *texLoader);
     ~InternalFontLoader();
-    Resource::Font LoadFont(std::string file) override;
-    float MeasureString(Resource::Font font, std::string text, float size) override;
+    Resource::Font load(std::string file) override;
+    float length(Resource::Font font, std::string text, float size) override;
 
     std::vector<Resource::QuadDraw> DrawString(Resource::Font font,
 					       std::string text, glm::vec2 pos,

@@ -70,26 +70,28 @@ int main() {
     RenderConfig config;
     
     try {
-	vkenv::RenderVk render(window, config);
+	vkenv::RenderVk rendervk(window, config);
+	Render* render = &rendervk;
+	
 	
 	std::cout << "Framebuffer Size:"
-	             "\nwidth: "  << render.getTargetResolution().x
-		  << "\nheight: " << render.getTargetResolution().y << std::endl;
-
-	Resource::Texture testTex = render.LoadTexture("textures/ROOM.fbm/PolyCat.jpg");
-	Resource::Model suzanneModel = render.Load3DModel("models/monkey.fbx");
+	             "\nwidth: "  << render->getTargetResolution().x
+		  << "\nheight: " << render->getTargetResolution().y << std::endl;
+	ResourcePool* pool = render->pool();
+	Resource::Texture testTex = pool->tex()->load("textures/ROOM.fbm/PolyCat.jpg");
+	Resource::Model suzanneModel = pool->model()->load("models/monkey.fbx");
 
 	std::vector<Resource::ModelAnimation> wolfAnimations;
-	Resource::Model animatedWolf = render.LoadAnimatedModel("models/wolf.fbx", &wolfAnimations);
+	Resource::Model animatedWolf = pool->model()->load(Resource::ModelType::m3D_Anim, "models/wolf.fbx", &wolfAnimations);
 	Resource::ModelAnimation currentWolfAnimation = wolfAnimations[0];
 	Resource::ModelAnimation otherWolfAnimation = wolfAnimations[1];
 
-	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
+	Resource::Font font = pool->font()->load("textures/Roboto-Black.ttf");
 	
-	render.LoadResourcesToGPU();
-	render.UseLoadedResources();
+	render->LoadResourcesToGPU(pool->id());
+	render->UseLoadedResources();
 
-	render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
+	render->set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
 
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
@@ -99,12 +101,12 @@ int main() {
 	    glfwPollEvents();
 	    if(vsyncToggle) {
 		config.vsync = !config.vsync;
-		render.setRenderConf(config);
+		render->setRenderConf(config);
 		vsyncToggle = false;
 	    }
 
-	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
-	    render.setTime(elapsedTime);
+	    render->set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
+	    rendervk.setTime(elapsedTime);
 
 	    elapsedTime += frameElapsed / 1000.0f;
 	    rot += 0.1f * frameElapsed;
@@ -112,12 +114,13 @@ int main() {
 	    currentWolfAnimation.Update((float)frameElapsed);
 	    otherWolfAnimation.Update((float)frameElapsed);
 	
-	    render.DrawQuad(testTex,
+	    render->DrawQuad(testTex,
 			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
-	    render.DrawQuad(Resource::Texture(),
+	    render->DrawQuad(Resource::Texture(),
 			    glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
 
-	    render.DrawString(font, "Demo", glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
+	    render->DrawString(font, "Demo", glm::vec2(10.0f, 20.0f),
+			      10.0f, 0.0f, glm::vec4(1.0f), 0.0f);
 
 
 	    auto monkeyMat =
@@ -131,15 +134,15 @@ int main() {
 				glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 	    
 	    auto monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
-	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
+	    render->DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
 				       glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	    monkeyMat = glm::translate(monkeyMat, glm::vec3(100.0f, 0.0f, 0.0f));
 	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
-	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
+	    render->DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
 			     glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 	    monkeyMat = glm::translate(monkeyMat, glm::vec3(100.0f, 0.0f, 0.0f));
 	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
-	    render.DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
+	    render->DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
 			     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 
 	    auto wolfMat = glm::translate(
@@ -152,7 +155,7 @@ int main() {
 		glm::vec3(100.0f, -50.0f, 100.0f));
 	    
 	    auto wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
-	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
+	    render->DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
 	    
 	    wolfMat =
 		glm::scale(
@@ -163,14 +166,14 @@ int main() {
 			glm::vec3(2.0f, 2.0f, 2.0f)
 			    );
 	    wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
-	    render.DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &otherWolfAnimation);
+	    render->DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &otherWolfAnimation);
 	    
 	    drawFinished = false;
-	    render.EndDraw(drawFinished);
+	    render->EndDraw(drawFinished);
 
 	    if(resize) {	
 		resize = false;
-		render.FramebufferResize();
+		render->FramebufferResize();
 	    }
 
 	    frameElapsed = (long)std::chrono::duration_cast<std::chrono::milliseconds>

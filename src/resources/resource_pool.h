@@ -8,7 +8,7 @@
 
 class ResourcePoolVk : public ResourcePool {
  public:
-    ResourcePoolVk(uint32_t ID, DeviceState base, VkCommandPool pool,
+    ResourcePoolVk(uint32_t poolID, DeviceState base, VkCommandPool cmdpool,
 		 VkCommandBuffer cmdbuff, RenderConfig config);
     ~ResourcePoolVk();
 
@@ -28,7 +28,6 @@ class ResourcePoolVk : public ResourcePool {
     TexLoaderVk* texLoader;
     ModelLoaderVk* modelLoader;
     InternalFontLoader* fontLoader;
-    Resource::Pool poolID;
 
     bool UseGPUResources = false;
     bool usingGPUResources = false;

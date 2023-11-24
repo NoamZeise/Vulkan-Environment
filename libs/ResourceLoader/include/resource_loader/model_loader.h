@@ -60,11 +60,11 @@ public:
     InternalModelLoader(Resource::Pool pool, InternalTexLoader* texLoader);
     ~InternalModelLoader();
     
-    Resource::Model LoadModel(
+    Resource::Model load(
 	    Resource::ModelType type,
 	    std::string path,
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
-    Resource::Model LoadModel(
+    Resource::Model load(
 	    Resource::ModelType type,
 	    ModelInfo::Model &modelData,
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
@@ -83,9 +83,9 @@ protected:
     Resource::Model quad;
     AssimpLoader* loader;
     template <class T_Vert>
-    Resource::Model load(ModelInfo::Model& model,
-			 ModelGroup<T_Vert>& modelGroup,
-			 std::vector<Resource::ModelAnimation> *pAnimations);
+    Resource::Model loadData(ModelInfo::Model& model,
+			     ModelGroup<T_Vert>& modelGroup,
+			     std::vector<Resource::ModelAnimation> *pAnimations);
     void loadQuad();
 };
 

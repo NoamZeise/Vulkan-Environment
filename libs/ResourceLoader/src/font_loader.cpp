@@ -35,12 +35,12 @@ InternalFontLoader::~InternalFontLoader() {
 
 FontData* loadFont(std::string path, int fontSize);
 
-Resource::Font InternalFontLoader::LoadFont(std::string file) {
+Resource::Font InternalFontLoader::load(std::string file) {
     FontData* d = loadFont(file, FONT_LOAD_SIZE);
-    Resource::Texture t = texLoader->LoadTexture(d->textureData,
-						 d->width,
-						 d->height,
-						 d->nrChannels);
+    Resource::Texture t = texLoader->load(d->textureData,
+					  d->width,
+					  d->height,
+					  d->nrChannels);
     d->textureData = nullptr; // ownership taken by texloader
     for(auto& c: d->chars)
 	c.second.tex = t;
@@ -68,7 +68,7 @@ void InternalFontLoader::clearGPU() { clearFonts(fonts); }
 
 void InternalFontLoader::clearStaged() { clearFonts(staged); }
 
-float InternalFontLoader::MeasureString(Resource::Font font, std::string text, float size) {
+float InternalFontLoader::length(Resource::Font font, std::string text, float size) {
     if(font.ID >= fonts.size()) {
 	LOG_ERROR("font ID: " << font.ID << " was out of range: " << fonts.size());
 	return 0.0f;

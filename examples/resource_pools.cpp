@@ -73,22 +73,24 @@ int main() {
     RenderConfig config;
     
     try {
-	vkenv::RenderVk render(window, config);
+	vkenv::RenderVk rendervk(window, config);
+	Render* render = &rendervk;
 
-	Resource::Pool pool1 = render.CreateResourcePool();
-	Resource::Pool pool2 = render.CreateResourcePool();
+	ResourcePool* defpool = render->pool(Resource::Pool(0));
+	ResourcePool* pool1 = render->CreateResourcePool();
+	ResourcePool* pool2 = render->CreateResourcePool();
 
-	Resource::Texture texture1 = render.LoadTexture(pool1, "textures/ROOM.fbm/PolyCat.jpg");
-	Resource::Texture texture2 = render.LoadTexture(pool2, "textures/ROOM.fbm/PolyHearts.jpg");
+	Resource::Texture texture1 = pool1->tex()->load("textures/ROOM.fbm/PolyCat.jpg");
+	Resource::Texture texture2 = pool2->tex()->load("textures/ROOM.fbm/PolyHearts.jpg");
 	
-	Resource::Font font = render.LoadFont("textures/Roboto-Black.ttf");
+	Resource::Font font = defpool->font()->load("textures/Roboto-Black.ttf");
 	
-	render.LoadResourcesToGPU();
-	render.LoadResourcesToGPU(pool1);
-	render.LoadResourcesToGPU(pool2);
-	render.UseLoadedResources();
+	render->LoadResourcesToGPU(defpool->id());
+	render->LoadResourcesToGPU(pool1->id());
+	render->LoadResourcesToGPU(pool2->id());
+	render->UseLoadedResources();
 
-	render.set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
+	render->set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
 
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
@@ -97,25 +99,25 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
 
-	    render.set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
+	    render->set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
 
 	    elapsedTime += frameElapsed / 1000.0f;
 	    rot += 0.1f * frameElapsed;
 
-	    render.DrawQuad(texture1,
+	    render->DrawQuad(texture1,
 			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
-	    render.DrawQuad(texture2,
+	    render->DrawQuad(texture2,
 			    glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
 	    
-	    render.DrawString(font, "Resource Pool Demo",
+	    render->DrawString(font, "Resource Pool Demo",
 			      glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 
 	    drawFinished = false;
-	    render.EndDraw(drawFinished);
+	    render->EndDraw(drawFinished);
 
 	    if(resize) {	
 		resize = false;
-		render.FramebufferResize();
+		render->FramebufferResize();
 	    }
 
 	    frameElapsed = (long)std::chrono::duration_cast<std::chrono::milliseconds>

@@ -5,8 +5,8 @@
 
 class FontLoader {
  public:
-    virtual Resource::Font LoadFont(std::string file) = 0;
-    virtual float MeasureString(Resource::Font font, std::string text, float size) = 0;
+    virtual Resource::Font load(std::string file) = 0;
+    virtual float length(Resource::Font font, std::string text, float size) = 0;
 };
 
 #endif

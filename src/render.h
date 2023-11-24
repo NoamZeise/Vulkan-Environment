@@ -38,98 +38,38 @@ const int MAX_2D_INSTANCE = 100;
       /// If the operation failed, don't try to create an object of type Render.
       /// This will be called by Render automatically if not called before Render is created.
       static bool LoadVulkan();
-      /// Iniltialise the renderer. Chooses a GPU and sets up resources loaders.
-      /// Do any resource loading, then call LoadResourcesToGPU(), then UseLoadedResources() 
-      /// before the draw loop.
+
       RenderVk(GLFWwindow *window, RenderConfig renderConf);
       ~RenderVk();
 
-      /// Create a new pool to load resource into.
-      /// Pool will be in use by default.
-      Resource::Pool CreateResourcePool();
-      void DestroyResourcePool(Resource::Pool pool);
-      /// enable or disable using this resource pool's GPU loaded resources
-      /// on by default
-      /// will only take effect after a frame resource recreation
-      /// (such as by calling UseLoadedResources() or if the framebuffer is resized)
-      void setResourcePoolInUse(Resource::Pool pool, bool usePool);
-
+      ResourcePool* CreateResourcePool() override;
+      void DestroyResourcePool(Resource::Pool pool) override;
+      void setResourcePoolInUse(Resource::Pool pool, bool usePool) override;
       ResourcePool* pool(Resource::Pool pool) override;
 
-      /// Load a 2D image file
-      Resource::Texture LoadTexture(std::string filepath);
-      Resource::Texture LoadTexture(Resource::Pool pool, std::string filepath);
-      // Load 2D image data, takes ownership of data, 4 channels
-      Resource::Texture LoadTexture(unsigned char* data, int width, int height);
-      Resource::Texture LoadTexture(Resource::Pool pool, unsigned char* data,
-				    int width, int height);
-      Resource::Font LoadFont(std::string filepath);
-      Resource::Font LoadFont(Resource::Pool pool, std::string filepath);
-      /// Load Models of various types with optional pointer to
-      /// get animations if the model has them
-      Resource::Model LoadModel(Resource::ModelType type, std::string filepath,
-				std::vector<Resource::ModelAnimation> *pAnimations);
-      Resource::Model LoadModel(Resource::Pool pool, Resource::ModelType type,
-				std::string filepath,
-				std::vector<Resource::ModelAnimation> *pAnimations);
-      Resource::Model LoadModel(Resource::ModelType type, ModelInfo::Model& model,
-				std::vector<Resource::ModelAnimation> *pAnimations);
-      Resource::Model LoadModel(Resource::Pool pool, Resource::ModelType type,
-				ModelInfo::Model& model,
-				std::vector<Resource::ModelAnimation> *pAnimations);
-      /// Load model from the filepath and store as a 2D model.
-      /// Can be used in 2D draws, which will be drawn with orthographic projection.
-      Resource::Model Load2DModel(std::string filepath);
-      /// Load 2D model from a ModelInfo::Model.
-      /// For loading your own models that aren't from a model file.
-      Resource::Model Load2DModel(ModelInfo::Model& model);
-      /// Load a model from a file and store as a 3D model.
-      Resource::Model Load3DModel(std::string filepath);
-      /// Load 3D model from a ModelInfo::Model.
-      /// For loading your own models that aren't from a model file.
-      Resource::Model Load3DModel(ModelInfo::Model& model);
-      /// Load a model that has animations
-      /// Supply a pointer to a vector of ModelAnimations to get the animations that the model has.
-      /// If the model has no animations, the model will be loaded as 3D.
-      Resource::Model LoadAnimatedModel(std::string filepath, std::vector<Resource::ModelAnimation> *pGetAnimations);
-      Resource::Model LoadAnimatedModel(ModelInfo::Model& model,
-					std::vector<Resource::ModelAnimation> *pGetAnimation);
+      void LoadResourcesToGPU(Resource::Pool pool) override;
+      void UseLoadedResources() override;
 
-      /// Load A pool's resource from CPU to GPU memory
-      /// This must be done before the pool's resources can be used.
-      void LoadResourcesToGPU();
-      void LoadResourcesToGPU(Resource::Pool pool);
-      /// Reload frame resources, using any resources that have been loaded
-      /// to the GPU from resource pools, and that have useResourcePool
-      /// set to true.
-      void UseLoadedResources();
-
-      //switching between models that are in different pools often is slow
-      void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix);
+      // warning: switching between models that are in different pools often is slow
       void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
-		     glm::vec4 modelColour);
+		     glm::vec4 modelColour) override;
       void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
-			 Resource::ModelAnimation *animation);
+			 Resource::ModelAnimation *animation) override;
       void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour,
-		    glm::vec4 texOffset);
-      void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour);
-      void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix);
+		    glm::vec4 texOffset) override;
       void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size,
-		      float depth, glm::vec4 colour, float rotate);
-      void DrawString(Resource::Font font, std::string text, glm::vec2 position, float size,
-		      float depth, glm::vec4 colour);
-      float MeasureString(Resource::Font font, std::string text, float size);
-      void EndDraw(std::atomic<bool> &submit);
+		      float depth, glm::vec4 colour, float rotate) override;
+      void EndDraw(std::atomic<bool> &submit) override;
 
-      void FramebufferResize();
+      void FramebufferResize() override;
 
-      void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos);
-      void set2DViewMatrixAndScale(glm::mat4 view, float scale);
-      void setLightingProps(BPLighting lighting);
-      void setRenderConf(RenderConfig renderConf);
-      RenderConfig getRenderConf();
-      void setTargetResolution(glm::vec2 resolution);
-      glm::vec2 getTargetResolution();
+      void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) override;
+      void set2DViewMatrixAndScale(glm::mat4 view, float scale) override;
+      void setLightingProps(BPLighting lighting) override;
+      void setRenderConf(RenderConfig renderConf) override;
+      RenderConfig getRenderConf() override;
+      void setTargetResolution(glm::vec2 resolution) override;
+      glm::vec2 getTargetResolution() override;
 
       void setTime(float time) {
 	  timeData.time = time;
