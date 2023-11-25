@@ -43,22 +43,21 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
 }
 
 void populateDebugMessengerCreateInfo(
-    VkDebugUtilsMessengerCreateInfoEXT *createInfo){
-  // debug messenger settings
+	VkDebugUtilsMessengerCreateInfoEXT *createInfo,
+	bool errorOnly){
   createInfo->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  if(VKENV_DEBUG_ERROR_ONLY)
-    createInfo->messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  else
-    createInfo->messageSeverity =
+  createInfo->messageSeverity = errorOnly ?
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
+      :
       VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
       VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
       VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
   createInfo->messageType =
-    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT // all types
+    VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
     | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
     VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   createInfo->pfnUserCallback = debugUtilsMessengerCallback;
-  createInfo->pUserData = nullptr; // optional pointer to user type
+  createInfo->pUserData = nullptr;
 }
 
 #endif

@@ -15,7 +15,8 @@ VulkanManager::VulkanManager(GLFWwindow *window, EnabledFeatures featuresToEnabl
     throwOnErr(part::create::Instance(&instance),
 	       "Failed to create Vulkan Instance");
 #ifndef NDEBUG
-    throwOnErr(part::create::DebugMessenger(instance, &debugMessenger),
+    throwOnErr(part::create::DebugMessenger(instance, &debugMessenger,
+					    featuresToEnable.debugErrorOnly),
 	       "Failed to create Debug Messenger");
 #endif
     throwOnErr(glfwCreateWindowSurface(instance, window, nullptr, &windowSurface),

@@ -15,7 +15,8 @@ namespace part {
     }
 #ifndef NDEBUG
     namespace create {
-	VkResult DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger);
+      VkResult DebugMessenger(VkInstance instance, VkDebugUtilsMessengerEXT* messenger,
+			      bool errorOnly);
     }
     namespace destroy {
         void DebugMessenger(VkInstance instance,

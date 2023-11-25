@@ -78,7 +78,7 @@ namespace part {
 
 	// setup debug messenger for just the creation of an instance
 	VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo{};
-	populateDebugMessengerCreateInfo(&debugMessengerInfo);
+	populateDebugMessengerCreateInfo(&debugMessengerInfo, false);
 	validationFeatures.pNext = &debugMessengerInfo; // call after validation feature creation
 #else
 	instanceCreateInfo.enabledLayerCount = 0;
@@ -139,11 +139,12 @@ namespace part {
     
 #ifndef NDEBUG
     VkResult DebugMessenger(VkInstance instance,
-			    VkDebugUtilsMessengerEXT *messenger) {
+			    VkDebugUtilsMessengerEXT *messenger,
+			    bool errorOnly) {
 	VkResult result = VK_SUCCESS;
 	// setup debug messenger for all operations
 	VkDebugUtilsMessengerCreateInfoEXT createInfo{};
-	populateDebugMessengerCreateInfo(&createInfo);
+	populateDebugMessengerCreateInfo(&createInfo, errorOnly);
 	returnOnErr(createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, messenger));
 	return result;
     }

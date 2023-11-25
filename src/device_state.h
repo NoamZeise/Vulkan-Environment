@@ -3,24 +3,24 @@
 
 #include <volk.h>
 
-struct QueueFamilies
-{
-  uint32_t graphicsPresentFamilyIndex;
-  VkQueue graphicsPresentQueue;
+struct QueueFamilies {
+    uint32_t graphicsPresentFamilyIndex;
+    VkQueue graphicsPresentQueue;
 };
 
-struct EnabledFeatures
-{
-  bool samplerAnisotropy = false;
-  bool sampleRateShading = false;
+struct EnabledFeatures {
+    bool samplerAnisotropy = false;
+    bool sampleRateShading = false;
+#ifndef NDEBUG
+    bool debugErrorOnly = false;
+#endif
 };
 
-struct DeviceState
-{
-  VkPhysicalDevice physicalDevice;
-  VkDevice device;
-  QueueFamilies queue;
-  EnabledFeatures features;
+struct DeviceState {
+    VkPhysicalDevice physicalDevice;
+    VkDevice device;
+    QueueFamilies queue;
+    EnabledFeatures features;
 };
 
 #endif

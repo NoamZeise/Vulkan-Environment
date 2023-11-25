@@ -6,7 +6,8 @@
 #ifndef NDEBUG
 
 void populateDebugMessengerCreateInfo(
-    VkDebugUtilsMessengerCreateInfoEXT *createInfo);
+	VkDebugUtilsMessengerCreateInfoEXT *createInfo,
+	bool errorOnly);
 
 VkResult createDebugUtilsMessengerEXT(
     VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
