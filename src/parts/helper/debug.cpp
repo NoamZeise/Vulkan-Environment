@@ -7,7 +7,7 @@
 #include <vector>
 
 #ifndef NDEBUG 
-#define VKENV_DEBUG_ERROR_ONLY true
+#define VKENV_DEBUG_ERROR_ONLY false
 #endif
 
 VkResult createDebugUtilsMessengerEXT(

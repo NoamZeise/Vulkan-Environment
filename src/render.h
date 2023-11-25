@@ -68,8 +68,6 @@ const int MAX_2D_INSTANCE = 100;
       void setLightingProps(BPLighting lighting) override;
       void setRenderConf(RenderConfig renderConf) override;
       RenderConfig getRenderConf() override;
-      void setTargetResolution(glm::vec2 resolution) override;
-      glm::vec2 getTargetResolution() override;
 
       void setTime(float time) {
 	  timeData.time = time;

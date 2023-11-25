@@ -34,7 +34,9 @@ class Render {
 	return pool(Resource::Pool(0));
     }
     /// load any staged resources from the given resource pool into the GPU
-    /// need to call UseLoadedResources for these resources to be loaded
+    /// Will free any resources currently in the gpu as part of this pool
+    /// usually need to call UseLoadedResources for these resources to be loaded
+    /// but if pool has gpu resources already, this will be called for you
     virtual void LoadResourcesToGPU(Resource::Pool pool) = 0;
     /// Reload frame resources, using any resources that have been loaded
     /// to the GPU from resource pools, and that have useResourcePool
@@ -87,8 +89,6 @@ class Render {
 
     virtual void setRenderConf(RenderConfig renderConf) = 0;
     virtual RenderConfig getRenderConf() = 0;
-    virtual void setTargetResolution(glm::vec2 resolution) = 0;
-    virtual glm::vec2 getTargetResolution() = 0;
 };
 
 #endif

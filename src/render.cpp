@@ -898,17 +898,4 @@ RenderConfig RenderVk::getRenderConf() {
     return renderConf;
 }
 
-void RenderVk::setTargetResolution(glm::vec2 resolution) {
-    if(renderConf.target_resolution[0] == resolution.x &&
-       renderConf.target_resolution[1] == resolution.y)
-	return;
-    renderConf.target_resolution[0] = resolution.x;
-    renderConf.target_resolution[1] = resolution.y;
-    FramebufferResize();
-}
-
-glm::vec2 RenderVk::getTargetResolution() {
-    return glm::vec2(renderConf.target_resolution[0], renderConf.target_resolution[1]);
-}
-
 }//namespace
