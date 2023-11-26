@@ -106,4 +106,8 @@ namespace DS {
 	  throw std::runtime_error("Descriptor Shader Buffer: tried to store data "
 				   "in non uniform or storage buffer!");
   }
+
+  void Binding::storeSetData(size_t frameIndex, void *data) {
+      storeSetData(frameIndex, data, 0, 0, 0);
+  }
 }

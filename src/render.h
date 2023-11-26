@@ -63,11 +63,14 @@ const int MAX_2D_INSTANCE = 100;
 
       void FramebufferResize() override;
 
-      void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) override;
-      void set2DViewMatrixAndScale(glm::mat4 view, float scale) override;
+      void set3DViewMat(glm::mat4 view, glm::vec4 camPos) override;
+      void set2DViewMat(glm::mat4 view) override;
+      void set3DProjMat(glm::mat4 proj) override;
+      void set2DProjMat(glm::mat4 proj) override;
       void setLightingProps(BPLighting lighting) override;
       void setRenderConf(RenderConfig renderConf) override;
       RenderConfig getRenderConf() override;
+      glm::vec2 offscreenSize() override;
 
       void setTime(float time) {
 	  timeData.time = time;
@@ -87,7 +90,6 @@ const int MAX_2D_INSTANCE = 100;
       void _store3DsetData();
       void _store2DsetData();
       void _resize();
-      void _update3DProjectionMatrix();
       void _drawBatch();
       bool _modelStateChange(Resource::Model model, glm::vec4 colour);
       void _bindModelPool(Resource::Model model);
@@ -167,8 +169,6 @@ const int MAX_2D_INSTANCE = 100;
       bool _begunDraw = false;
       RenderState _renderState;
       VkSemaphore _imgAquireSem;
-      float _projectionFov = 45.0f;
-      float _scale2D = 1.0f;
 
       unsigned int _modelRuns = 0;
       unsigned int _current3DInstanceIndex = 0;

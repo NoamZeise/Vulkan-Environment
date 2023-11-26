@@ -555,7 +555,6 @@ void RenderVk::_resize() {
     LOG("resizing");
     _framebufferResized = false;
     UseLoadedResources();
-    _update3DProjectionMatrix();
 }
 
 void RenderVk::_startDraw() {
@@ -585,19 +584,13 @@ void RenderVk::_startDraw() {
 }
 
 void RenderVk::_store3DsetData() {
-    VP3D->bindings[0].storeSetData(swapchainFrameIndex, &VP3DData, 0, 0, 0);
-    VP3D->bindings[1].storeSetData(swapchainFrameIndex, &timeData, 0, 0, 0);
-    lighting->bindings[0].storeSetData(swapchainFrameIndex, &lightingData, 0, 0, 0);
+    VP3D->bindings[0].storeSetData(swapchainFrameIndex, &VP3DData);
+    VP3D->bindings[1].storeSetData(swapchainFrameIndex, &timeData);
+    lighting->bindings[0].storeSetData(swapchainFrameIndex, &lightingData);
 }
 
 void RenderVk::_store2DsetData() {
-    VP2DData.proj = glm::ortho(
-	    0.0f, (float)offscreenRenderPass->getExtent().width*_scale2D, 0.0f,
-	    (float)offscreenRenderPass->getExtent().height*_scale2D,
-	    renderConf.depth_range_2D[0], renderConf.depth_range_2D[1]);
-    VP2DData.view = glm::mat4(1.0f);
-    
-    VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData, 0, 0, 0);
+    VP2D->bindings[0].storeSetData(swapchainFrameIndex, &VP2DData);
 }
 
 void RenderVk::_begin(RenderState state) {
@@ -656,9 +649,6 @@ void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
-
-    if(_current3DInstanceIndex == 0)
-	_store3DsetData();
     
     if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
 	_drawBatch();
@@ -859,30 +849,32 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
   submit = true;
 }
 
-void RenderVk::_update3DProjectionMatrix() {
-  VP3DData.proj =
-      glm::perspective(glm::radians(_projectionFov),
-                       ((float)offscreenRenderPass->getExtent().width) /
-                           ((float)offscreenRenderPass->getExtent().height),
-                       renderConf.depth_range_3D[0], renderConf.depth_range_3D[1]);
-  VP3DData.proj[1][1] *= -1; // opengl has inversed y axis, so need to correct
-}
-
 //recreates frame resources, so any state change for rendering will be updated on next draw if this is called
 void RenderVk::FramebufferResize() {
     _framebufferResized = true;
 }
 
-void RenderVk::set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) {
-  VP3DData.view = view;
-  _projectionFov = fov;
-  lightingData.camPos = camPos;
-  _update3DProjectionMatrix();
+void RenderVk::set3DViewMat(glm::mat4 view, glm::vec4 camPos) {
+    VP3DData.view = view;
+    lightingData.camPos = camPos;
 }
 
-void RenderVk::set2DViewMatrixAndScale(glm::mat4 view, float scale) {
-  VP2DData.view = view;
-  _scale2D = scale;
+void RenderVk::set2DViewMat(glm::mat4 view) {
+    VP2DData.view = view;
+}
+
+void RenderVk::set3DProjMat(glm::mat4 proj) {
+    VP3DData.proj = proj;
+    VP3DData.proj[1][1] *= -1; // glm has inverted y axis    
+}
+
+void RenderVk::set2DProjMat(glm::mat4 proj) {
+    VP2DData.proj = proj;
+    VP2DData.proj[1][1] *= -1;
+    VP2DData.proj[3][1] *= -1;
+
+    VP2DData.proj[2][2] *= -1;
+    VP2DData.proj[3][2] *= -1;
 }
 
 void RenderVk::setLightingProps(BPLighting lighting) {
@@ -896,6 +888,13 @@ void RenderVk::setRenderConf(RenderConfig renderConf) {
 
 RenderConfig RenderVk::getRenderConf() {
     return renderConf;
+}
+
+glm::vec2 RenderVk::offscreenSize() {
+    if(offscreenRenderPass == nullptr)
+	return glm::vec2();
+    return glm::vec2((float)offscreenRenderPass->getExtent().width,
+		     (float)offscreenRenderPass->getExtent().height);
 }
 
 }//namespace

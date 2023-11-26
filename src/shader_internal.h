@@ -40,6 +40,9 @@ namespace DS {
 
       void storeSetData(size_t frameIndex, void *data, size_t descriptorIndex,
 			size_t arrayIndex, size_t dynamicOffsetIndex);
+      /// defaults other args to zero.
+      /// ie for just a plain single struct descriptor
+      void storeSetData(size_t frameIndex, void *data);
   };
 }
 

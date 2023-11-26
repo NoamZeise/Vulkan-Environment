@@ -82,13 +82,19 @@ class Render {
 
     /// call in the window manager when the window is resized
     virtual void FramebufferResize() = 0;
-    
-    virtual void set3DViewMatrixAndFov(glm::mat4 view, float fov, glm::vec4 camPos) = 0;
-    virtual void set2DViewMatrixAndScale(glm::mat4 view, float scale) = 0;
+    /// Shader Variable Setters
+    virtual void set3DViewMat(glm::mat4 view, glm::vec4 camPos) = 0;
+    void set3DViewMat(glm::mat4 view, glm::vec3 camPos) {
+	set3DViewMat(view, glm::vec4(camPos, 0));
+    }
+    virtual void set2DViewMat(glm::mat4 view) = 0;
+    virtual void set3DProjMat(glm::mat4 proj) = 0;
+    virtual void set2DProjMat(glm::mat4 proj) = 0;
     virtual void setLightingProps(BPLighting lighting) = 0;
 
     virtual void setRenderConf(RenderConfig renderConf) = 0;
     virtual RenderConfig getRenderConf() = 0;
+    virtual glm::vec2 offscreenSize() = 0;
 };
 
 #endif
