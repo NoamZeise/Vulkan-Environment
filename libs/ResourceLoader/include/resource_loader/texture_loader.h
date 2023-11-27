@@ -25,7 +25,7 @@ public:
 
     virtual void loadGPU() = 0;
     void clearStaged();
-    virtual void clearGPU() {};
+    virtual void clearGPU() = 0;
 
     virtual unsigned int getViewIndex(Resource::Texture tex) { return tex.ID; }
 

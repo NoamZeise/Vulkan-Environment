@@ -47,6 +47,10 @@ TexLoaderVk::TexLoaderVk(DeviceState base, VkCommandPool cmdpool,
     this->cmdpool = cmdpool;
 }
 
+TexLoaderVk::~TexLoaderVk() {
+    clearGPU();
+}
+
 void TexLoaderVk::clearGPU() {
     if (textures.size() <= 0)
 	return;

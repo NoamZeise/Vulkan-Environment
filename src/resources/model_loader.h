@@ -13,7 +13,7 @@ class ModelLoaderVk : public InternalModelLoader {
 public:
     ModelLoaderVk(DeviceState base, VkCommandPool cmdpool, VkCommandBuffer generalCmdBuff,
 		  Resource::Pool pool, InternalTexLoader *texLoader);
-      
+    ~ModelLoaderVk();
     void loadGPU() override;
     void clearGPU() override;
 

@@ -13,7 +13,6 @@ InternalTexLoader::InternalTexLoader(Resource::Pool pool, RenderConfig conf) {
 
 InternalTexLoader::~InternalTexLoader() {
     clearStaged();
-    clearGPU();
 }
 
 Resource::Texture InternalTexLoader::load(std::string path) {

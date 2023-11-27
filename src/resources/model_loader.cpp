@@ -63,27 +63,31 @@ ModelLoaderVk::ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
       this->base = base;
       this->cmdpool = cmdpool;
       this->cmdbuff = generalCmdBuff;
-  }
+}
 
-  void ModelLoaderVk::clearGPU() {
-      if(models.empty())
-	  return;
-      for(ModelInGPU* model: models)
-	  delete model;
-      models.clear();
-      
-      vertexDataSize = 0;
-      indexDataSize = 0;
-      
-      vkDestroyBuffer(base.device, buffer, nullptr);
-      vkFreeMemory(base.device, memory, nullptr);
-  }
+ModelLoaderVk::~ModelLoaderVk() {
+    clearGPU();
+}
 
-  void ModelLoaderVk::bindBuffers(VkCommandBuffer cmdBuff) {
-      boundThisFrame = false;
-      //bind index buffer - can only have one index buffer
-      vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
-  }
+void ModelLoaderVk::clearGPU() {
+    if(models.empty())
+	return;
+    for(ModelInGPU* model: models)
+	delete model;
+    models.clear();
+      
+    vertexDataSize = 0;
+    indexDataSize = 0;
+      
+    vkDestroyBuffer(base.device, buffer, nullptr);
+    vkFreeMemory(base.device, memory, nullptr);
+}
+
+void ModelLoaderVk::bindBuffers(VkCommandBuffer cmdBuff) {
+    boundThisFrame = false;
+    //bind index buffer - can only have one index buffer
+    vkCmdBindIndexBuffer(cmdBuff, buffer, vertexDataSize, VK_INDEX_TYPE_UINT32);
+}
 
 void ModelLoaderVk::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, Resource::ModelType type) {
     if(boundThisFrame && type == prevBoundType)

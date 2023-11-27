@@ -70,7 +70,7 @@ public:
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
 
     virtual void loadGPU() = 0;
-    virtual void clearGPU() {};
+    virtual void clearGPU() = 0;
     void clearStaged();
     
 protected:

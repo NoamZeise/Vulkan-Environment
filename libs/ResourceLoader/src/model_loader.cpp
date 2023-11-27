@@ -10,7 +10,6 @@ InternalModelLoader::InternalModelLoader(Resource::Pool pool, InternalTexLoader*
 
 InternalModelLoader::~InternalModelLoader() {
     clearStaged();
-    clearGPU();
     delete loader;
 }
 
