@@ -236,7 +236,7 @@ void RenderVk::_initFrameResources() {
     PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
 						  descriptor::Type::StorageBuffer,
 						  sizeof(shaderStructs::PerFrame3D),
-						  MAX_3D_INSTANCE);
+						  Resource::MAX_3D_BATCH);
     perFrame3D = new DescSet(PerFrame3D_Set, swapchainFrameCount, manager->deviceState.device);
       
 
@@ -248,7 +248,7 @@ void RenderVk::_initFrameResources() {
     descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
     vert2D_Set.AddSingleArrayStructDescriptor("vert struct",
 					      descriptor::Type::StorageBuffer,
-					      sizeof(glm::mat4), MAX_2D_INSTANCE);
+					      sizeof(glm::mat4), Resource::MAX_2D_BATCH);
     perFrame2DVert = new DescSet(vert2D_Set, swapchainFrameCount, manager->deviceState.device);
 
     descriptor::Set offscreenView_Set("Offscreen Transform", descriptor::ShaderStage::Vertex);
@@ -340,7 +340,7 @@ void RenderVk::_initFrameResources() {
     frag2D_Set.AddSingleArrayStructDescriptor(
 	    "Per frag struct",
 	    descriptor::Type::StorageBuffer,
-	    sizeof(shaderStructs::Frag2DData), MAX_2D_INSTANCE);
+	    sizeof(shaderStructs::Frag2DData), Resource::MAX_2D_BATCH);
     perFrame2DFrag = new DescSet(frag2D_Set, swapchainFrameCount, manager->deviceState.device);
 
     emptyDS = new DescSet(
@@ -631,7 +631,7 @@ bool RenderVk::_modelStateChange(Resource::Model model, glm::vec4 colour) {
 
 void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
 		       glm::vec4 colour) {
-    if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
+    if (_current3DInstanceIndex >= Resource::MAX_3D_BATCH) {
 	LOG("WARNING: ran out of 3D instances!\n");
 	return;
     }
@@ -650,13 +650,13 @@ void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
     
-    if (_current3DInstanceIndex + _modelRuns == MAX_3D_INSTANCE)
+    if (_current3DInstanceIndex + _modelRuns == Resource::MAX_3D_BATCH)
 	_drawBatch();
 }
 
 void RenderVk::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 			   glm::mat4 normalMat, Resource::ModelAnimation *animation) {
-    if (_current3DInstanceIndex >= MAX_3D_INSTANCE) {
+    if (_current3DInstanceIndex >= Resource::MAX_3D_BATCH) {
 	LOG("WARNING: Ran out of 3D Anim Instance models!\n");
 	return;
     }
@@ -676,7 +676,7 @@ void RenderVk::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 
     auto animBones = animation->getCurrentBones();
     shaderStructs::Bones bonesData;
-    for(int i = 0; i < animBones->size() && i < shaderStructs::MAX_BONES; i++) {
+    for(int i = 0; i < animBones->size() && i < Resource::MAX_BONES; i++) {
 	bonesData.mat[i] = animBones->at(i);
     }
     if(currentBonesDynamicOffset >= MAX_ANIMATIONS_PER_FRAME) {
@@ -694,7 +694,7 @@ void RenderVk::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 }
 
 void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour, glm::vec4 texOffset) {
-  if (_current2DInstanceIndex >= MAX_2D_INSTANCE) {
+  if (_current2DInstanceIndex >= Resource::MAX_2D_BATCH) {
       LOG("WARNING: ran out of 2D instance models!\n");
       return;
   }
@@ -710,7 +710,7 @@ void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::v
        pools[texture.pool.ID]->texLoader->getViewIndex(texture);
   _instance2Druns++;
 
-  if (_current2DInstanceIndex + _instance2Druns == MAX_2D_INSTANCE)
+  if (_current2DInstanceIndex + _instance2Druns == Resource::MAX_2D_BATCH)
     _drawBatch();
 }
 
@@ -799,11 +799,11 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
   {
     case RenderState::Draw3D:
     case RenderState::DrawAnim3D:
-      if (_modelRuns != 0 && _current3DInstanceIndex < MAX_3D_INSTANCE)
+      if (_modelRuns != 0 && _current3DInstanceIndex < Resource::MAX_3D_BATCH)
         _drawBatch();
       break;
     case RenderState::Draw2D:
-      if (_instance2Druns != 0 && _current2DInstanceIndex < MAX_2D_INSTANCE)
+      if (_instance2Druns != 0 && _current2DInstanceIndex < Resource::MAX_2D_BATCH)
         _drawBatch();
       break;
   }

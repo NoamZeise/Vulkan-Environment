@@ -3,6 +3,7 @@
 #define VKENV_SHADER_STRUCTS_H
 
 #include "glm/glm.hpp"
+#include <graphics/resources.h>
 
 namespace shaderStructs {
   struct viewProjection {
@@ -25,9 +26,8 @@ namespace shaderStructs {
       alignas(4) float time;
   };
 
-  const int MAX_BONES = 50;
   struct Bones {
-      alignas(16) glm::mat4 mat[MAX_BONES];
+      alignas(16) glm::mat4 mat[Resource::MAX_BONES];
   };
 }
 #endif

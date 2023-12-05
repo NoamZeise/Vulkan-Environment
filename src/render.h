@@ -28,8 +28,6 @@ struct ResourcePoolVk;
 namespace vkenv {
 
 const size_t MAX_ANIMATIONS_PER_FRAME = 10;
-const int MAX_3D_INSTANCE = 50;
-const int MAX_2D_INSTANCE = 100;
 
   class RenderVk : public Render {
   public:
@@ -138,13 +136,13 @@ const int MAX_2D_INSTANCE = 100;
       DescSet *VP2D;
       shaderStructs::viewProjection VP2DData;
       DescSet *perFrame3D;
-      shaderStructs::PerFrame3D perFrame3DData[MAX_3D_INSTANCE];
+      shaderStructs::PerFrame3D perFrame3DData[Resource::MAX_3D_BATCH];
       DescSet *bones;
       size_t currentBonesDynamicOffset;
       DescSet *perFrame2DVert;
-      glm::mat4 perFrame2DVertData[MAX_2D_INSTANCE];
+      glm::mat4 perFrame2DVertData[Resource::MAX_2D_BATCH];
       DescSet *perFrame2DFrag;
-      shaderStructs::Frag2DData perFrame2DFragData[MAX_2D_INSTANCE];
+      shaderStructs::Frag2DData perFrame2DFragData[Resource::MAX_2D_BATCH];
       DescSet *lighting;
       BPLighting lightingData;
       DescSet *offscreenTransform;
