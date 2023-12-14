@@ -265,9 +265,11 @@ bool swapchainRecreationRequired(VkResult result) {
 
       float minMipmapLevel = 100000.0f;
       for(auto& p: pools) {
-	  float n = p->texLoader->getMinMipmapLevel();
-	  if(n < minMipmapLevel)
-	      minMipmapLevel = n;
+	  if(p->usingGPUResources) {
+	      float n = p->texLoader->getMinMipmapLevel();
+	      if(n < minMipmapLevel)
+		  minMipmapLevel = n;
+	  }
       }
     
     
@@ -335,6 +337,7 @@ bool swapchainRecreationRequired(VkResult result) {
 					 Resource::MAX_TEXTURES_SUPPORTED,
 					 textureViews);
       textures = new DescSet(texture_Set, swapchainFrameCount, manager->deviceState.device);
+
       
       descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
       frag2D_Set.AddSingleArrayStructDescriptor(
@@ -541,14 +544,73 @@ void RenderVk::LoadResourcesToGPU(Resource::Pool pool) {
       vkDeviceWaitIdle(manager->deviceState.device);
       remakeFrameRes = true;
     }
-    pools[pool.ID]->loadPoolToGPU();
-    if(remakeFrameRes)
+    pools[pool.ID]->loadPoolToGPU(); 
+    if(remakeFrameRes) //remake if pool currently in use was reloaded
 	UseLoadedResources();
 }
 
 void RenderVk::UseLoadedResources() {
     vkDeviceWaitIdle(manager->deviceState.device);
-    _initFrameResources();
+    if(!_frameResourcesCreated) {
+	_initFrameResources();
+	return;
+    }
+
+    //TODO : consider mimap levels
+    //       make init_resource and this use the same code
+    
+
+    // diff pools ->
+    
+    // check mipmaps?
+    // if diff -> recreate sampler.
+    //            if sampler recreated -> recreate texture desc set
+    
+    // diff textures ->
+    // recreates textureViews array
+    // diff tex views -> diff texture desc set
+
+    //try without caring about mipmaps
+    
+
+    if(pools.size() < 1)
+	throw std::runtime_error("At least 1 pool must exist");
+    ResourcePoolVk *pool = pools[0];
+    VkImageView validView;
+    bool foundValidView = false;
+    //TODO: add dummy tex to ID 0 and use as validView
+    for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
+	if(pool == nullptr || !pool->UseGPUResources)
+	    goto next_pool;
+	pool->usingGPUResources = true;
+	if(texI < pool->texLoader->getImageCount()) {
+	    textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
+	    if (!foundValidView) {
+		foundValidView = true;
+		validView = textureViews[i];
+	    }              
+	} else {
+	    goto next_pool;
+	}
+	continue;
+    next_pool:
+	if(pools.size() > pI + 1) {
+	    pool = pools[++pI];
+	    texI = 0;
+	    i--;
+	} else {
+	    if(foundValidView)
+		textureViews[i] = validView;
+	    else //TODO: change so we dont require a texture
+		throw std::runtime_error("No textures were loaded. "
+					 "At least 1 Texture must be loaded");
+	}
+    }
+    //temp: until dummy tex added
+    textureViews[0] = validView;
+    LOG("updating texture views");
+    textures->bindings[1].storeImageViews(manager->deviceState.device);
+    LOG("updated texture views");
 }
 
 void RenderVk::_resize() {

@@ -107,6 +107,39 @@ namespace DS {
 				   "in non uniform or storage buffer!");
   }
 
+  ///TODO ADD THESE FOR ALL TYPES + MAKE PREPARE SHADER BUFFER
+  // USE THESE INSTEAD
+  void Binding::storeImageViews(VkDevice device) {
+      if(type != VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
+	  throw std::runtime_error("Descriptor Shader Buffer: tried to store image views "
+				   "in non sampled-image binding!");
+      std::vector<VkWriteDescriptorSet> writes(
+	      setCount,
+	      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+      std::vector<VkDescriptorImageInfo> imageInfo(setCount * descriptorCount);
+      for(int i = 0; i < setCount; i++) {
+	  //images
+	  for(int j = 0; j < descriptorCount; j++) {
+	      size_t imageIndex = (descriptorCount * i) + j;
+	      imageInfo[imageIndex].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	      if(viewsPerSet)
+		  imageInfo[imageIndex].imageView = *(imageViews +
+						      (i * descriptorCount)
+						      + j);
+	      else
+		  imageInfo[imageIndex].imageView = *(imageViews + j);
+	  }
+	  writes[i].dstSet = ds->sets[i];
+	  writes[i].dstBinding = binding;
+	  writes[i].dstArrayElement = 0;
+	  writes[i].descriptorCount = (uint32_t)descriptorCount;
+	  writes[i].descriptorType = type;
+	  writes[i].pImageInfo = imageInfo.data() + (i * descriptorCount);
+	  
+      }
+      vkUpdateDescriptorSets(device, writes.size(), writes.data(), 0, nullptr);
+  }
+
   void Binding::storeSetData(size_t frameIndex, void *data) {
       storeSetData(frameIndex, data, 0, 0, 0);
   }

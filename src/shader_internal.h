@@ -43,6 +43,8 @@ namespace DS {
       /// defaults other args to zero.
       /// ie for just a plain single struct descriptor
       void storeSetData(size_t frameIndex, void *data);
+
+      void storeImageViews(VkDevice device);
   };
 }
 

@@ -110,9 +110,9 @@ void DescriptorPoolAndSet(VkDevice device, VkDescriptorPool* pool, std::vector<D
 		  break;
 	      case VK_DESCRIPTOR_TYPE_SAMPLER:
 		  for (size_t j = 0; j < bind[bindingI]->descriptorCount; j++) {
-			  size_t imageIndex = (bind[bindingI]->descriptorCount * i) + j;
-			  imageInfos[imageIndex].sampler = *(bind[bindingI]->samplers + j);
-		      }
+		      size_t imageIndex = (bind[bindingI]->descriptorCount * i) + j;
+		      imageInfos[imageIndex].sampler = *(bind[bindingI]->samplers + j);
+		  }
 		  writes[i].pImageInfo = imageInfos.data() + (i * bind[bindingI]->descriptorCount);
 		  break;
 	      default:
