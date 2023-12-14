@@ -97,351 +97,351 @@ bool swapchainRecreationRequired(VkResult result) {
 	result == VK_ERROR_OUT_OF_DATE_KHR;
 }
 
-void RenderVk::_initFrameResources() {
-    LOG("Creating Swapchain");
+  void RenderVk::_initFrameResources() {
+      LOG("Creating Swapchain");
 
-    if(_frameResourcesCreated)
-	_destroyFrameResources();
+      if(_frameResourcesCreated)
+	  _destroyFrameResources();
 	    
-    int winWidth, winHeight;
-    winWidth = winHeight = 0;
-    glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
-    while(winWidth == 0 || winHeight == 0) {
-	glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
-	glfwWaitEvents();
-    }
-    VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
-    if (renderConf.target_resolution[0] != 0.0 && renderConf.target_resolution[1] != 0.0)
-	offscreenBufferExtent = {(uint32_t)renderConf.target_resolution[0],
-				 (uint32_t)renderConf.target_resolution[1]};
-    VkExtent2D swapchainExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
+      int winWidth, winHeight;
+      winWidth = winHeight = 0;
+      glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
+      while(winWidth == 0 || winHeight == 0) {
+	  glfwGetFramebufferSize(manager->window, &winWidth, &winHeight);
+	  glfwWaitEvents();
+      }
+      VkExtent2D offscreenBufferExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
+      if (renderConf.target_resolution[0] != 0.0 && renderConf.target_resolution[1] != 0.0)
+	  offscreenBufferExtent = {(uint32_t)renderConf.target_resolution[0],
+				   (uint32_t)renderConf.target_resolution[1]};
+      VkExtent2D swapchainExtent = {(uint32_t)winWidth, (uint32_t)winHeight};
       
-    if(swapchain == nullptr)
-	swapchain = new Swapchain(
-		manager->deviceState.device,
-		manager->deviceState.physicalDevice,
-		manager->windowSurface, swapchainExtent, renderConf);
-    else
-	swapchain->RecreateSwapchain(swapchainExtent, renderConf);
+      if(swapchain == nullptr)
+	  swapchain = new Swapchain(
+		  manager->deviceState.device,
+		  manager->deviceState.physicalDevice,
+		  manager->windowSurface, swapchainExtent, renderConf);
+      else
+	  swapchain->RecreateSwapchain(swapchainExtent, renderConf);
 
-    LOG("Creating Render Passes");
+      LOG("Creating Render Passes");
 
-    VkFormat swapchainFormat = swapchain->getFormat();
-    VkSampleCountFlagBits sampleCount = vkhelper::getMaxSupportedMsaaSamples(
-	    manager->deviceState.device,
-	    manager->deviceState.physicalDevice);
-    if(!renderConf.multisampling)
-	sampleCount = VK_SAMPLE_COUNT_1_BIT;
+      VkFormat swapchainFormat = swapchain->getFormat();
+      VkSampleCountFlagBits sampleCount = vkhelper::getMaxSupportedMsaaSamples(
+	      manager->deviceState.device,
+	      manager->deviceState.physicalDevice);
+      if(!renderConf.multisampling)
+	  sampleCount = VK_SAMPLE_COUNT_1_BIT;
 
-    if(swapchainFormat != prevSwapchainFormat || sampleCount != prevSampleCount) {
-	if(offscreenRenderPass != nullptr) {
-	    LOG("not nullptr");
-	    delete offscreenRenderPass;
-	    delete finalRenderPass;
-	}
-	std::vector<AttachmentDesc> offscreenAttachments;
-	if(renderConf.multisampling) {
-	    offscreenAttachments.push_back(AttachmentDesc(0, AttachmentType::Colour,
-							  AttachmentUse::TransientAttachment,
-							  sampleCount, swapchainFormat));
-	    offscreenAttachments.push_back(AttachmentDesc(2, AttachmentType::Resolve,
-							  AttachmentUse::ShaderRead,
-							  VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
-	}
-	else
-	    offscreenAttachments.push_back(AttachmentDesc(0, AttachmentType::Colour,
-							  AttachmentUse::ShaderRead,
-							  VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
-	offscreenAttachments.push_back(AttachmentDesc(1, AttachmentType::Depth,
-						      AttachmentUse::Attachment,
-						      sampleCount, offscreenDepthFormat));
+      if(swapchainFormat != prevSwapchainFormat || sampleCount != prevSampleCount) {
+	  if(offscreenRenderPass != nullptr) {
+	      LOG("not nullptr");
+	      delete offscreenRenderPass;
+	      delete finalRenderPass;
+	  }
+	  std::vector<AttachmentDesc> offscreenAttachments;
+	  if(renderConf.multisampling) {
+	      offscreenAttachments.push_back(AttachmentDesc(0, AttachmentType::Colour,
+							    AttachmentUse::TransientAttachment,
+							    sampleCount, swapchainFormat));
+	      offscreenAttachments.push_back(AttachmentDesc(2, AttachmentType::Resolve,
+							    AttachmentUse::ShaderRead,
+							    VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
+	  }
+	  else
+	      offscreenAttachments.push_back(AttachmentDesc(0, AttachmentType::Colour,
+							    AttachmentUse::ShaderRead,
+							    VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
+	  offscreenAttachments.push_back(AttachmentDesc(1, AttachmentType::Depth,
+							AttachmentUse::Attachment,
+							sampleCount, offscreenDepthFormat));
 
-	LOG("making new renderpasses");
-	offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
-					     renderConf.clear_colour);
-        finalRenderPass =
-            new RenderPass(manager->deviceState.device,
-                           {AttachmentDesc(0, AttachmentType::Colour,
-                                           AttachmentUse::PresentSrc,
+	  LOG("making new renderpasses");
+	  offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
+					       renderConf.clear_colour);
+	  finalRenderPass =
+	      new RenderPass(manager->deviceState.device,
+			     {AttachmentDesc(0, AttachmentType::Colour,
+					     AttachmentUse::PresentSrc,
 
-                                           VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
-	    renderConf.scaled_border_colour);
-    }
+					     VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
+			     renderConf.scaled_border_colour);
+      }
       
-    prevSwapchainFormat = swapchainFormat;
-    prevSampleCount = sampleCount;
+      prevSwapchainFormat = swapchainFormat;
+      prevSampleCount = sampleCount;
 
-    std::vector<VkImage>* swapchainImages = swapchain->getSwapchainImages();
-    swapchainFrameCount = swapchainImages->size();
+      std::vector<VkImage>* swapchainImages = swapchain->getSwapchainImages();
+      swapchainFrameCount = swapchainImages->size();
 
-    LOG("Creating Framebuffers");
+      LOG("Creating Framebuffers");
 
-    //TODO: less unnessecary recreation (ie offscreen extent not changing?)
-    VkDeviceSize attachmentMemorySize = 0;
-    uint32_t attachmentMemoryFlags = 0;
-    offscreenRenderPass->createFramebufferImages(swapchainImages, offscreenBufferExtent,
-						 &attachmentMemorySize,
-						 &attachmentMemoryFlags);
+      //TODO: less unnessecary recreation (ie offscreen extent not changing?)
+      VkDeviceSize attachmentMemorySize = 0;
+      uint32_t attachmentMemoryFlags = 0;
+      offscreenRenderPass->createFramebufferImages(swapchainImages, offscreenBufferExtent,
+						   &attachmentMemorySize,
+						   &attachmentMemoryFlags);
 
-    finalRenderPass->createFramebufferImages(swapchainImages, swapchainExtent,
-					     &attachmentMemorySize,
-					     &attachmentMemoryFlags);
+      finalRenderPass->createFramebufferImages(swapchainImages, swapchainExtent,
+					       &attachmentMemorySize,
+					       &attachmentMemoryFlags);
     
-    vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
-    checkResultAndThrow(
-	    vkhelper::allocateMemory(manager->deviceState.device,
-				     manager->deviceState.physicalDevice,
-				     attachmentMemorySize,
-				     &framebufferMemory,
-				     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				     attachmentMemoryFlags),
-	    "Render Error: Failed to Allocate Memory for Framebuffer Images");
+      vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
+      checkResultAndThrow(
+	      vkhelper::allocateMemory(manager->deviceState.device,
+				       manager->deviceState.physicalDevice,
+				       attachmentMemorySize,
+				       &framebufferMemory,
+				       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				       attachmentMemoryFlags),
+	      "Render Error: Failed to Allocate Memory for Framebuffer Images");
 
-    offscreenRenderPass->createFramebuffers(framebufferMemory);
-    finalRenderPass->createFramebuffers(framebufferMemory);
+      offscreenRenderPass->createFramebuffers(framebufferMemory);
+      finalRenderPass->createFramebuffers(framebufferMemory);
 
-    LOG("Swapchain Image Count: " << swapchainImages->size());
+      LOG("Swapchain Image Count: " << swapchainImages->size());
       
       
-    LOG("Creating Descriptor Sets");
+      LOG("Creating Descriptor Sets");
       
-    /// set shader  descripor sets
+      /// set shader  descripor sets
 
 
-    //TODO: more recreation here, use max-frame-in-flight instead of swapchain count
+      //TODO: more recreation here, use max-frame-in-flight instead of swapchain count
       
-    /// vertex descripor sets
-    descriptor::Descriptor viewProjectionBinding(
-	    "view projection struct",
-	    descriptor::Type::UniformBuffer,
-	    sizeof(shaderStructs::viewProjection), 1);
-    descriptor::Descriptor timeBinding(
-	    "Time Struct", descriptor::Type::UniformBuffer,
-	    sizeof(shaderStructs::timeUbo), 1);
-    descriptor::Set VP3D_Set("VP3D", descriptor::ShaderStage::Vertex);
-    VP3D_Set.AddDescriptor(viewProjectionBinding);
-    VP3D_Set.AddDescriptor(timeBinding);
-    VP3D = new DescSet(VP3D_Set, swapchainFrameCount, manager->deviceState.device);
+      /// vertex descripor sets
+      descriptor::Descriptor viewProjectionBinding(
+	      "view projection struct",
+	      descriptor::Type::UniformBuffer,
+	      sizeof(shaderStructs::viewProjection), 1);
+      descriptor::Descriptor timeBinding(
+	      "Time Struct", descriptor::Type::UniformBuffer,
+	      sizeof(shaderStructs::timeUbo), 1);
+      descriptor::Set VP3D_Set("VP3D", descriptor::ShaderStage::Vertex);
+      VP3D_Set.AddDescriptor(viewProjectionBinding);
+      VP3D_Set.AddDescriptor(timeBinding);
+      VP3D = new DescSet(VP3D_Set, swapchainFrameCount, manager->deviceState.device);
 
-    descriptor::Set VP2D_Set("VP2D", descriptor::ShaderStage::Vertex);
-    VP2D_Set.AddDescriptor(viewProjectionBinding);
-    VP2D = new DescSet(VP2D_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set VP2D_Set("VP2D", descriptor::ShaderStage::Vertex);
+      VP2D_Set.AddDescriptor(viewProjectionBinding);
+      VP2D = new DescSet(VP2D_Set, swapchainFrameCount, manager->deviceState.device);
 
-    descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
-    Time_Set.AddDescriptor("Time Struct", descriptor::Type::UniformBuffer,
-			   sizeof(shaderStructs::timeUbo), 1);
-      
-
-    descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
-    PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
-						  descriptor::Type::StorageBuffer,
-						  sizeof(shaderStructs::PerFrame3D),
-						  Resource::MAX_3D_BATCH);
-    perFrame3D = new DescSet(PerFrame3D_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
+      Time_Set.AddDescriptor("Time Struct", descriptor::Type::UniformBuffer,
+			     sizeof(shaderStructs::timeUbo), 1);
       
 
-    descriptor::Set bones_Set("Bones Animation", descriptor::ShaderStage::Vertex);
-    bones_Set.AddDescriptor("bones", descriptor::Type::UniformBufferDynamic,
-			    sizeof(shaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
-    bones = new DescSet(bones_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
+      PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
+						    descriptor::Type::StorageBuffer,
+						    sizeof(shaderStructs::PerFrame3D),
+						    Resource::MAX_3D_BATCH);
+      perFrame3D = new DescSet(PerFrame3D_Set, swapchainFrameCount, manager->deviceState.device);
+      
 
-    descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
-    vert2D_Set.AddSingleArrayStructDescriptor("vert struct",
-					      descriptor::Type::StorageBuffer,
-					      sizeof(glm::mat4), Resource::MAX_2D_BATCH);
-    perFrame2DVert = new DescSet(vert2D_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set bones_Set("Bones Animation", descriptor::ShaderStage::Vertex);
+      bones_Set.AddDescriptor("bones", descriptor::Type::UniformBufferDynamic,
+			      sizeof(shaderStructs::Bones), MAX_ANIMATIONS_PER_FRAME);
+      bones = new DescSet(bones_Set, swapchainFrameCount, manager->deviceState.device);
 
-    descriptor::Set offscreenView_Set("Offscreen Transform", descriptor::ShaderStage::Vertex);
-    offscreenView_Set.AddDescriptor("data", descriptor::Type::UniformBuffer,
-				    sizeof(glm::mat4), 1);
-    offscreenTransform = new DescSet(offscreenView_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
+      vert2D_Set.AddSingleArrayStructDescriptor("vert struct",
+						descriptor::Type::StorageBuffer,
+						sizeof(glm::mat4), Resource::MAX_2D_BATCH);
+      perFrame2DVert = new DescSet(vert2D_Set, swapchainFrameCount, manager->deviceState.device);
 
-    // fragment descriptor sets
+      descriptor::Set offscreenView_Set("Offscreen Transform", descriptor::ShaderStage::Vertex);
+      offscreenView_Set.AddDescriptor("data", descriptor::Type::UniformBuffer,
+				      sizeof(glm::mat4), 1);
+      offscreenTransform = new DescSet(offscreenView_Set, swapchainFrameCount, manager->deviceState.device);
 
-    descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
-    lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
-			       sizeof(lightingData), 1);
-    lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
+      // fragment descriptor sets
 
-    float minMipmapLevel = 100000.0f;
-    for(auto& p: pools) {
-	float n = p->texLoader->getMinMipmapLevel();
-	if(n < minMipmapLevel)
-	    minMipmapLevel = n;
-    }
+      descriptor::Set lighting_Set("3D Lighting", descriptor::ShaderStage::Fragment);
+      lighting_Set.AddDescriptor("Lighting properties", descriptor::Type::UniformBuffer,
+				 sizeof(lightingData), 1);
+      lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
+
+      float minMipmapLevel = 100000.0f;
+      for(auto& p: pools) {
+	  float n = p->texLoader->getMinMipmapLevel();
+	  if(n < minMipmapLevel)
+	      minMipmapLevel = n;
+      }
     
     
-    if(textureSamplerCreated) {
-	if(prevRenderConf.texture_filter_nearest != renderConf.texture_filter_nearest ||
-	   prevTexSamplerMinMipmap != minMipmapLevel) {
-	    textureSamplerCreated = false;
-	    vkDestroySampler(manager->deviceState.device, textureSampler, nullptr);
-	}
-    }
+      if(textureSamplerCreated) {
+	  if(prevRenderConf.texture_filter_nearest != renderConf.texture_filter_nearest ||
+	     prevTexSamplerMinMipmap != minMipmapLevel) {
+	      textureSamplerCreated = false;
+	      vkDestroySampler(manager->deviceState.device, textureSampler, nullptr);
+	  }
+      }
     
-    if(!textureSamplerCreated) {	  
-	textureSampler = vkhelper::createTextureSampler(
-		manager->deviceState.device,
-		manager->deviceState.physicalDevice,
-		minMipmapLevel,
-		manager->deviceState.features.samplerAnisotropy,
-		renderConf.texture_filter_nearest,
-		VK_SAMPLER_ADDRESS_MODE_REPEAT);
-	prevTexSamplerMinMipmap = minMipmapLevel;
-	textureSamplerCreated = true;
-    }
+      if(!textureSamplerCreated) {	  
+	  textureSampler = vkhelper::createTextureSampler(
+		  manager->deviceState.device,
+		  manager->deviceState.physicalDevice,
+		  minMipmapLevel,
+		  manager->deviceState.features.samplerAnisotropy,
+		  renderConf.texture_filter_nearest,
+		  VK_SAMPLER_ADDRESS_MODE_REPEAT);
+	  prevTexSamplerMinMipmap = minMipmapLevel;
+	  textureSamplerCreated = true;
+      }
 
-    // Load textures across all active resource pools
-    // into the textureViews descriptor set data
-    int pI = 0;
-    int texID = 0;
-    if(pools.size() < 1)
-	throw std::runtime_error("At least 1 pool must exist");
-    ResourcePoolVk *pool = pools[pI];
-    VkImageView validView;
-    bool foundValidView = false;
-    //TODO: add dummy tex to ID 0 and use as validView
-    for(int i = 1; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
-	if(pool == nullptr || !pool->UseGPUResources)
-	    goto next_pool;
-	pool->usingGPUResources = true;
-	if(texID < pool->texLoader->getImageCount()) {
-            textureViews[i] = pool->texLoader->getImageViewSetIndex(texID++, i);
-            if (!foundValidView) {
-		foundValidView = true;
-		validView = textureViews[i];
-	    }              
-	} else {
-	    if(pools.size() > pI + 1)
-		goto next_pool;
-	    else if(foundValidView)
-		textureViews[i] = validView;
-            else //TODO: change so we dont require a texture
-		throw std::runtime_error("No textures were loaded. "
-					 "At least 1 Texture must be loaded");
-	}
-	continue;
-    next_pool:
-	pool = pools[++pI];
-	texID = 0;
-	i--;
-    }
-    //temp: until dummy tex added
-    textureViews[0] = validView;
+      // Load textures across all active resource pools
+      // into the textureViews descriptor set data
+      if(pools.size() < 1)
+	  throw std::runtime_error("At least 1 pool must exist");
+      ResourcePoolVk *pool = pools[0];
+      VkImageView validView;
+      bool foundValidView = false;
+      //TODO: add dummy tex to ID 0 and use as validView
+      for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
+	  if(pool == nullptr || !pool->UseGPUResources)
+	      goto next_pool;
+	  pool->usingGPUResources = true;
+	  if(texI < pool->texLoader->getImageCount()) {
+	      textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
+	      if (!foundValidView) {
+		  foundValidView = true;
+		  validView = textureViews[i];
+	      }              
+	  } else {
+	      goto next_pool;
+	  }
+	  continue;
+      next_pool:
+	  if(pools.size() > pI + 1) {
+	      pool = pools[++pI];
+	      texI = 0;
+	      i--;
+	  } else {
+	      if(foundValidView)
+		  textureViews[i] = validView;
+	      else //TODO: change so we dont require a texture
+		  throw std::runtime_error("No textures were loaded. "
+					   "At least 1 Texture must be loaded");
+	  }
+      }
+      //temp: until dummy tex added
+      textureViews[0] = validView;
 
-    descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
-    texture_Set.AddSamplerDescriptor("sampler", 1, &textureSampler);
-    texture_Set.AddImageViewDescriptor("views", descriptor::Type::SampledImage,
-				       Resource::MAX_TEXTURES_SUPPORTED,
-				       textureViews);
-    textures = new DescSet(texture_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
+      texture_Set.AddSamplerDescriptor("sampler", 1, &textureSampler);
+      texture_Set.AddImageViewDescriptor("views", descriptor::Type::SampledImage,
+					 Resource::MAX_TEXTURES_SUPPORTED,
+					 textureViews);
+      textures = new DescSet(texture_Set, swapchainFrameCount, manager->deviceState.device);
       
-    descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
-    frag2D_Set.AddSingleArrayStructDescriptor(
-	    "Per frag struct",
-	    descriptor::Type::StorageBuffer,
-	    sizeof(shaderStructs::Frag2DData), Resource::MAX_2D_BATCH);
-    perFrame2DFrag = new DescSet(frag2D_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
+      frag2D_Set.AddSingleArrayStructDescriptor(
+	      "Per frag struct",
+	      descriptor::Type::StorageBuffer,
+	      sizeof(shaderStructs::Frag2DData), Resource::MAX_2D_BATCH);
+      perFrame2DFrag = new DescSet(frag2D_Set, swapchainFrameCount, manager->deviceState.device);
 
-    emptyDS = new DescSet(
-	    descriptor::Set("Empty", descriptor::ShaderStage::Vertex),
-	    swapchainFrameCount, manager->deviceState.device);
+      emptyDS = new DescSet(
+	      descriptor::Set("Empty", descriptor::ShaderStage::Vertex),
+	      swapchainFrameCount, manager->deviceState.device);
       
-    if(!offscreenSamplerCreated) {	  
-	_offscreenTextureSampler = vkhelper::createTextureSampler(
-		manager->deviceState.device,
-		manager->deviceState.physicalDevice, 1.0f,
-		false,
-		true,
-		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
-	offscreenSamplerCreated = true;
-    }
-    std::vector<VkImageView> offscreenViews = offscreenRenderPass->getAttachmentViews(
-	    renderConf.multisampling ? 2 : 0);
-    descriptor::Set offscreen_Set("offscreen texture", descriptor::ShaderStage::Fragment);
-    offscreen_Set.AddSamplerDescriptor("sampler", 1, &_offscreenTextureSampler);
-    offscreen_Set.AddImageViewDescriptor("frame", descriptor::Type::SampledImagePerSet,
-					 1, offscreenViews.data());
-    offscreenTex = new DescSet(offscreen_Set, swapchainFrameCount,
-			       manager->deviceState.device); 
+      if(!offscreenSamplerCreated) {	  
+	  _offscreenTextureSampler = vkhelper::createTextureSampler(
+		  manager->deviceState.device,
+		  manager->deviceState.physicalDevice, 1.0f,
+		  false,
+		  true,
+		  VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER);
+	  offscreenSamplerCreated = true;
+      }
+      std::vector<VkImageView> offscreenViews = offscreenRenderPass->getAttachmentViews(
+	      renderConf.multisampling ? 2 : 0);
+      descriptor::Set offscreen_Set("offscreen texture", descriptor::ShaderStage::Fragment);
+      offscreen_Set.AddSamplerDescriptor("sampler", 1, &_offscreenTextureSampler);
+      offscreen_Set.AddImageViewDescriptor("frame", descriptor::Type::SampledImagePerSet,
+					   1, offscreenViews.data());
+      offscreenTex = new DescSet(offscreen_Set, swapchainFrameCount,
+				 manager->deviceState.device); 
 
-    descriptorSets = {
-	VP3D, VP2D, perFrame3D, bones, emptyDS, perFrame2DVert,
-	perFrame2DFrag, offscreenTransform, lighting,
-	textures, offscreenTex};
+      descriptorSets = {
+	  VP3D, VP2D, perFrame3D, bones, emptyDS, perFrame2DVert,
+	  perFrame2DFrag, offscreenTransform, lighting,
+	  textures, offscreenTex};
       
-    LOG("Creating Descriptor pool and memory for set bindings");
+      LOG("Creating Descriptor pool and memory for set bindings");
       
-    // create descripor pool
+      // create descripor pool
 
-    std::vector<DS::DescriptorSet* > sets(descriptorSets.size());
-    std::vector<DS::Binding*> bindings;
-    for(int i = 0; i < sets.size(); i++) {
-	sets[i] = &descriptorSets[i]->set;
-	for(int j = 0; j < descriptorSets[i]->bindings.size(); j++)
-	    bindings.push_back(&descriptorSets[i]->bindings[j]);
-    }
+      std::vector<DS::DescriptorSet* > sets(descriptorSets.size());
+      std::vector<DS::Binding*> bindings;
+      for(int i = 0; i < sets.size(); i++) {
+	  sets[i] = &descriptorSets[i]->set;
+	  for(int j = 0; j < descriptorSets[i]->bindings.size(); j++)
+	      bindings.push_back(&descriptorSets[i]->bindings[j]);
+      }
       
-    part::create::DescriptorPoolAndSet(
-	    manager->deviceState.device, &_descPool, sets, swapchainFrameCount);
+      part::create::DescriptorPoolAndSet(
+	      manager->deviceState.device, &_descPool, sets, swapchainFrameCount);
       
-    // create memory mapped buffer for all descriptor set bindings
-    part::create::PrepareShaderBufferSets(
-	    manager->deviceState, bindings,
-	    &_shaderBuffer, &_shaderMemory);
+      // create memory mapped buffer for all descriptor set bindings
+      part::create::PrepareShaderBufferSets(
+	      manager->deviceState, bindings,
+	      &_shaderBuffer, &_shaderMemory);
 
-    LOG("Creating Graphics Pipelines");
+      LOG("Creating Graphics Pipelines");
 
-    // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
-    part::create::GraphicsPipeline(
-	    manager->deviceState.device, &_pipeline3D,
-	    sampleCount, offscreenRenderPass->getRenderPass(),
-	    {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
-	    {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-	    "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
-	    renderConf.multisampling, true,
-	    manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
-	    VK_CULL_MODE_BACK_BIT, pipeline_inputs::V3D::attributeDescriptions(),
-	    pipeline_inputs::V3D::bindingDescriptions());
+      // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
+      part::create::GraphicsPipeline(
+	      manager->deviceState.device, &_pipeline3D,
+	      sampleCount, offscreenRenderPass->getRenderPass(),
+	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
+	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
+	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
+	      renderConf.multisampling, true,
+	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
+	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V3D::attributeDescriptions(),
+	      pipeline_inputs::V3D::bindingDescriptions());
 	    
-    part::create::GraphicsPipeline(
-	    manager->deviceState.device, &_pipelineAnim3D,
-	    sampleCount, offscreenRenderPass->getRenderPass(),
-	    {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set},
-	    {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-	    "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
-	    true, renderConf.multisampling, true,
-	    manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
-	    VK_CULL_MODE_BACK_BIT, pipeline_inputs::VAnim3D::attributeDescriptions(),
-	    pipeline_inputs::VAnim3D::bindingDescriptions());
+      part::create::GraphicsPipeline(
+	      manager->deviceState.device, &_pipelineAnim3D,
+	      sampleCount, offscreenRenderPass->getRenderPass(),
+	      {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set},
+	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
+	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
+	      true, renderConf.multisampling, true,
+	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
+	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::VAnim3D::attributeDescriptions(),
+	      pipeline_inputs::VAnim3D::bindingDescriptions());
 
-    part::create::GraphicsPipeline(
-	    manager->deviceState.device, &_pipeline2D, sampleCount,
-	    offscreenRenderPass->getRenderPass(),
-	    {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set}, {},
-	    "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
-	    renderConf.multisampling, true,
-	    manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
-	    VK_CULL_MODE_BACK_BIT, pipeline_inputs::V2D::attributeDescriptions(),
-	    pipeline_inputs::V2D::bindingDescriptions());
+      part::create::GraphicsPipeline(
+	      manager->deviceState.device, &_pipeline2D, sampleCount,
+	      offscreenRenderPass->getRenderPass(),
+	      {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set}, {},
+	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
+	      renderConf.multisampling, true,
+	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
+	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V2D::attributeDescriptions(),
+	      pipeline_inputs::V2D::bindingDescriptions());
 
-    part::create::GraphicsPipeline(                     //TODO: originally max samples, still works?
-	    manager->deviceState.device, &_pipelineFinal, VK_SAMPLE_COUNT_1_BIT,
-	    finalRenderPass->getRenderPass(),
-	    {&offscreenTransform->set, &offscreenTex->set}, {},
-	    "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
-	    false, false, false, manager->deviceState.features.sampleRateShading,
-	    swapchainExtent, VK_CULL_MODE_NONE, {}, {});
+      part::create::GraphicsPipeline(                     //TODO: originally max samples, still works?
+	      manager->deviceState.device, &_pipelineFinal, VK_SAMPLE_COUNT_1_BIT,
+	      finalRenderPass->getRenderPass(),
+	      {&offscreenTransform->set, &offscreenTex->set}, {},
+	      "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
+	      false, false, false, manager->deviceState.features.sampleRateShading,
+	      swapchainExtent, VK_CULL_MODE_NONE, {}, {});
 
-    offscreenTransformData = glmhelper::calcFinalOffset(
-	    glm::vec2(offscreenBufferExtent.width, offscreenBufferExtent.height),
-	    glm::vec2((float)swapchainExtent.width,
-		      (float)swapchainExtent.height));
-    LOG("Finished Creating Frame Resources");
-    timeData.time = 0;
-    prevRenderConf = renderConf;
-    _frameResourcesCreated = true;
-}
+      offscreenTransformData = glmhelper::calcFinalOffset(
+	      glm::vec2(offscreenBufferExtent.width, offscreenBufferExtent.height),
+	      glm::vec2((float)swapchainExtent.width,
+			(float)swapchainExtent.height));
+      LOG("Finished Creating Frame Resources");
+      timeData.time = 0;
+      prevRenderConf = renderConf;
+      _frameResourcesCreated = true;
+  }
 
 void RenderVk::_destroyFrameResources()
 {
