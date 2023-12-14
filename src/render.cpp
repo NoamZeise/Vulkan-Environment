@@ -616,7 +616,8 @@ void RenderVk::UseLoadedResources() {
 void RenderVk::_resize() {
     LOG("resizing");
     _framebufferResized = false;
-    UseLoadedResources();
+    vkDeviceWaitIdle(manager->deviceState.device);
+    _initFrameResources();
 }
 
 void RenderVk::_startDraw() {
