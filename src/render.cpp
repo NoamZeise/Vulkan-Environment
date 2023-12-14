@@ -545,8 +545,8 @@ void RenderVk::LoadResourcesToGPU(Resource::Pool pool) {
       remakeFrameRes = true;
     }
     pools[pool.ID]->loadPoolToGPU(); 
-    if(remakeFrameRes) //remake if pool currently in use was reloaded
-	UseLoadedResources();
+    //if(remakeFrameRes) //remake if pool currently in use was reloaded
+    //UseLoadedResources();
 }
 
 void RenderVk::UseLoadedResources() {
