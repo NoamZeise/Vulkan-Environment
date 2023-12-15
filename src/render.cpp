@@ -302,8 +302,12 @@ bool swapchainRecreationRequired(VkResult result) {
       bool foundValidView = false;
       //TODO: add dummy tex to ID 0 and use as validView
       for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
-	  if(pool == nullptr || !pool->UseGPUResources)
+	  if(pool == nullptr) 
 	      goto next_pool;
+	  if(!pool->UseGPUResources) {
+	      pool->usingGPUResources = false;
+	      goto next_pool;
+	  }
 	  pool->usingGPUResources = true;
 	  if(texI < pool->texLoader->getImageCount()) {
 	      textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
@@ -545,8 +549,8 @@ void RenderVk::LoadResourcesToGPU(Resource::Pool pool) {
       remakeFrameRes = true;
     }
     pools[pool.ID]->loadPoolToGPU(); 
-    //if(remakeFrameRes) //remake if pool currently in use was reloaded
-    //UseLoadedResources();
+    if(remakeFrameRes) //remake if pool currently in use was reloaded
+	UseLoadedResources();
 }
 
 void RenderVk::UseLoadedResources() {
@@ -580,8 +584,12 @@ void RenderVk::UseLoadedResources() {
     bool foundValidView = false;
     //TODO: add dummy tex to ID 0 and use as validView
     for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
-	if(pool == nullptr || !pool->UseGPUResources)
+	if(pool == nullptr) 
 	    goto next_pool;
+	if(!pool->UseGPUResources) {
+	    pool->usingGPUResources = false;
+	    goto next_pool;
+	}
 	pool->usingGPUResources = true;
 	if(texI < pool->texLoader->getImageCount()) {
 	    textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
