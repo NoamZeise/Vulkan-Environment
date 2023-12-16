@@ -68,7 +68,7 @@ public:
 	    Resource::ModelType type,
 	    ModelInfo::Model &modelData,
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
-
+    ModelInfo::Model loadModelData(std::string path) override;
     virtual void loadGPU() = 0;
     virtual void clearGPU() = 0;
     void clearStaged();

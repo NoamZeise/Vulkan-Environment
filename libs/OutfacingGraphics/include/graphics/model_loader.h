@@ -26,6 +26,7 @@ class ModelLoader {
     Resource::Model load(ModelInfo::Model &modelData) {
 	return load(Resource::ModelType::m3D, modelData);
     }
+    virtual ModelInfo::Model loadModelData(std::string path) = 0;
     virtual Resource::ModelAnimation getAnimation(Resource::Model model, std::string animation) = 0;
     virtual Resource::ModelAnimation getAnimation(Resource::Model model, int index) = 0;
 };

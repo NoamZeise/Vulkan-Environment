@@ -43,6 +43,10 @@ Resource::Model InternalModelLoader::load(
     }
 }
 
+ModelInfo::Model InternalModelLoader::loadModelData(std::string path) {
+    return loader->LoadModel(path);
+}
+
 template <class T_Vert>
 Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
 					  ModelGroup<T_Vert>& modelGroup,
