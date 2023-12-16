@@ -5,6 +5,7 @@
 #include "../vkhelper.h"
 #include "../parts/images.h"
 #include "../parts/command.h"
+#include "../parts/threading.h"
 
 const VkFilter MIPMAP_FILTER = VK_FILTER_LINEAR;
 
@@ -45,9 +46,12 @@ TexLoaderVk::TexLoaderVk(DeviceState base, VkCommandPool cmdpool,
     : InternalTexLoader(pool, config) {
     this->base = base;
     this->cmdpool = cmdpool;
+    checkResultAndThrow(part::create::Fence(base.device, &loadedFence, false),
+			"failed to create finish load semaphore in texLoader");
 }
 
 TexLoaderVk::~TexLoaderVk() {
+    vkDestroyFence(base.device, loadedFence, nullptr);
     clearGPU();
 }
 
@@ -87,6 +91,8 @@ void TexLoaderVk::loadGPU() {
 						 memoryTypeBits),
 			"Failed to allocate memeory for final texture storage");
 
+    LOG("creating temp cmdbuff");
+
     VkCommandBuffer tempCmdBuffer;
     checkResultAndThrow(part::create::CommandBuffer(base.device, cmdpool, &tempCmdBuffer),
 			"failed to create temporary command buffer in end texture loading");
@@ -98,8 +104,15 @@ void TexLoaderVk::loadGPU() {
     // move texture data from staging memory to final memory
     textureDataStagingToFinal(stagingBuffer, tempCmdBuffer);
 
-    vkhelper::endCmdBufferSubmitAndWait(tempCmdBuffer,
-					base.queue.graphicsPresentQueue);
+    checkResultAndThrow(vkEndCommandBuffer(tempCmdBuffer),
+			"failed to end cmdbuff for moving tex data");
+
+    LOG("submitting cmdBuffer");
+    
+    checkResultAndThrow(vkhelper::submitCmdBuffAndWait(
+				base.device,
+				base.queue.graphicsPresentQueue, &tempCmdBuffer, loadedFence),
+			"failed to move tex datat to gpu");
     
     LOG("finished moving textures to final memory location");
 
@@ -117,7 +130,13 @@ void TexLoaderVk::loadGPU() {
     for (auto& tex : textures)
 	tex->createMipMaps(tempCmdBuffer);
 
-    vkhelper::endCmdBufferSubmitAndWait(tempCmdBuffer, base.queue.graphicsPresentQueue);
+    checkResultAndThrow(vkEndCommandBuffer(tempCmdBuffer),
+			"failed to end command buffer");
+
+    checkResultAndThrow(
+	    vkhelper::submitCmdBuffAndWait(base.device, base.queue.graphicsPresentQueue,
+					   &tempCmdBuffer, loadedFence),
+			"failed to sumbit mipmap creation commands");
     
     LOG("finished creating mip maps");
     

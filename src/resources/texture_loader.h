@@ -30,6 +30,7 @@ private:
     std::vector<TextureInGPU*> textures;
     VkDeviceMemory memory;
     uint32_t minimumMipmapLevel;
+    VkFence loadedFence;
 };
 
 #endif

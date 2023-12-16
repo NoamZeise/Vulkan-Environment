@@ -43,6 +43,7 @@ private:
     DeviceState base;
     VkCommandPool cmdpool;
     VkCommandBuffer cmdbuff;
+    VkFence loadedFence;
     std::vector<ModelInGPU*> models;
     size_t modelTypeOffset[(size_t)Resource::ModelType::m3D_Anim + 1];
     VkBuffer buffer;

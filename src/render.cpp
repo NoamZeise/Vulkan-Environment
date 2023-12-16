@@ -272,7 +272,6 @@ bool swapchainRecreationRequired(VkResult result) {
 	  }
       }
     
-    
       if(textureSamplerCreated) {
 	  if(prevRenderConf.texture_filter_nearest != renderConf.texture_filter_nearest ||
 	     prevTexSamplerMinMipmap != minMipmapLevel) {
@@ -341,7 +340,6 @@ bool swapchainRecreationRequired(VkResult result) {
 					 Resource::MAX_TEXTURES_SUPPORTED,
 					 textureViews);
       textures = new DescSet(texture_Set, swapchainFrameCount, manager->deviceState.device);
-
       
       descriptor::Set frag2D_Set("Per Frame 2D frag", descriptor::ShaderStage::Fragment);
       frag2D_Set.AddSingleArrayStructDescriptor(
@@ -403,7 +401,8 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      sampleCount, offscreenRenderPass->getRenderPass(),
-	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
+	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, 
+	       &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
 	      renderConf.multisampling, true,
@@ -430,9 +429,9 @@ bool swapchainRecreationRequired(VkResult result) {
 	      renderConf.multisampling, true,
 	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
 	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V2D::attributeDescriptions(),
-	      pipeline_inputs::V2D::bindingDescriptions());
+	      pipeline_inputs::V2D::bindingDescriptions());     
 
-      part::create::GraphicsPipeline(                     //TODO: originally max samples, still works?
+      part::create::GraphicsPipeline(        //TODO: originally max samples, still works?
 	      manager->deviceState.device, &_pipelineFinal, VK_SAMPLE_COUNT_1_BIT,
 	      finalRenderPass->getRenderPass(),
 	      {&offscreenTransform->set, &offscreenTex->set}, {},
@@ -450,30 +449,29 @@ bool swapchainRecreationRequired(VkResult result) {
       _frameResourcesCreated = true;
   }
 
-void RenderVk::_destroyFrameResources()
-{
-    if(!_frameResourcesCreated)
-	return;
-    LOG("Destroying frame resources");
-    LOG("    freeing shader memory");
-    vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
-    vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
-    LOG("    destroying descriptors");
-    for(int i = 0; i < descriptorSets.size(); i++)
-	delete descriptorSets[i];
-    descriptorSets.clear();
-    vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
-    LOG("    destroying Pipelines");
-    _pipeline3D.destroy(manager->deviceState.device);
-    _pipelineAnim3D.destroy(manager->deviceState.device);
-    _pipeline2D.destroy(manager->deviceState.device);
-    _pipelineFinal.destroy(manager->deviceState.device);
-    LOG("    setting resource pools");
-    for(int i = 0; i < pools.size(); i++)
-	if(pools[i] != nullptr)
-	    pools[i]->usingGPUResources = false;
-    _frameResourcesCreated = false;
-}
+  void RenderVk::_destroyFrameResources() {
+      if(!_frameResourcesCreated)
+	  return;
+      LOG("Destroying frame resources");
+      LOG("    freeing shader memory");
+      vkDestroyBuffer(manager->deviceState.device, _shaderBuffer, nullptr);
+      vkFreeMemory(manager->deviceState.device, _shaderMemory, nullptr);
+      LOG("    destroying descriptors");
+      for(int i = 0; i < descriptorSets.size(); i++)
+	  delete descriptorSets[i];
+      descriptorSets.clear();
+      vkDestroyDescriptorPool(manager->deviceState.device, _descPool, nullptr);
+      LOG("    destroying Pipelines");
+      _pipeline3D.destroy(manager->deviceState.device);
+      _pipelineAnim3D.destroy(manager->deviceState.device);
+      _pipeline2D.destroy(manager->deviceState.device);
+      _pipelineFinal.destroy(manager->deviceState.device);
+      LOG("    setting resource pools");
+      for(int i = 0; i < pools.size(); i++)
+	  if(pools[i] != nullptr)
+	      pools[i]->usingGPUResources = false;
+      _frameResourcesCreated = false;
+  }
 
 ResourcePool* RenderVk::CreateResourcePool() {
     int index = pools.size();

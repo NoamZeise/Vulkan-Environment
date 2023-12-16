@@ -33,9 +33,8 @@ namespace vkhelper {
   VkSampleCountFlagBits getMaxSupportedMsaaSamples(VkDevice device,
 						   VkPhysicalDevice physicalDevice);
 
-  /// end the passed command buffer, submit it, and wait for the queue to be idle
-  /// will throw a runtime exception if any of those tasks fail.
-  void endCmdBufferSubmitAndWait(VkCommandBuffer cmdbuff, VkQueue queue);
+    VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
+				  VkCommandBuffer* cmdbuff, VkFence fence);
 };
 
 

@@ -8,6 +8,7 @@
 #include "../vkhelper.h"
 #include "../logger.h"
 #include "../pipeline_data.h"
+#include "../parts/threading.h"
 
 struct MeshInfo : public GPUMesh {
     MeshInfo() { indexCount = 0; indexOffset = 0; vertexOffset = 0; }
@@ -63,9 +64,12 @@ ModelLoaderVk::ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
       this->base = base;
       this->cmdpool = cmdpool;
       this->cmdbuff = generalCmdBuff;
+      checkResultAndThrow(part::create::Fence(base.device, &loadedFence, false),
+			  "failed to create finish load semaphore in model loader");
 }
 
 ModelLoaderVk::~ModelLoaderVk() {
+    vkDestroyFence(base.device, loadedFence, nullptr);
     clearGPU();
 }
 
@@ -194,11 +198,11 @@ void ModelLoaderVk::loadGPU() {
     vkCmdCopyBuffer(cmdbuff, stagingBuffer, buffer, 1, &copyRegion);
     vkEndCommandBuffer(cmdbuff);
 
-    VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmdbuff;
-    vkQueueSubmit(base.queue.graphicsPresentQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(base.queue.graphicsPresentQueue);
+    checkResultAndThrow(vkhelper::submitCmdBuffAndWait(
+				base.device,
+				base.queue.graphicsPresentQueue,
+				&cmdbuff, loadedFence),
+			"failed to submit model load commands");
 
     //free staging buffer
     vkDestroyBuffer(base.device, stagingBuffer, nullptr);

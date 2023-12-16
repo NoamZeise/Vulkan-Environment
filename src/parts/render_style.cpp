@@ -25,6 +25,7 @@ void GraphicsPipeline(
 
     
   pipeline->descriptorSets = descriptorSets;
+  pipeline->descriptorSetsActive = std::vector<bool>(descriptorSets.size(), true);
 
   // load shader modules
   auto vertexShaderModule = _loadShaderModule(device, vertexShaderPath);

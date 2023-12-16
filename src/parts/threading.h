@@ -6,6 +6,8 @@
 namespace part {
     namespace create {
       VkResult Semaphore(VkDevice device, VkSemaphore *semaphore);
+      VkResult Semaphore(VkDevice device, VkSemaphore *semaphore, void* pNext);
+      VkResult TimelineSemaphore(VkDevice device, VkSemaphore *semaphore);
       VkResult Fence(VkDevice device, VkFence *fence, bool startSignalled);
     }
 }

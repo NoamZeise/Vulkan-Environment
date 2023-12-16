@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <vector>
 #include "shader_internal.h"
+#include "logger.h"
 
 class Pipeline
 {
@@ -20,15 +21,32 @@ public:
   VkPipelineLayout layout;
   VkPipeline pipeline;
   std::vector<DS::DescriptorSet*> descriptorSets;
+  std::vector<bool> descriptorSetsActive;
 
+  void setDescSetState(DS::DescriptorSet* set, bool isActive) {
+      for(int i = 0; i < descriptorSets.size(); i++) {
+	  if(descriptorSets[i] == set) {
+	      descriptorSetsActive[i] = isActive;
+	  }
+      }
+  }
+    
   void begin(VkCommandBuffer cmdBuff, size_t frameIndex) {
       //bind non dynamic descriptor sets
-      for (size_t i = 0; i < descriptorSets.size(); i++)
-	  if(!descriptorSets[i]->dynamicBuffer && descriptorSets[i]->sets.size() != 0)
+      int bindOffset = 0;
+      for (size_t i = 0; i < descriptorSets.size(); i++) {
+	  if(descriptorSetsActive[i] &&
+	     !descriptorSets[i]->dynamicBuffer &&
+	     descriptorSets[i]->sets.size() != 0)
 	      vkCmdBindDescriptorSets(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, layout,
-				      static_cast<uint32_t>(i), 1,
+				      static_cast<uint32_t>(i - bindOffset), 1,
 				      &descriptorSets[i]->sets[frameIndex],
 				      0, nullptr);
+	  else if(!descriptorSetsActive[i]) {
+	      LOG("inactive slot: " << i);
+	      bindOffset++;
+	  }
+      }
       vkCmdBindPipeline(cmdBuff, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
   }
 
