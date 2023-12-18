@@ -4,6 +4,7 @@
 #include "device_state.h"
 #include <volk.h>
 #include <vector>
+#include <mutex>
 
 namespace vkhelper {
   /// find a memory index that has the desired type and supports the required properties
@@ -33,8 +34,11 @@ namespace vkhelper {
   VkSampleCountFlagBits getMaxSupportedMsaaSamples(VkDevice device,
 						   VkPhysicalDevice physicalDevice);
 
-    VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
-				  VkCommandBuffer* cmdbuff, VkFence fence);
+  VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
+				VkCommandBuffer* cmdbuff, VkFence fence,
+				std::mutex* queueSubmitMutex);
+  VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
+				VkCommandBuffer* cmdbuff, VkFence fence);
 };
 
 

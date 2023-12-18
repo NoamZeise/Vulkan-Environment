@@ -201,7 +201,8 @@ void ModelLoaderVk::loadGPU() {
     checkResultAndThrow(vkhelper::submitCmdBuffAndWait(
 				base.device,
 				base.queue.graphicsPresentQueue,
-				&cmdbuff, loadedFence),
+				&cmdbuff, loadedFence,
+				&graphicsPresentMutex),
 			"failed to submit model load commands");
 
     //free staging buffer

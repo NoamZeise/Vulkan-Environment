@@ -900,14 +900,17 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
   vkCmdEndRenderPass(currentCommandBuffer);
   
   VkResult result = vkEndCommandBuffer(currentCommandBuffer);
-  if(result == VK_SUCCESS)
+  graphicsPresentMutex.lock();
+  if(result == VK_SUCCESS) {
       result = submitDraw(manager->deviceState.queue.graphicsPresentQueue,
 			  frames[frameIndex]);
+  }
   if(result == VK_SUCCESS) {
       VkSwapchainKHR sc = swapchain->getSwapchain();
       result = submitPresent(&frames[frameIndex]->drawFinished, &sc, &swapchainFrameIndex,
 			     manager->deviceState.queue.graphicsPresentQueue);
   }
+  graphicsPresentMutex.unlock();
   
   if (swapchainRecreationRequired(result) || _framebufferResized) {
       LOG("end of draw, resize or recreation required");

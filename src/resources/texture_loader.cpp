@@ -111,7 +111,8 @@ void TexLoaderVk::loadGPU() {
     
     checkResultAndThrow(vkhelper::submitCmdBuffAndWait(
 				base.device,
-				base.queue.graphicsPresentQueue, &tempCmdBuffer, loadedFence),
+				base.queue.graphicsPresentQueue, &tempCmdBuffer, loadedFence,
+				&graphicsPresentMutex),
 			"failed to move tex datat to gpu");
     
     LOG("finished moving textures to final memory location");
@@ -135,7 +136,8 @@ void TexLoaderVk::loadGPU() {
 
     checkResultAndThrow(
 	    vkhelper::submitCmdBuffAndWait(base.device, base.queue.graphicsPresentQueue,
-					   &tempCmdBuffer, loadedFence),
+					   &tempCmdBuffer, loadedFence,
+					   &graphicsPresentMutex),
 			"failed to sumbit mipmap creation commands");
     
     LOG("finished creating mip maps");

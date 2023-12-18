@@ -2,6 +2,9 @@
 #define RENDER_STRUCTS_DEVICE_STATE_H
 
 #include <volk.h>
+#include <mutex>
+
+extern std::mutex graphicsPresentMutex;
 
 struct QueueFamilies {
     uint32_t graphicsPresentFamilyIndex;

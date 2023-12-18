@@ -1,6 +1,7 @@
 #include "vkhelper.h"
 
 #include <stdexcept>
+#include <mutex>
 #include "logger.h"
 
 namespace vkhelper {
@@ -125,14 +126,25 @@ namespace vkhelper {
   }
 
   VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
-				VkCommandBuffer* cmdbuff, VkFence fence) {
+				VkCommandBuffer* cmdbuff, VkFence fence,
+				std::mutex* queueSubmitMutex) {
       VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
       submitInfo.commandBufferCount = 1;
       submitInfo.pCommandBuffers = cmdbuff;
       VkResult result = VK_SUCCESS;
       LOG("submitting queue");
+      if(queueSubmitMutex != nullptr)
+	  queueSubmitMutex->lock();
       returnOnErr(vkQueueSubmit(queue, 1, &submitInfo, fence));
+      if(queueSubmitMutex != nullptr)
+	  queueSubmitMutex->unlock();
       returnOnErr(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
       return vkResetFences(device, 1, &fence);
   }
+
+  VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
+				VkCommandBuffer* cmdbuff, VkFence fence) {
+      return submitCmdBuffAndWait(device, queue, cmdbuff, fence, nullptr);
+  }
+
 }//namespace end

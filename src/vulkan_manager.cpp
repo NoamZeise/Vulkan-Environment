@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 
+std::mutex graphicsPresentMutex;
 
 #define throwOnErr(result_expr, error_message)                                 \
   if (result_expr != VK_SUCCESS)                                               \
