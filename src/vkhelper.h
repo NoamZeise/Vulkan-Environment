@@ -33,12 +33,12 @@ namespace vkhelper {
   
   VkSampleCountFlagBits getMaxSupportedMsaaSamples(VkDevice device,
 						   VkPhysicalDevice physicalDevice);
-
+  
+  VkResult submitQueue(VkQueue queue, VkSubmitInfo* info, std::mutex* queueMut, VkFence fence);
+  
   VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
 				VkCommandBuffer* cmdbuff, VkFence fence,
 				std::mutex* queueSubmitMutex);
-  VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
-				VkCommandBuffer* cmdbuff, VkFence fence);
 };
 
 

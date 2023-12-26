@@ -828,7 +828,7 @@ void RenderVk::_drawBatch() {
 }
 
 
-  VkResult submitDraw(VkQueue queue, Frame *frame) {
+  VkSubmitInfo submitDrawInfo(Frame *frame) {
       VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
       submitInfo.waitSemaphoreCount = 1;
       submitInfo.pWaitSemaphores = &frame->swapchainImageReady;
@@ -838,24 +838,18 @@ void RenderVk::_drawBatch() {
       submitInfo.pCommandBuffers = &frame->commandBuffer;
       submitInfo.signalSemaphoreCount = 1;
       submitInfo.pSignalSemaphores = &frame->drawFinished;
-      VkResult result = vkQueueSubmit(queue, 1, &submitInfo, frame->frameFinished);
-      if(result != VK_SUCCESS)
-	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
-      return result;
+      return submitInfo;
   }
 
-  VkResult submitPresent(VkSemaphore* waitSemaphore, VkSwapchainKHR *swapchain,
-			 uint32_t* swapchainImageIndex, VkQueue queue) {
+  VkPresentInfoKHR submitPresentInfo(VkSemaphore* waitSemaphore, VkSwapchainKHR *swapchain,
+			     uint32_t* swapchainImageIndex) {
     VkPresentInfoKHR presentInfo {VK_STRUCTURE_TYPE_PRESENT_INFO_KHR};
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = waitSemaphore;
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapchain;
     presentInfo.pImageIndices = swapchainImageIndex;
-    VkResult result = vkQueuePresentKHR(queue, &presentInfo);
-    if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
-    return result;
+    return presentInfo;
   }
 
 void RenderVk::EndDraw(std::atomic<bool> &submit) {
@@ -900,17 +894,23 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
   vkCmdEndRenderPass(currentCommandBuffer);
   
   VkResult result = vkEndCommandBuffer(currentCommandBuffer);
-  graphicsPresentMutex.lock();
   if(result == VK_SUCCESS) {
-      result = submitDraw(manager->deviceState.queue.graphicsPresentQueue,
-			  frames[frameIndex]);
+      auto info = submitDrawInfo(frames[frameIndex]);
+      VkResult result = vkhelper::submitQueue(
+	      manager->deviceState.queue.graphicsPresentQueue,
+	      &info, &graphicsPresentMutex, frames[frameIndex]->frameFinished);
+      if(result != VK_SUCCESS)
+	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
   }
   if(result == VK_SUCCESS) {
-      VkSwapchainKHR sc = swapchain->getSwapchain();
-      result = submitPresent(&frames[frameIndex]->drawFinished, &sc, &swapchainFrameIndex,
-			     manager->deviceState.queue.graphicsPresentQueue);
+      VkSwapchainKHR sc = swapchain->getSwapchain();      
+      auto info = submitPresentInfo(&frames[frameIndex]->drawFinished, &sc, &swapchainFrameIndex);
+      graphicsPresentMutex.lock();
+      VkResult result = vkQueuePresentKHR(manager->deviceState.queue.graphicsPresentQueue, &info);
+      graphicsPresentMutex.unlock();
+      if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
   }
-  graphicsPresentMutex.unlock();
   
   if (swapchainRecreationRequired(result) || _framebufferResized) {
       LOG("end of draw, resize or recreation required");

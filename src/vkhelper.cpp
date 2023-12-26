@@ -125,6 +125,15 @@ namespace vkhelper {
       return maxMsaaSamples;
   }
 
+  VkResult submitQueue(VkQueue queue, VkSubmitInfo* info, std::mutex* queueMut, VkFence fence) {
+      if(queueMut != nullptr)
+	  queueMut->lock();
+      VkResult r = vkQueueSubmit(queue, 1, info, fence);
+      if(queueMut != nullptr)
+	  queueMut->unlock();
+      return r;
+  }
+
   VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
 				VkCommandBuffer* cmdbuff, VkFence fence,
 				std::mutex* queueSubmitMutex) {
@@ -132,19 +141,9 @@ namespace vkhelper {
       submitInfo.commandBufferCount = 1;
       submitInfo.pCommandBuffers = cmdbuff;
       VkResult result = VK_SUCCESS;
-      LOG("submitting queue");
-      if(queueSubmitMutex != nullptr)
-	  queueSubmitMutex->lock();
-      returnOnErr(vkQueueSubmit(queue, 1, &submitInfo, fence));
-      if(queueSubmitMutex != nullptr)
-	  queueSubmitMutex->unlock();
+      returnOnErr(submitQueue(queue, &submitInfo, queueSubmitMutex, fence));
       returnOnErr(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
       return vkResetFences(device, 1, &fence);
-  }
-
-  VkResult submitCmdBuffAndWait(VkDevice device, VkQueue queue,
-				VkCommandBuffer* cmdbuff, VkFence fence) {
-      return submitCmdBuffAndWait(device, queue, cmdbuff, fence, nullptr);
   }
 
 }//namespace end
