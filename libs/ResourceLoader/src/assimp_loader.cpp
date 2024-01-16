@@ -157,8 +157,8 @@ void AssimpLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh,
 	auto aibone = aimesh->mBones[i];
 	unsigned int boneID;
 	std::string boneName = aibone->mName.C_Str();
-	if(model->boneMap.find(boneName) == model->boneMap.end()){
-	    model->bones.push_back(aiToGLM(aibone->mOffsetMatrix));
+	if(model->boneMap.find(boneName) == model->boneMap.end()) {
+	    model->bones.push_back(aiToGLM(aibone->mOffsetMatrix) * mesh->bindTransform);	
 	    boneID = static_cast<unsigned int>(model->bones.size() - 1);
 	    model->boneMap[boneName] = boneID;
 	} else
