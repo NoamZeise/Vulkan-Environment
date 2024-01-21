@@ -29,7 +29,7 @@ class AssimpLoader {
 private:
     Assimp::Importer importer;
 
-    void buildAnimation(ModelInfo::Model* model, aiAnimation* aiAnim);
+    void buildAnimations(ModelInfo::Model* model, aiAnimation* aiAnim);
     void processNode(ModelInfo::Model* model, aiNode* node,
 		     const aiScene* scene, aiMatrix4x4 parentTransform, int parentNode);
     void processMesh(ModelInfo::Model* model, aiMesh* aimesh,

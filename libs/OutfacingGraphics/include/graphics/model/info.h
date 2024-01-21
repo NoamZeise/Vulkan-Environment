@@ -38,10 +38,11 @@ namespace ModelInfo {
       std::vector<unsigned int> indices;
       /// Diffuse textures change the look of the model.
       std::vector<std::string> diffuseTextures;
-      /// The diffuse color gives the overall color of the model, or tint if using diffuse textures too.
+      /// The diffuse color gives the overall color of the model,
+      /// or tint if using diffuse textures too.
       glm::vec4 diffuseColour;
       /// The bind transform is the natural transform of the model without the influence of animations.
-      /// Leave as the  identity matrix if the model is not animated.
+      /// Leave as the identity matrix if the model is not animated.
       glm::mat4 bindTransform;
       Mesh() {
 	  diffuseColour = glm::vec4(1.0f);
@@ -97,16 +98,11 @@ namespace ModelInfo {
   // A model, made of a collection of meshes, with bones and animations if animated, and a node map.
   struct Model {
       std::vector<Mesh> meshes;
-      
-      std::vector<glm::mat4> bones;
-      std::map<std::string, unsigned int> boneMap;
-      
-      bool animatedModel = false;
-      std::vector<Animation> animations;
-      std::map<std::string, unsigned int> animationMap;
-         
       std::vector<Node> nodes;
       std::map<std::string, int> nodeMap;
+      std::vector<glm::mat4> bones;
+      std::map<std::string, unsigned int> boneMap;
+      std::vector<Animation> animations;
   };
 }
 
