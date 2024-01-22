@@ -158,7 +158,7 @@ void AssimpLoader::buildAnimations(ModelInfo::Model* model, aiAnimation* aiAnim)
 	LOG_ERROR("WARNING: model animation does not specify ticks/ms, using 1/ms");
 	anim->ticks = 1;
     }
-
+    
     //set animation props for anim nodes
     for(unsigned int i = 0 ; i < aiAnim->mNumChannels; i++) {
 	auto channel = aiAnim->mChannels[i];
@@ -183,24 +183,24 @@ void getTextures(aiMaterial* material, aiTextureType type, std::vector<std::stri
 
 void extractKeyframe(ModelInfo::AnimNodes *pNode, aiNodeAnim* pAssimpNode) {
     for(unsigned int posI = 0; posI < pAssimpNode->mNumPositionKeys; posI++) {
-	auto posKey = pAssimpNode->mPositionKeys[posI];
-	auto pos = ModelInfo::AnimationKey::Position{};
-	pos.Pos = glm::vec3(posKey.mValue.x, posKey.mValue.y, posKey.mValue.z);
-	pos.time = posKey.mTime;
+	auto posKey = &pAssimpNode->mPositionKeys[posI];
+	ModelInfo::AnimationKey::Position pos;
+	pos.Pos = glm::vec3(posKey->mValue.x, posKey->mValue.y, posKey->mValue.z);
+	pos.time = posKey->mTime;
 	pNode->positions.push_back(pos);
     }
     for(unsigned int rotI = 0; rotI < pAssimpNode->mNumRotationKeys; rotI++) {
-	auto rotKey = pAssimpNode->mRotationKeys[rotI];
-	auto rot = ModelInfo::AnimationKey::RotationQ{};
-	rot.Rot = glm::quat(rotKey.mValue.w, rotKey.mValue.x, rotKey.mValue.y, rotKey.mValue.z);
-	rot.time = rotKey.mTime;
+	auto rotKey = &pAssimpNode->mRotationKeys[rotI];
+	ModelInfo::AnimationKey::RotationQ rot;
+	rot.Rot = glm::quat(rotKey->mValue.w, rotKey->mValue.x, rotKey->mValue.y, rotKey->mValue.z);
+	rot.time = rotKey->mTime;
 	pNode->rotationsQ.push_back(rot);
     }
     for(unsigned int scl = 0; scl < pAssimpNode->mNumScalingKeys; scl++) {
-	auto scaleKey = pAssimpNode->mScalingKeys[scl];
-	auto scale = ModelInfo::AnimationKey::Scaling{};
-	scale.scale = glm::vec3(scaleKey.mValue.x, scaleKey.mValue.y, scaleKey.mValue.z);
-	scale.time = scaleKey.mTime;
+	auto scaleKey = &pAssimpNode->mScalingKeys[scl];
+	ModelInfo::AnimationKey::Scaling scale;
+	scale.scale = glm::vec3(scaleKey->mValue.x, scaleKey->mValue.y, scaleKey->mValue.z);
+	scale.time = scaleKey->mTime;
 	pNode->scalings.push_back(scale);
     }
 }

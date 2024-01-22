@@ -18,32 +18,34 @@ namespace Resource {
   }
   
   void ModelAnimation::processNode(const ModelInfo::AnimNodes &animNode, glm::mat4 parentMat, bool animated){
-      glm::mat4 nodeMat;
-
+      glm::mat4 nodeMat = animNode.modelNode.transform;
       if(animNode.modelNode.boneID != -1) {
-	  nodeMat = parentMat * (animated ? boneTransform(animNode)
-				 : animNode.modelNode.transform);
-	      
-	  bones[animNode.modelNode.boneID] = nodeMat * animNode.modelNode.boneOffset;
-      } else {
-	  nodeMat = parentMat * animNode.modelNode.transform;
+	  if(animated)
+	      nodeMat = boneTransform(animNode);
+	  bones[animNode.modelNode.boneID] =
+	      parentMat * nodeMat * animNode.modelNode.boneOffset;	  
       }
-
+      nodeMat = parentMat * nodeMat;
       for(const auto& childID: animNode.modelNode.children)
 	  processNode(animation.nodes[childID], nodeMat, animated);
   }
 
   glm::mat4 ModelAnimation::boneTransform(const ModelInfo::AnimNodes &animNode) {
-      return bonePos(animNode.positions)
-	  * boneRot(animNode.rotationsQ)
-	  * boneScl(animNode.scalings);
+      glm::mat4 mat =
+	  bonePos(animNode.positions) * boneRot(animNode.rotationsQ) * boneScl(animNode.scalings);
+      if(mat == glm::mat4(1.0f))
+	  return animNode.modelNode.transform;
+      else
+	  return mat;
   }
 
+  //TODO: make less dry 
+  
   glm::mat4 ModelAnimation::bonePos(
 	  const std::vector<ModelInfo::AnimationKey::Position> &posFrames) {
       if(posFrames.size() == 0)
 	  return glm::mat4(1.0f);
-      if(posFrames.size() == 1)
+      if(posFrames.size() == 1 || false)
 	  return glm::translate(glm::mat4(1.0f), posFrames[0].Pos);
       
       int second = 0;
@@ -76,7 +78,7 @@ namespace Resource {
       }
       int first = (second - 1) % rotFrames.size();
 
-      float factor = static_cast<float>(getFactor(rotFrames[first].time, rotFrames[second].time));
+      float factor = getFactor(rotFrames[first].time, rotFrames[second].time);
       glm::quat rot = glm::slerp(rotFrames[first].Rot, rotFrames[second].Rot, factor);
       return glm::toMat4(glm::normalize(rot));
   }
