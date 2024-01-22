@@ -11,6 +11,8 @@
 
 #define LOG_LINE() LOG("---------------------");
 
-#define LOG_ERROR(msg) std::cerr << "Error: " << msg << std::endl;
+#define LOG_ERROR(msg) LOG_CERR(msg, "Error: ");
+
+#define LOG_CERR(msg, severity) std::cerr << severity << msg << std::endl;
 
 #endif

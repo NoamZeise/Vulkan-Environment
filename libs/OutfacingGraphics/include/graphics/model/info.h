@@ -55,6 +55,8 @@ namespace ModelInfo {
       glm::mat4 transform;
       int parentNode;
       std::vector<int> children;
+      int boneID = -1;
+      glm::mat4 boneOffset;
   };
 
   /// Key frames of the state of the model's bones
@@ -79,9 +81,6 @@ namespace ModelInfo {
   /// a frame of animation for all of the bones.
   struct AnimNodes {
       Node modelNode;
-      int boneID = -1;
-      glm::mat4 boneOffset;
-      
       std::vector<AnimationKey::Position> positions;
       std::vector<AnimationKey::RotationQ> rotationsQ;
       std::vector<AnimationKey::Scaling> scalings;
@@ -99,6 +98,7 @@ namespace ModelInfo {
   struct Model {
       std::vector<Mesh> meshes;
       std::vector<Node> nodes;
+      
       std::map<std::string, int> nodeMap;
       std::vector<glm::mat4> bones;
       std::map<std::string, unsigned int> boneMap;

@@ -27,16 +27,20 @@ ModelInfo::Model AssimpLoader::LoadModel(std::string path) {
     if(!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	throw std::runtime_error("failed to load model at \"" + path
 				 + "\" assimp error: " + importer.GetErrorString());
-    
     processNode(&model, scene->mRootNode, scene, aiMatrix4x4(), -1);
+
+    for(auto &e: model.boneMap) {
+	model.nodes[model.nodeMap[e.first]].boneID = e.second;
+	model.nodes[model.nodeMap[e.first]].boneOffset = model.bones[e.second];
+    }
     LOG("model bone count: " << model.bones.size());
     LOG("model animation count: " << scene->mNumAnimations);
     
-    if(scene->HasAnimations())
+    if(scene->HasAnimations()) {
 	for(size_t i = 0; i < scene->mNumAnimations; i++) {
-	    LOG("loading animation: " << scene->mAnimations[i]->mName.C_Str());
 	    buildAnimations(&model, scene->mAnimations[i]);
 	}
+    }
     
     importer.FreeScene();
     return model;            
@@ -49,6 +53,7 @@ void AssimpLoader::processNode(ModelInfo::Model* model, aiNode* node,
     model->nodes.push_back(ModelInfo::Node{});
     model->nodes.back().parentNode = parentNode;
     model->nodes.back().transform = aiToGLM(node->mTransformation);
+
     int thisID = (int)model->nodes.size() - 1;
     model->nodeMap[node->mName.C_Str()] = thisID;
     if(parentNode >= 0) {
@@ -109,26 +114,24 @@ void AssimpLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh,
 
 	mesh->verticies.push_back(vertex);
     }
-
     //bones - relies on verticies
     for(unsigned int i = 0; i < aimesh->mNumBones; i++) {
 	auto aibone = aimesh->mBones[i];
 	unsigned int boneID;
 	std::string boneName = aibone->mName.C_Str();
 	if(model->boneMap.find(boneName) == model->boneMap.end()) {
-	    model->bones.push_back(aiToGLM(aibone->mOffsetMatrix) * mesh->bindTransform);	
-	    boneID = static_cast<unsigned int>(model->bones.size() - 1);
+	    model->bones.push_back(aiToGLM(aibone->mOffsetMatrix) * mesh->bindTransform);
+	    boneID = (unsigned int)(model->bones.size() - 1);
 	    model->boneMap[boneName] = boneID;
 	} else
 	    boneID = model->boneMap[boneName];
-
-	for(unsigned int bone = 0; bone < aibone->mNumWeights; bone++) {
-	    auto vertexWeight = aibone->mWeights[bone];
+	
+	for(unsigned int weightI = 0; weightI < aibone->mNumWeights; weightI++) {
+	    auto vertexWeight = aibone->mWeights[weightI];
 	    mesh->verticies[vertexWeight.mVertexId].BoneIDs.push_back(boneID);
 	    mesh->verticies[vertexWeight.mVertexId].BoneWeights.push_back(vertexWeight.mWeight);
 	}
     }
-
     //indicies
     for(unsigned int i = 0; i < aimesh->mNumFaces; i++) {
 	aiFace face = aimesh->mFaces[i];
@@ -161,10 +164,6 @@ void AssimpLoader::buildAnimations(ModelInfo::Model* model, aiAnimation* aiAnim)
 	auto channel = aiAnim->mChannels[i];
 	std::string nodeName = channel->mNodeName.C_Str();
 	auto node = &anim->nodes[model->nodeMap[nodeName]];
-	if(model->boneMap.find(nodeName) != model->boneMap.end()) {
-	    node->boneID = model->boneMap[nodeName];
-	    node->boneOffset = model->bones[node->boneID];
-	}
 	extractKeyframe(node, channel);
     }
 }

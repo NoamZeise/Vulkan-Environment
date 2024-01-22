@@ -64,6 +64,9 @@ Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
     }
     
     for(ModelInfo::Animation &anim: model.animations) {
+	if(model.bones.size() >= Resource::MAX_BONES)
+	    LOG_CERR("Model had more bones than MAX_BONES, "
+		     "consider upping the shader max bones", "Warning: ");
 	loaded->animations.push_back(Resource::ModelAnimation(model.bones, anim));
 	if(pAnimations != nullptr)
 	    pAnimations->push_back(loaded->animations[loaded->animations.size() - 1]);

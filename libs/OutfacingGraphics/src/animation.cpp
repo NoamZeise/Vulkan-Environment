@@ -1,29 +1,36 @@
 #include <graphics/model/animation.h>
-
+#include <graphics/logger.h>
 namespace Resource {
   
   ModelAnimation::ModelAnimation(std::vector<glm::mat4> bones, ModelInfo::Animation animation) {
       this->bones = bones;
       this->animation = animation;
+      returnToBindPose();
+  }
+
+  void ModelAnimation::returnToBindPose() {
+      processNode(animation.nodes[0], glm::mat4(1.0f), false);
   }
   
   void ModelAnimation::Update(float frameElapsesdMillis) {
       currentTime = fmod(currentTime + (frameElapsesdMillis * animation.ticks), animation.duration);
-      processNode(animation.nodes[0], glm::mat4(1.0f));
+      processNode(animation.nodes[0], glm::mat4(1.0f), true);
   }
   
-  void ModelAnimation::processNode(const ModelInfo::AnimNodes &animNode, glm::mat4 parentMat){
+  void ModelAnimation::processNode(const ModelInfo::AnimNodes &animNode, glm::mat4 parentMat, bool animated){
       glm::mat4 nodeMat;
 
-      if(animNode.boneID != -1) {
-	  nodeMat = parentMat * boneTransform(animNode);
-	  bones[animNode.boneID] = nodeMat * animNode.boneOffset;
+      if(animNode.modelNode.boneID != -1) {
+	  nodeMat = parentMat * (animated ? boneTransform(animNode)
+				 : animNode.modelNode.transform);
+	      
+	  bones[animNode.modelNode.boneID] = nodeMat * animNode.modelNode.boneOffset;
       } else {
 	  nodeMat = parentMat * animNode.modelNode.transform;
       }
 
       for(const auto& childID: animNode.modelNode.children)
-	  processNode(animation.nodes[childID], nodeMat);
+	  processNode(animation.nodes[childID], nodeMat, animated);
   }
 
   glm::mat4 ModelAnimation::boneTransform(const ModelInfo::AnimNodes &animNode) {

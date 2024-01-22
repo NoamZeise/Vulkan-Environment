@@ -13,7 +13,7 @@ namespace Resource {
   const uint32_t MAX_TEXTURES_SUPPORTED = 20;//match in shader
   const uint32_t MAX_2D_BATCH = 10000;
   const uint32_t MAX_3D_BATCH = 1000;
-  const uint32_t MAX_BONES = 50;
+  const uint32_t MAX_BONES = 80;
 
   struct Pool {
       Pool() { ID = 0; }
