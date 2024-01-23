@@ -431,7 +431,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V2D::attributeDescriptions(),
 	      pipeline_inputs::V2D::bindingDescriptions());     
 
-      part::create::GraphicsPipeline(        //TODO: originally max samples, still works?
+      part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, VK_SAMPLE_COUNT_1_BIT,
 	      finalRenderPass->getRenderPass(),
 	      {&offscreenTransform->set, &offscreenTex->set}, {},

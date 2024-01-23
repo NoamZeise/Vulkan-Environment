@@ -36,7 +36,7 @@ They are used when generating the build files, so to build with examples without
 - pass `-DBUILD_EXAMPLES=true` to build the example binaries 
 - pass `-DNO_FREETYPE=true` to remove the freetype dependancy from the library (font related functions will throw an exception)
 - pass `-DNO_ASSIMP=true` to remove the assimp dependancy from the library ( model related functions will throw an exception)
-- pass `-DASSIMP_BUILD_<Some Model Type>_IMPORTER=true` to enable the importing of models that this project doesn't by default. (By default only .fbx and .obj model importers are built)
+- pass `-DASSIMP_BUILD_<Some Model Type>_IMPORTER=true` to enable the importing of models that this project doesn't by default. (By default only .fbx, .gltf and .obj model importers are built)
 - pass `-DVKENV_BUILD_STATIC=true` to have the library link agains the system's c runtime statically and link statically to dependancies
 - pass `-DBUILD_ASSIMP_STATIC=true` to have assimp linked statically (enabled if `VKENV_BUILD_STATIC` is enabled)
 

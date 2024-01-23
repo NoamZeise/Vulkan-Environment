@@ -56,8 +56,8 @@ glm::mat4 calcView() {
 int main() {
     std::cout << "--- Vulkan Environment Demo ---\n";
     if(!glfwInit()){
-      std::cerr << "Error: failed to initialise GLFW!\n";
-      return 1;
+	std::cerr << "Error: failed to initialise GLFW!\n";
+	return 1;
     }
     if(!vkenv::RenderVk::LoadVulkan()) {
 	std::cerr << "Error: failed to load Vulkan!\n";
@@ -90,7 +90,7 @@ int main() {
 	render->LoadResourcesToGPU(pool2->id());
 	render->UseLoadedResources();
 
-	render->set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
+	render->set2DViewMat(glm::mat4(1.0f));
 
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
@@ -99,18 +99,35 @@ int main() {
 	while (!glfwWindowShouldClose(window)) {
 	    glfwPollEvents();
 
-	    render->set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
+	    glm::mat4 proj3d =
+		glm::perspective(
+			80.0f,
+			render->offscreenSize().x / render->offscreenSize().y,
+			render->getRenderConf().depth_range_3D[0],
+			render->getRenderConf().depth_range_3D[1]);
+	    render->set3DProjMat(proj3d);
+	    glm::mat4 proj2d =
+		glm::ortho(0.0f,
+			   render->offscreenSize().x,
+			   render->offscreenSize().y,
+			   0.0f,
+			   render->getRenderConf().depth_range_2D[0],
+			   render->getRenderConf().depth_range_2D[1]);
+		
+	    render->set3DViewMat(calcView(), glm::vec4(camPos, 0.0f));
+	    render->set3DProjMat(proj3d);
+	    render->set2DProjMat(proj2d);
 
 	    elapsedTime += frameElapsed / 1000.0f;
 	    rot += 0.1f * frameElapsed;
 
 	    render->DrawQuad(texture1,
-			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
+			     glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
 	    render->DrawQuad(texture2,
-			    glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
+			     glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
 	    
 	    render->DrawString(font, "Resource Pool Demo",
-			      glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
+			       glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 
 	    drawFinished = false;
 	    render->EndDraw(drawFinished);

@@ -1,5 +1,6 @@
 #include <graphics/model/animation.h>
 #include <graphics/logger.h>
+
 namespace Resource {
   
   ModelAnimation::ModelAnimation(std::vector<glm::mat4> bones, ModelInfo::Animation animation) {
@@ -30,76 +31,71 @@ namespace Resource {
 	  processNode(animation.nodes[childID], nodeMat, animated);
   }
 
+  template <typename T>
+  glm::mat4 bone(const std::vector<T> &frames, float currentTime);
+  
   glm::mat4 ModelAnimation::boneTransform(const ModelInfo::AnimNodes &animNode) {
       glm::mat4 mat =
-	  bonePos(animNode.positions) * boneRot(animNode.rotationsQ) * boneScl(animNode.scalings);
+	  bone(animNode.positions, currentTime)
+	  * bone(animNode.rotationsQ, currentTime)
+	  * bone(animNode.scalings, currentTime);
       if(mat == glm::mat4(1.0f))
 	  return animNode.modelNode.transform;
       else
 	  return mat;
   }
-
-  //TODO: make less dry 
   
-  glm::mat4 ModelAnimation::bonePos(
-	  const std::vector<ModelInfo::AnimationKey::Position> &posFrames) {
-      if(posFrames.size() == 0)
-	  return glm::mat4(1.0f);
-      if(posFrames.size() == 1 || false)
-	  return glm::translate(glm::mat4(1.0f), posFrames[0].Pos);
-      
-      int second = 0;
-      for(int i = 0 ; i < posFrames.size(); i++) {
-	  if(posFrames[i].time >= currentTime) {
-	      second = i;
-	      break;
-	  }
-      }
-      int first = (second - 1) % posFrames.size();
-      
-      double factor = getFactor(posFrames[first].time, posFrames[second].time);
-      return glm::translate(
-	      glm::mat4(1.0f),
-	      glm::mix(posFrames[first].Pos, posFrames[second].Pos, factor));
+  /// --- helpers ---
+  
+  struct FrameProps {
+      int f1 = 0;   // frame 1
+      int f2 = 0;   // frame 2
+      double r = 0; // factor
+  };
+  
+  double calcFactor(double t1, double t2, double currentTime) {
+      return (currentTime - t1) / (t2 - t1);
   }
 
-  glm::mat4 ModelAnimation::boneRot(
-	  const std::vector<ModelInfo::AnimationKey::RotationQ> &rotFrames) {
-      if(rotFrames.size() == 0)
-	  return glm::mat4(1.0f);
-      if(rotFrames.size() == 1)
-	  return glm::toMat4(glm::normalize(rotFrames[0].Rot));
+  float getTime(ModelInfo::AnimationKey::Frame frame) { return frame.time; }
+  
+  template <typename T>
+  FrameProps interpFrames(const std::vector<T> &frames, float currentTime) {
+      if(frames.size() == 1)
+	  return FrameProps{0, 0, 0};      
       int second = 0;
-      for(int i = 0 ; i < rotFrames.size(); i++) {
-	  if(rotFrames[i].time >= currentTime) {
+      for(int i = 0 ; i < frames.size(); i++) {
+	  if(getTime(frames[i]) >= currentTime) {
 	      second = i;
 	      break;
 	  }
       }
-      int first = (second - 1) % rotFrames.size();
+      int first = (second - 1) % frames.size();
+      double factor = calcFactor(getTime(frames[first]), getTime(frames[second]), currentTime);
+      return FrameProps{first, second, factor};
+  }
 
-      float factor = getFactor(rotFrames[first].time, rotFrames[second].time);
-      glm::quat rot = glm::slerp(rotFrames[first].Rot, rotFrames[second].Rot, factor);
+  glm::mat4 frameMat(const std::vector<ModelInfo::AnimationKey::Position> &frames, FrameProps s) {
+      return glm::translate(
+	      glm::mat4(1.0f),
+	      glm::mix(frames[s.f1].Pos, frames[s.f2].Pos, s.r));
+  }
+  
+  glm::mat4 frameMat(const std::vector<ModelInfo::AnimationKey::RotationQ> &frames, FrameProps s) {
+      glm::quat rot = glm::slerp(frames[s.f1].Rot, frames[s.f2].Rot, (float)s.r);
       return glm::toMat4(glm::normalize(rot));
   }
 
-  glm::mat4 ModelAnimation::boneScl(
-	  const std::vector<ModelInfo::AnimationKey::Scaling> &sclFrames) {
-      if(sclFrames.size() == 0)
-	  return glm::mat4(1.0f);
-      if(sclFrames.size() == 1)
-	  return glm::scale(glm::mat4(1.0f), sclFrames[0].scale);
-      
-      int second = 0;
-      for(int i = 0 ; i < sclFrames.size(); i++) {
-	  if(sclFrames[i].time >= currentTime) {
-	      second = i;
-	      break;
-	  }
-      }
-      int first = (second - 1) % sclFrames.size();
-      double factor = getFactor(sclFrames[first].time, sclFrames[second].time);
-      glm::vec3 scale = glm::mix(sclFrames[first].scale, sclFrames[second].scale, factor);
+  glm::mat4 frameMat(const std::vector<ModelInfo::AnimationKey::Scaling> &frames, FrameProps s) {
+      glm::vec3 scale = glm::mix(frames[s.f1].scale, frames[s.f2].scale, s.r);
       return glm::scale(glm::mat4(1.0f), scale);
+  }
+  
+  template <typename T>
+  glm::mat4 bone(const std::vector<T> &frames, float currentTime) {
+      if(frames.size() == 0)
+	  return glm::mat4(1.0f);
+      auto s = interpFrames(frames, currentTime);
+      return frameMat(frames, s);
   }
 }

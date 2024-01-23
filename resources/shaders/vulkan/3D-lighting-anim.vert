@@ -6,10 +6,6 @@ layout(set = 0, binding = 0) uniform UniformBufferObject
     mat4 proj;
 } ubo;
 
-layout(set = 0, binding = 1) uniform time {
-  float time;
-} timeUbo;
-
 struct Obj3DPerFrame
 {
     mat4 model;
@@ -21,7 +17,7 @@ layout(std140, set = 1, binding = 0) readonly buffer PerInstanceData
     Obj3DPerFrame data[];
 } pid;
 
-const int MAX_BONES = 50;
+const int MAX_BONES = 80;
 layout(set = 2, binding = 0) uniform boneView
 {
    mat4 mat[MAX_BONES];
@@ -37,23 +33,19 @@ layout(location = 4) in vec4 inWeights;
 layout(location = 0) out vec2 outTexCoord;
 layout(location = 1) out vec3 outFragPos;
 layout(location = 2) out vec3 outNormal;
-//layout(location = 3) out vec3 outBoneColour;
-
+layout(location = 3) out vec3 outBoneColour;
 
 void main()
 {
     outTexCoord = inTexCoord;
 
     mat4 skin = mat4(0.0f);
-    for(int i = 0; i < 4; i++)
-    {
-      if(inBoneIDs[i] == -1 || inBoneIDs[i] >= MAX_BONES)
-          break;
+    for(int i = 0; i < 4; i++) {
       skin += inWeights[i] * bones.mat[inBoneIDs[i]];
     }
 
     vec4 fragPos = pid.data[gl_InstanceIndex].model * skin * vec4(inPos, 1.0f);
-    outNormal = (pid.data[gl_InstanceIndex].normalMat * skin * vec4(inNormal, 1.0f)).xyz;
+    outNormal = mat3(pid.data[gl_InstanceIndex].normalMat) * mat3(skin) * inNormal;
 
     gl_Position = ubo.proj * ubo.view * fragPos;
     outFragPos = vec3(fragPos) / fragPos.w;

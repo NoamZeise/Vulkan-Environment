@@ -128,7 +128,7 @@ void AssimpLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh,
 	
 	for(unsigned int weightI = 0; weightI < aibone->mNumWeights; weightI++) {
 	    auto vertexWeight = aibone->mWeights[weightI];
-	    mesh->verticies[vertexWeight.mVertexId].BoneIDs.push_back(boneID);
+	    mesh->verticies[vertexWeight.mVertexId].BoneIDs.push_back(boneID == -1 ? 0 : boneID);
 	    mesh->verticies[vertexWeight.mVertexId].BoneWeights.push_back(vertexWeight.mWeight);
 	}
     }

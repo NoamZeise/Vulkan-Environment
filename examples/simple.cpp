@@ -75,8 +75,8 @@ int main() {
 	
 	
 	std::cout << "Framebuffer Size:"
-	             "\nwidth: "  << render->getTargetResolution().x
-		  << "\nheight: " << render->getTargetResolution().y << std::endl;
+	    "\nwidth: "  << render->offscreenSize().x
+		  << "\nheight: " << render->offscreenSize().y << std::endl;
 	ResourcePool* pool = render->pool();
 	Resource::Texture testTex = pool->tex()->load("textures/ROOM.fbm/PolyCat.jpg");
 	Resource::Model suzanneModel = pool->model()->load("models/monkey.fbx");
@@ -91,7 +91,7 @@ int main() {
 	render->LoadResourcesToGPU(pool->id());
 	render->UseLoadedResources();
 
-	render->set2DViewMatrixAndScale(glm::mat4(1.0f), 1.0f);
+	render->set2DViewMat(glm::mat4(1.0f));
 
 	float rot = 0.0f;
 	std::atomic<bool> drawFinished;
@@ -105,7 +105,24 @@ int main() {
 		vsyncToggle = false;
 	    }
 
-	    render->set3DViewMatrixAndFov(calcView(), 45.0f, glm::vec4(camPos, 0.0f));
+	        glm::mat4 proj3d =
+		    glm::perspective(
+			    80.0f,
+			    render->offscreenSize().x / render->offscreenSize().y,
+			    render->getRenderConf().depth_range_3D[0],
+			    render->getRenderConf().depth_range_3D[1]);
+		render->set3DProjMat(proj3d);
+		glm::mat4 proj2d =
+		    glm::ortho(0.0f,
+			       render->offscreenSize().x,
+			       render->offscreenSize().y,
+			       0.0f,
+			       render->getRenderConf().depth_range_2D[0],
+			       render->getRenderConf().depth_range_2D[1]);
+		
+	    render->set3DViewMat(calcView(), glm::vec4(camPos, 0.0f));
+	    render->set3DProjMat(proj3d);
+	    render->set2DProjMat(proj2d);
 	    rendervk.setTime(elapsedTime);
 
 	    elapsedTime += frameElapsed / 1000.0f;
