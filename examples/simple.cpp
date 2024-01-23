@@ -53,8 +53,8 @@ glm::mat4 calcView() {
 int main() {
     std::cout << "--- Vulkan Environment Demo ---\n";
     if(!glfwInit()){
-      std::cerr << "Error: failed to initialise GLFW, aborting!\n";
-      return -1;
+	std::cerr << "Error: failed to initialise GLFW, aborting!\n";
+	return -1;
     }
 
     // Vulkan Must be loaded before a window is created
@@ -105,24 +105,23 @@ int main() {
 		vsyncToggle = false;
 	    }
 
-	        glm::mat4 proj3d =
-		    glm::perspective(
-			    80.0f,
-			    render->offscreenSize().x / render->offscreenSize().y,
-			    render->getRenderConf().depth_range_3D[0],
-			    render->getRenderConf().depth_range_3D[1]);
-		render->set3DProjMat(proj3d);
-		glm::mat4 proj2d =
-		    glm::ortho(0.0f,
-			       render->offscreenSize().x,
-			       render->offscreenSize().y,
-			       0.0f,
-			       render->getRenderConf().depth_range_2D[0],
-			       render->getRenderConf().depth_range_2D[1]);
-		
-	    render->set3DViewMat(calcView(), glm::vec4(camPos, 0.0f));
+	    glm::mat4 proj3d =
+		glm::perspective(
+			80.0f,
+			render->offscreenSize().x / render->offscreenSize().y,
+			render->getRenderConf().depth_range_3D[0],
+			render->getRenderConf().depth_range_3D[1]);
+	    proj3d[1][1] *= -1;
 	    render->set3DProjMat(proj3d);
+	    glm::mat4 proj2d =
+		glm::ortho(0.0f,
+			   render->offscreenSize().x,
+			   render->offscreenSize().y,
+			   0.0f,
+			   render->getRenderConf().depth_range_2D[0],
+			   render->getRenderConf().depth_range_2D[1]);
 	    render->set2DProjMat(proj2d);
+	    render->set3DViewMat(calcView(), glm::vec4(camPos, 0.0f));
 	    rendervk.setTime(elapsedTime);
 
 	    elapsedTime += frameElapsed / 1000.0f;
@@ -132,44 +131,44 @@ int main() {
 	    otherWolfAnimation.Update((float)frameElapsed);
 	
 	    render->DrawQuad(testTex,
-			    glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
+			     glmhelper::calcMatFromRect(glm::vec4(100, 240, 100, 100), rot));
 	    render->DrawQuad(Resource::Texture(),
-			    glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
+			     glmhelper::calcMatFromRect(glm::vec4(300, 240, 100, 100), -rot));
 
 	    render->DrawString(font, "Demo", glm::vec2(10.0f, 20.0f),
-			      10.0f, 0.0f, glm::vec4(1.0f), 0.0f);
+			       10.0f, 0.0f, glm::vec4(1.0f), 0.0f);
 
 
 	    auto monkeyMat =
+		glm::rotate(
 			glm::rotate(
-				glm::rotate(
-					glm::translate(
-						glm::mat4(1.0f),
-						glm::vec3(100.0f, -100.0f, -100.0f)),
-					glm::radians(90.0f),
-					glm::vec3(1.0f, 0.0f, 0.0f)),
-				glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::translate(
+					glm::mat4(1.0f),
+					glm::vec3(100.0f, -100.0f, -100.0f)),
+				glm::radians(90.0f),
+				glm::vec3(1.0f, 0.0f, 0.0f)),
+			glm::radians(rot), glm::vec3(0.0f, 1.0f, 0.0f));
 	    
 	    auto monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
 	    render->DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
-				       glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+			      glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 	    monkeyMat = glm::translate(monkeyMat, glm::vec3(100.0f, 0.0f, 0.0f));
 	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
 	    render->DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
-			     glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+			      glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 	    monkeyMat = glm::translate(monkeyMat, glm::vec3(100.0f, 0.0f, 0.0f));
 	    monkeyNormalMat = glm::inverse(glm::transpose(monkeyMat));
 	    render->DrawModel(suzanneModel, monkeyMat, monkeyNormalMat,
-			     glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
+			      glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
 
 	    auto wolfMat = glm::translate(
-		glm::scale(
-			glm::rotate(
-				glm::mat4(1.0f),
-				glm::radians(90.0f),
-				glm::vec3(1.0f, 0.0f, 0.0f)),
-			glm::vec3(2.0f, 2.0f, 2.0f)),
-		glm::vec3(100.0f, -50.0f, 100.0f));
+		    glm::scale(
+			    glm::rotate(
+				    glm::mat4(1.0f),
+				    glm::radians(90.0f),
+				    glm::vec3(1.0f, 0.0f, 0.0f)),
+			    glm::vec3(2.0f, 2.0f, 2.0f)),
+		    glm::vec3(100.0f, -50.0f, 100.0f));
 	    
 	    auto wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
 	    render->DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &currentWolfAnimation);
@@ -181,7 +180,7 @@ int main() {
 				glm::radians(90.0f),
 				glm::vec3(1.0f, -0.8f, 0.5f)),
 			glm::vec3(2.0f, 2.0f, 2.0f)
-			    );
+			   );
 	    wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
 	    render->DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &otherWolfAnimation);
 	    

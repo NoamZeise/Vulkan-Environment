@@ -105,6 +105,7 @@ int main() {
 			render->offscreenSize().x / render->offscreenSize().y,
 			render->getRenderConf().depth_range_3D[0],
 			render->getRenderConf().depth_range_3D[1]);
+	    proj3d[1][1] *= -1;
 	    render->set3DProjMat(proj3d);
 	    glm::mat4 proj2d =
 		glm::ortho(0.0f,
@@ -115,7 +116,6 @@ int main() {
 			   render->getRenderConf().depth_range_2D[1]);
 		
 	    render->set3DViewMat(calcView(), glm::vec4(camPos, 0.0f));
-	    render->set3DProjMat(proj3d);
 	    render->set2DProjMat(proj2d);
 
 	    elapsedTime += frameElapsed / 1000.0f;
