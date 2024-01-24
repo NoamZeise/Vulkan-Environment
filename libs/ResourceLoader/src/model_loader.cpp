@@ -21,22 +21,16 @@ void InternalModelLoader::clearStaged() {
 }
 
 Resource::Model InternalModelLoader::load(
-	Resource::ModelType type, std::string path,
-	std::vector<Resource::ModelAnimation> *pAnimations) {
-    ModelInfo::Model model = loader->LoadModel(path);
-    return load(type, model, pAnimations);
-}
-
-Resource::Model InternalModelLoader::load(
 	Resource::ModelType type, ModelInfo::Model &modelData,
+	std::string textureFolder,
 	std::vector<Resource::ModelAnimation>* pAnimations) {
     switch(type) {
     case Resource::ModelType::m2D:
-	return loadData(modelData, stage2D, pAnimations);
+	return loadData(modelData, stage2D, textureFolder, pAnimations);
     case Resource::ModelType::m3D:
-	return loadData(modelData, stage3D, pAnimations);
+	return loadData(modelData, stage3D, textureFolder, pAnimations);
     case Resource::ModelType::m3D_Anim:
-	return loadData(modelData, stageAnim3D, pAnimations);
+	return loadData(modelData, stageAnim3D, textureFolder, pAnimations);
     default:
 	throw std::runtime_error("Model Type Not implemented in "
 				 "InternalModelLoader");
@@ -49,16 +43,18 @@ ModelInfo::Model InternalModelLoader::loadModelData(std::string path) {
 
 template <class T_Vert>
 Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
-					  ModelGroup<T_Vert>& modelGroup,
-					  std::vector<Resource::ModelAnimation> *pAnimations) {
+					      ModelGroup<T_Vert>& modelGroup,
+					      std::string textureFolder,
+					      std::vector<Resource::ModelAnimation> *pAnimations) {
     Resource::Model usermodel(currentIndex++, getModelType(T_Vert()), pool);
     modelGroup.loadModel(model, usermodel.ID);
     LoadedModel<T_Vert>* loaded = modelGroup.getPreviousModel();
-
+    if(textureFolder.size() > 0 && textureFolder[textureFolder.size() - 1] != '/') {
+	textureFolder.push_back('/');
+    }
     for(Mesh<T_Vert> *mesh: loaded->meshes) {
 	if(mesh->texToLoad != "")
-	    mesh->texture = texLoader->load(MODEL_TEXTURE_LOCATION
-						   + mesh->texToLoad);
+	    mesh->texture = texLoader->load(textureFolder + mesh->texToLoad);
 	else
 	    mesh->texture.ID = UINT32_MAX;
     }
@@ -80,5 +76,5 @@ Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
 
 void InternalModelLoader::loadQuad() {
     ModelInfo::Model q = makeQuadModel();
-    quad = load(Resource::ModelType::m2D, q, nullptr);
+    quad = load(Resource::ModelType::m2D, q, "", nullptr);
 }

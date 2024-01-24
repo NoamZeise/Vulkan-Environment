@@ -48,9 +48,9 @@ struct GPUModel {
     Resource::ModelAnimation getAnimation(std::string animation) {
 	if (animationMap.find(animation) == animationMap.end()) {
 	    LOG_ERROR("No animation called " << animation << " could be found in the"
-		  " animation map for model");
-	return Resource::ModelAnimation();
-    }        
+		      " animation map for model");
+	    return Resource::ModelAnimation();
+	}        
 	return getAnimation(animationMap[animation]);  
     }
 };
@@ -59,14 +59,10 @@ class InternalModelLoader : public ModelLoader {
 public:
     InternalModelLoader(Resource::Pool pool, InternalTexLoader* texLoader);
     ~InternalModelLoader();
-    
-    Resource::Model load(
-	    Resource::ModelType type,
-	    std::string path,
-	    std::vector<Resource::ModelAnimation>* pAnimations) override;
     Resource::Model load(
 	    Resource::ModelType type,
 	    ModelInfo::Model &modelData,
+	    std::string textureFolder,
 	    std::vector<Resource::ModelAnimation>* pAnimations) override;
     ModelInfo::Model loadModelData(std::string path) override;
     virtual void loadGPU() = 0;
@@ -85,6 +81,7 @@ protected:
     template <class T_Vert>
     Resource::Model loadData(ModelInfo::Model& model,
 			     ModelGroup<T_Vert>& modelGroup,
+			     std::string textureFolder,
 			     std::vector<Resource::ModelAnimation> *pAnimations);
     void loadQuad();
 };

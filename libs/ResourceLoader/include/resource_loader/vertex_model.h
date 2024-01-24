@@ -12,8 +12,6 @@ Resource::ModelType getModelType(Vertex2D vert);
 Resource::ModelType getModelType(Vertex3D vert);
 Resource::ModelType getModelType(VertexAnim3D vert);
 
-static const char* MODEL_TEXTURE_LOCATION = "textures/";
-
 template <class T_Vert>
 struct Mesh {
     Mesh() {}

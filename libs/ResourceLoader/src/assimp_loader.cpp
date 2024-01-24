@@ -71,16 +71,9 @@ void AssimpLoader::processNode(ModelInfo::Model* model, aiNode* node,
     }
 }
 
-void getTextures(aiMaterial* material, aiTextureType type, std::vector<std::string> *pTextures);
+std::vector<std::string> getTextures(aiMaterial* material, aiTextureType type);
 
-glm::vec4 getColour(aiMaterial* material, const char* key, int type, int id) {
-    aiColor3D colour;
-    if(material->Get(key, type, id, colour) != AI_SUCCESS) {
-	LOG_ERROR("warning: failed to get colour type: " << type <<  " , setting to white\n");
-	return glm::vec4(1.0f);
-    }
-    return glm::vec4(colour.r, colour.g, colour.b, 1);
-}
+glm::vec4 getColour(aiMaterial* material, const char* key, int type, int id);
 
 void AssimpLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh,
 			       const aiScene* scene, aiMatrix4x4 transform) {
@@ -89,8 +82,8 @@ void AssimpLoader::processMesh(ModelInfo::Model* model, aiMesh* aimesh,
 
     auto material = scene->mMaterials[aimesh->mMaterialIndex];
 
-    getColour(material, AI_MATKEY_COLOR_DIFFUSE);
-    getTextures(material, aiTextureType_DIFFUSE, &mesh->diffuseTextures);
+    mesh->diffuseColour = getColour(material, AI_MATKEY_COLOR_DIFFUSE);
+    mesh->diffuseTextures = getTextures(material, aiTextureType_DIFFUSE);
     
     //vertcies
     for(unsigned int i = 0; i < aimesh->mNumVertices;i++) {
@@ -170,15 +163,26 @@ void AssimpLoader::buildAnimations(ModelInfo::Model* model, aiAnimation* aiAnim)
 
 /// --- Helpers ---
 
-void getTextures(aiMaterial* material, aiTextureType type, std::vector<std::string> *pTextures) {
+std::vector<std::string> getTextures(aiMaterial* material, aiTextureType type) {
+    std::vector<std::string> textures;
     for(unsigned int i = 0; i < material->GetTextureCount(type); i++) {
 	aiString texPath;
 	material->GetTexture(type, i, &texPath);
-	pTextures->push_back(texPath.C_Str());
-	for(size_t i = 0; i < pTextures->back().size(); i++)
-	    if(pTextures->back().at(i) == '\\')
-		(*pTextures)[pTextures->size() - 1][i] = '/';
+	textures.push_back(texPath.C_Str());
+	for(size_t i = 0; i < textures.back().size(); i++)
+	    if(textures.back().at(i) == '\\')
+		textures[textures.size() - 1][i] = '/';
     }
+    return textures;
+}
+
+glm::vec4 getColour(aiMaterial* material, const char* key, int type, int id) {
+    aiColor3D colour;
+    if(material->Get(key, type, id, colour) != AI_SUCCESS) {
+	LOG_ERROR("warning: failed to get colour type: " << type <<  " , setting to white\n");
+	return glm::vec4(1.0f);
+    }
+    return glm::vec4(colour.r, colour.g, colour.b, 1);
 }
 
 void extractKeyframe(ModelInfo::AnimNodes *pNode, aiNodeAnim* pAssimpNode) {

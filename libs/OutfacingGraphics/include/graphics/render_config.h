@@ -13,7 +13,7 @@ struct RenderConfig {
 
     //Texture Loading Settings
     bool srgb = false;
-    bool mip_mapping = true;
+    bool mip_mapping = false;
     // for a pixelated look (ie no smoothing of pixels)
     bool texture_filter_nearest = false;
 };

@@ -93,7 +93,6 @@ int main() {
 	render->set2DViewMat(glm::mat4(1.0f));
 
 	float rot = 0.0f;
-	std::atomic<bool> drawFinished;
 	auto start = std::chrono::high_resolution_clock::now();
 	float elapsedTime = 0;
 	while (!glfwWindowShouldClose(window)) {
@@ -129,8 +128,7 @@ int main() {
 	    render->DrawString(font, "Resource Pool Demo",
 			       glm::vec2(10.0f, 20.0f), 10.0f, 0.0f, glm::vec4(1.0f));
 
-	    drawFinished = false;
-	    render->EndDraw(drawFinished);
+	    render->EndDraw();
 
 	    if(resize) {	
 		resize = false;

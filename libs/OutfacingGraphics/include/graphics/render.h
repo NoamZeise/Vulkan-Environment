@@ -75,8 +75,13 @@ class Render {
 	DrawString(font, text, position, size, depth, colour, 0.0f);
     }
 
+    /// atomic bool is set to true when draw commands finish being sent
+    /// to the gpu
     virtual void EndDraw(std::atomic<bool> &submit) = 0;
-
+    void EndDraw() {
+	std::atomic<bool> drawSubmitted;
+	EndDraw(drawSubmitted);
+    }
     
     /// --- Render State Config ---
 

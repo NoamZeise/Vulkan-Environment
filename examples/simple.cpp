@@ -68,7 +68,7 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     std::cout << "GLFW window created\n";
     RenderConfig config;
-    
+
     try {
 	vkenv::RenderVk rendervk(window, config);
 	Render* render = &rendervk;
@@ -94,7 +94,6 @@ int main() {
 	render->set2DViewMat(glm::mat4(1.0f));
 
 	float rot = 0.0f;
-	std::atomic<bool> drawFinished;
 	auto start = std::chrono::high_resolution_clock::now();
 	float elapsedTime = 0;
 	while (!glfwWindowShouldClose(window)) {
@@ -107,11 +106,10 @@ int main() {
 
 	    glm::mat4 proj3d =
 		glm::perspective(
-			80.0f,
+			45.0f,
 			render->offscreenSize().x / render->offscreenSize().y,
 			render->getRenderConf().depth_range_3D[0],
 			render->getRenderConf().depth_range_3D[1]);
-	    proj3d[1][1] *= -1;
 	    render->set3DProjMat(proj3d);
 	    glm::mat4 proj2d =
 		glm::ortho(0.0f,
@@ -184,8 +182,7 @@ int main() {
 	    wolfNormalMat = glm::inverse(glm::transpose(wolfMat));
 	    render->DrawAnimModel(animatedWolf, wolfMat, wolfNormalMat, &otherWolfAnimation);
 	    
-	    drawFinished = false;
-	    render->EndDraw(drawFinished);
+	    render->EndDraw();
 
 	    if(resize) {	
 		resize = false;
