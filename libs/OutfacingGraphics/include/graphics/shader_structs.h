@@ -18,4 +18,8 @@ struct BPLighting {
   alignas(16) glm::vec4 camPos;
 };
 
+struct ShaderProps {
+    alignas(4) float time;
+};
+
 #endif

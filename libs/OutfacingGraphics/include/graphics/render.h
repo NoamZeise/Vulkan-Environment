@@ -96,6 +96,7 @@ class Render {
     virtual void set3DProjMat(glm::mat4 proj) = 0;
     virtual void set2DProjMat(glm::mat4 proj) = 0;
     virtual void setLightingProps(BPLighting lighting) = 0;
+    virtual void setShaderProps(ShaderProps props) = 0;
 
     virtual void setRenderConf(RenderConfig renderConf) = 0;
     virtual RenderConfig getRenderConf() = 0;

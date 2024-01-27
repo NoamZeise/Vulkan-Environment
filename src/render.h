@@ -70,6 +70,8 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
       RenderConfig getRenderConf() override;
       glm::vec2 offscreenSize() override;
 
+      void setShaderProps(ShaderProps props) override;
+
       void setTime(float time) {
 	  timeData.time = time;
       }
@@ -156,6 +158,10 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
       float prevTexSamplerMinMipmap = 1.0f;
       VkSampler textureSampler;
       VkImageView textureViews[Resource::MAX_TEXTURES_SUPPORTED];
+
+      DescSet *shaderProps;
+      DescSet *shaderPropsVert;
+      ShaderProps shaderPropsData;
 
       std::vector<DescSet*> descriptorSets;
 

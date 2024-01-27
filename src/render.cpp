@@ -263,6 +263,13 @@ bool swapchainRecreationRequired(VkResult result) {
 				 sizeof(lightingData), 1);
       lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
 
+      descriptor::Set props_Set("Shader Props", descriptor::ShaderStage::Fragment);
+      props_Set.AddDescriptor("Props", descriptor::Type::UniformBuffer, sizeof(ShaderProps), 1);
+      shaderProps = new DescSet(props_Set, swapchainFrameCount, manager->deviceState.device);
+      descriptor::Set propsvert_Set("Shader Props", descriptor::ShaderStage::Vertex);
+      propsvert_Set.AddDescriptor("Props", descriptor::Type::UniformBuffer, sizeof(ShaderProps), 1);
+      shaderPropsVert = new DescSet(propsvert_Set, swapchainFrameCount, manager->deviceState.device);
+
       float minMipmapLevel = 100000.0f;
       for(auto& p: pools) {
 	  if(p->usingGPUResources) {
@@ -364,6 +371,7 @@ bool swapchainRecreationRequired(VkResult result) {
       std::vector<VkImageView> offscreenViews = offscreenRenderPass->getAttachmentViews(
 	      renderConf.multisampling ? 2 : 0);
       descriptor::Set offscreen_Set("offscreen texture", descriptor::ShaderStage::Fragment);
+      
       offscreen_Set.AddSamplerDescriptor("sampler", 1, &_offscreenTextureSampler);
       offscreen_Set.AddImageViewDescriptor("frame", descriptor::Type::SampledImagePerSet,
 					   1, offscreenViews.data());
@@ -373,7 +381,7 @@ bool swapchainRecreationRequired(VkResult result) {
       descriptorSets = {
 	  VP3D, VP2D, perFrame3D, bones, emptyDS, perFrame2DVert,
 	  perFrame2DFrag, offscreenTransform, lighting,
-	  textures, offscreenTex};
+	  textures, offscreenTex, shaderProps, shaderPropsVert};
       
       LOG("Creating Descriptor pool and memory for set bindings");
       
@@ -401,7 +409,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
 	      sampleCount, offscreenRenderPass->getRenderPass(),
-	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, 
+	      {&VP3D->set, &perFrame3D->set, &shaderPropsVert->set, &textures->set, 
 	       &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
@@ -434,7 +442,7 @@ bool swapchainRecreationRequired(VkResult result) {
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineFinal, VK_SAMPLE_COUNT_1_BIT,
 	      finalRenderPass->getRenderPass(),
-	      {&offscreenTransform->set, &offscreenTex->set}, {},
+	      {&offscreenTransform->set, &offscreenTex->set, &shaderProps->set}, {},
 	      "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
 	      false, false, false, manager->deviceState.features.sampleRateShading,
 	      swapchainExtent, VK_CULL_MODE_NONE, {}, {});
@@ -648,7 +656,8 @@ void RenderVk::_startDraw() {
     
     pools[0]->modelLoader->bindBuffers(currentCommandBuffer);
     currentModelPool = pools[0]->id();
-	
+    shaderProps->bindings[0].storeSetData(swapchainFrameIndex, &shaderPropsData);
+    shaderPropsVert->bindings[0].storeSetData(swapchainFrameIndex, &shaderPropsData);	
     _begunDraw = true;
 }
 
@@ -953,6 +962,10 @@ void RenderVk::setLightingProps(BPLighting lighting) {
     lightingData = lighting;
 }
 
+void RenderVk::setShaderProps(ShaderProps props) {
+    shaderPropsData = props;
+}
+  
 void RenderVk::setRenderConf(RenderConfig renderConf) {
     this->renderConf = renderConf;
     FramebufferResize();
