@@ -1,5 +1,7 @@
+
 add_subdirectory(OutfacingGraphics)
 add_subdirectory(ResourceLoader)
+add_subdirectory(volk)
 
 # glfw setup
 option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" ON)
@@ -26,10 +28,9 @@ add_subdirectory(glfw)
 
 add_subdirectory(glm)
 
-add_subdirectory(volk)
-
-    set(BUILD_SHARED_LIBS OFF)
-
+if(GRAPHICS_BUILD_STATIC)
+  set(BUILD_SHARED_LIBS OFF)
+endif()
 # assimp setup
 #if(NOT NO_ASSIMP)
  # OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
