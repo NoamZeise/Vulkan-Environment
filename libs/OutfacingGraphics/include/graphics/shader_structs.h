@@ -20,6 +20,7 @@ struct BPLighting {
 
 struct ShaderProps {
     alignas(4) float time;
+    alignas(4) float warp;
 };
 
 #endif

@@ -39,7 +39,7 @@ namespace glmhelper {
       model = glm::translate(model, glm::vec3(rect.x, rect.y, depth));
       if(rotate != 0) {
 	  model = glm::translate(model, glm::vec3(0.5 * rect.z, 0.5 * rect.w, 0.0));
-	  model = glm::rotate(model, glm::radians(rotate), glm::vec3(0.0, 0.0, 1.0));
+	  model = glm::rotate(model, rotate, glm::vec3(0.0, 0.0, 1.0));
 	  model = glm::translate(model, glm::vec3(-0.5 * rect.z, -0.5 * rect.w, 0.0));
       }
       model = glm::scale(model, glm::vec3(rect.z, rect.w, 1.0f));
