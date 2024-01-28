@@ -11,6 +11,7 @@
 #ifdef NO_ASSIMP
 
 class AssimpLoader {
+public:
     ModelInfo::Model LoadModel(std::string path);
 };
 

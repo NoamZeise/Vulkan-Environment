@@ -28,19 +28,21 @@ add_subdirectory(glm)
 
 add_subdirectory(volk)
 
-# assimp setup
-if(NOT NO_ASSIMP)
-  OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
-  if(NOT BUILD_ASSIMP_STATIC)
-    set(BUILD_SHARED_LIBS ON)
-  else()
     set(BUILD_SHARED_LIBS OFF)
-    OPTION( ASSIMP_BUILD_ZLIB
-      "Build your own zlib"
-      ON
-    )
-    set(ASSIMP_BUILD_ZLIB ON)
-  endif()
+
+# assimp setup
+#if(NOT NO_ASSIMP)
+ # OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
+ # if(NOT BUILD_ASSIMP_STATIC)
+ #   set(BUILD_SHARED_LIBS ON)
+ # else()
+ #   set(BUILD_SHARED_LIBS OFF)
+ #   OPTION( ASSIMP_BUILD_ZLIB
+ #     "Build your own zlib"
+ #     ON
+ #   )
+ #   set(ASSIMP_BUILD_ZLIB ON)
+ # endif()
   OPTION ( ASSIMP_WARNINGS_AS_ERRORS
     "Treat all warnings as errors."
     ON
@@ -58,8 +60,8 @@ if(NOT NO_ASSIMP)
   set(ASSIMP_BUILD_FBX_IMPORTER TRUE)
   set(ASSIMP_BUILD_OBJ_IMPORTER TRUE)
   set(ASSIMP_BUILD_GLTF_IMPORTER TRUE)
-  add_subdirectory(assimp)
-endif()
+ # add_subdirectory(assimp)
+#endif()
 
 if(NOT NO_FREETYPE)
   if(NOT VKENV_BUILD_STATIC)

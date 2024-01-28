@@ -22,7 +22,7 @@ endif()
 
 if(VKENV_BUILD_STATIC)
   set(BUILD_ASSIMP_STATIC true)
-  set(BUILD_SHARED_LIBS false)
+  set(BUILD_SHARED_LIBS OFF)
   if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   endif()
