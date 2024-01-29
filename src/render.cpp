@@ -908,7 +908,7 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
       graphicsPresentMutex.lock();
       VkResult result = vkQueuePresentKHR(manager->deviceState.queue.graphicsPresentQueue, &info);
       graphicsPresentMutex.unlock();
-      if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+      if(result != VK_SUCCESS && !swapchainRecreationRequired(result))
 	  LOG_ERR_TYPE("Render Error: Failed to sumbit draw commands.", result);
   }
   
