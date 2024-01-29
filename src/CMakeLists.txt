@@ -26,10 +26,4 @@ target_link_libraries(${Vulkan-Render-Lib} PUBLIC
   volk
 )
 
-if(VKENV_BUILD_STATIC)
-   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-     target_link_options(${Vulkan-Render-Lib} PUBLIC -static-libgcc -static-libstdc++)
-   endif()
-endif()
-
 target_include_directories(${Vulkan-Render-Lib} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include/)

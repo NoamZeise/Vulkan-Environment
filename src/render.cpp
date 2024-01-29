@@ -299,6 +299,7 @@ bool swapchainRecreationRequired(VkResult result) {
       ResourcePoolVk *pool = pools[0];
       VkImageView validView;
       bool foundValidView = false;
+      bool checkedAllPools = false;
       //TODO: add dummy tex to ID 0 and use as validView
       for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
 	  if(pool == nullptr) 
@@ -324,6 +325,7 @@ bool swapchainRecreationRequired(VkResult result) {
 	      texI = 0;
 	      i--;
 	  } else {
+	      checkedAllPools = true;
 	      if(foundValidView)
 		  textureViews[i] = validView;
 	      else //TODO: change so we dont require a texture
@@ -331,6 +333,11 @@ bool swapchainRecreationRequired(VkResult result) {
 					   "At least 1 Texture must be loaded");
 	  }
       }
+      if(!checkedAllPools) {
+	  LOG_ERROR("Ran out of texture slots in shader! current limit: "
+		    << Resource::MAX_TEXTURES_SUPPORTED);
+      }
+      
       //temp: until dummy tex added
       textureViews[0] = validView;
 
@@ -828,12 +835,11 @@ void RenderVk::_drawBatch() {
 }
 
 
-  VkSubmitInfo submitDrawInfo(Frame *frame) {
+  VkSubmitInfo submitDrawInfo(Frame *frame, VkPipelineStageFlags *stageFlags) {
       VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
       submitInfo.waitSemaphoreCount = 1;
       submitInfo.pWaitSemaphores = &frame->swapchainImageReady;
-      VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-      submitInfo.pWaitDstStageMask = &stageFlags;
+      submitInfo.pWaitDstStageMask = stageFlags;
       submitInfo.commandBufferCount = 1;
       submitInfo.pCommandBuffers = &frame->commandBuffer;
       submitInfo.signalSemaphoreCount = 1;
@@ -895,7 +901,8 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
   
   VkResult result = vkEndCommandBuffer(currentCommandBuffer);
   if(result == VK_SUCCESS) {
-      auto info = submitDrawInfo(frames[frameIndex]);
+            VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	    auto info = submitDrawInfo(frames[frameIndex], &stageFlags);
       VkResult result = vkhelper::submitQueue(
 	      manager->deviceState.queue.graphicsPresentQueue,
 	      &info, &graphicsPresentMutex, frames[frameIndex]->frameFinished);

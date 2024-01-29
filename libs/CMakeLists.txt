@@ -1,5 +1,6 @@
 add_subdirectory(OutfacingGraphics)
 add_subdirectory(ResourceLoader)
+add_subdirectory(volk)
 
 # glfw setup
 option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" ON)
@@ -24,14 +25,13 @@ else()
 endif()
 add_subdirectory(glfw)
 
+set(BUILD_SHARED_LIBS OFF) # dont want shared lib version of glm and volk
 add_subdirectory(glm)
-
-add_subdirectory(volk)
 
 # assimp setup
 if(NOT NO_ASSIMP)
   OPTION( BUILD_SHARED_LIBS  "Build package with shared libraries." ON)
-  if(NOT BUILD_ASSIMP_STATIC)
+  if(NOT VKENV_BUILD_STATIC)
     set(BUILD_SHARED_LIBS ON)
   else()
     set(BUILD_SHARED_LIBS OFF)
@@ -61,12 +61,13 @@ if(NOT NO_ASSIMP)
   add_subdirectory(assimp)
 endif()
 
+if(VKENV_BUILD_STATIC)
+  set(BUILD_SHARED_LIBS OFF)
+else()
+  set(BUILD_SHARED_LIBS ON)
+endif()
+
 if(NOT NO_FREETYPE)
-  if(NOT VKENV_BUILD_STATIC)
-    set(BUILD_SHARED_LIBS ON)
-  else()
-    set(BUILD_SHARED_LIBS OFF)
-  endif()
   #disable freetype optional dependancies
   option(FT_DISABLE_ZLIB
   "Disable use of system zlib and use internal zlib library instead." OFF)

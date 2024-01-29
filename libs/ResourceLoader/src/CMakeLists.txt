@@ -12,7 +12,7 @@ if(NOT NO_FREETYPE)
 endif()
 
 add_dependencies(ResourceLoader OutfacingGraphics)
-target_link_libraries(ResourceLoader PUBLIC OutfacingGraphics glm)
+target_link_libraries(ResourceLoader PUBLIC OutfacingGraphics)
 
 if(NOT NO_ASSIMP)
   target_link_libraries(ResourceLoader PUBLIC assimp)

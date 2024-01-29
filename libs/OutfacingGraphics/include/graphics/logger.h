@@ -2,6 +2,7 @@
 #define GRAPHICS_ENV_LOGGER_H
 
 #include <iostream>
+#include <string>
 #include <glm/glm.hpp>
 
 #ifndef NDEBUG
