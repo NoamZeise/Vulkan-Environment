@@ -10,7 +10,7 @@
 	shallow = true
 [submodule "libs/glm"]
 	path = libs/glm
-	url = https://github.com/g-truc/glm.git
+	url = https://github.com/NoamZeise/glm-light.git
 	branch = master
 	shallow = true
 [submodule "libs/assimp"]
