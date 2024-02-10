@@ -2,18 +2,23 @@
 	path = libs/glfw
 	url = https://github.com/glfw/glfw.git
 	branch = 3.3-stable
+	shallow = true
 [submodule "libs/volk"]
 	path = libs/volk
 	url = https://github.com/zeux/volk.git
 	branch = master
+	shallow = true
 [submodule "libs/glm"]
 	path = libs/glm
 	url = https://github.com/g-truc/glm.git
 	branch = master
+	shallow = true
 [submodule "libs/assimp"]
 	path = libs/assimp
-	url = https://github.com/assimp/assimp.git
+	url = https://github.com/NoamZeise/assimp-light.git
 	branch = master
+	shallow = true
 [submodule "libs/freetype"]
 	path = libs/freetype
 	url = https://gitlab.freedesktop.org/freetype/freetype.git
+	shallow = true
