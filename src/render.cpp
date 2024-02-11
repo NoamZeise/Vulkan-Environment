@@ -67,29 +67,28 @@ VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
     defaultPool = CreateResourcePool()->id();
 }
   
-RenderVk::~RenderVk()
-{
-  vkDeviceWaitIdle(manager->deviceState.device);
+RenderVk::~RenderVk() {
+    vkDeviceWaitIdle(manager->deviceState.device);
 
-  for(int i = 0; i < pools.size(); i++)
-      delete pools[i];
-  pools.clear();
-  _destroyFrameResources();
-  if(offscreenRenderPass != nullptr || finalRenderPass != nullptr) {
-      delete offscreenRenderPass;
-      delete finalRenderPass;
-      vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
-  }
-  if(offscreenSamplerCreated)
-      vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
-  if(textureSamplerCreated)
-      vkDestroySampler(manager->deviceState.device, textureSampler, nullptr);
-  if(swapchain != nullptr)
-      delete swapchain;
-  for(int i = 0; i < frameCount; i++)
-      delete frames[i];
-  delete[] frames;
-  delete manager;
+    for(int i = 0; i < pools.size(); i++)
+	delete pools[i];
+    pools.clear();
+    _destroyFrameResources();
+    if(offscreenRenderPass != nullptr || finalRenderPass != nullptr) {
+	delete offscreenRenderPass;
+	delete finalRenderPass;
+	vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
+    }
+    if(offscreenSamplerCreated)
+	vkDestroySampler(manager->deviceState.device, _offscreenTextureSampler, nullptr);
+    if(textureSamplerCreated)
+	vkDestroySampler(manager->deviceState.device, textureSampler, nullptr);
+    if(swapchain != nullptr)
+	delete swapchain;
+    for(int i = 0; i < frameCount; i++)
+	delete frames[i];
+    delete[] frames;
+    delete manager;
 }
 
 bool swapchainRecreationRequired(VkResult result) {
@@ -405,47 +404,53 @@ bool swapchainRecreationRequired(VkResult result) {
       LOG("Creating Graphics Pipelines");
 
       // create pipeline for each shader set -> 3D, animated 3D, 2D, and final
+      part::create::PipelineConfig pipelineConf;
+      pipelineConf.useMultisampling = renderConf.multisampling;
+      pipelineConf.msaaSamples = sampleCount;
+      pipelineConf.useSampleShading = manager->deviceState.features.sampleRateShading;
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipeline3D,
-	      sampleCount, offscreenRenderPass->getRenderPass(),
-	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, 
-	       &lighting->set},
+	      offscreenRenderPass->getRenderPass(),
+	      {&VP3D->set, &perFrame3D->set, &emptyDS->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
-	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv", true,
-	      renderConf.multisampling, true,
-	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
-	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V3D::attributeDescriptions(),
-	      pipeline_inputs::V3D::bindingDescriptions());
+	      "shaders/vulkan/3D-lighting.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
+	      offscreenBufferExtent,
+	      pipeline_inputs::V3D::attributeDescriptions(),
+	      pipeline_inputs::V3D::bindingDescriptions(),
+	      pipelineConf);
 	    
       part::create::GraphicsPipeline(
 	      manager->deviceState.device, &_pipelineAnim3D,
-	      sampleCount, offscreenRenderPass->getRenderPass(),
+	      offscreenRenderPass->getRenderPass(),
 	      {&VP3D->set, &perFrame3D->set, &bones->set, &textures->set, &lighting->set},
 	      {{VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(fragPushConstants)}},
 	      "shaders/vulkan/3D-lighting-anim.vert.spv", "shaders/vulkan/blinnphong.frag.spv",
-	      true, renderConf.multisampling, true,
-	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
-	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::VAnim3D::attributeDescriptions(),
-	      pipeline_inputs::VAnim3D::bindingDescriptions());
+	      offscreenBufferExtent,
+	      pipeline_inputs::VAnim3D::attributeDescriptions(),
+	      pipeline_inputs::VAnim3D::bindingDescriptions(),
+	      pipelineConf);
 
       part::create::GraphicsPipeline(
-	      manager->deviceState.device, &_pipeline2D, sampleCount,
+	      manager->deviceState.device, &_pipeline2D,
 	      offscreenRenderPass->getRenderPass(),
 	      {&VP2D->set, &perFrame2DVert->set, &textures->set, &perFrame2DFrag->set}, {},
-	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv", true,
-	      renderConf.multisampling, true,
-	      manager->deviceState.features.sampleRateShading, offscreenBufferExtent,
-	      VK_CULL_MODE_BACK_BIT, pipeline_inputs::V2D::attributeDescriptions(),
-	      pipeline_inputs::V2D::bindingDescriptions());     
+	      "shaders/vulkan/flat.vert.spv", "shaders/vulkan/flat.frag.spv",
+	      offscreenBufferExtent,
+	      pipeline_inputs::V2D::attributeDescriptions(),
+	      pipeline_inputs::V2D::bindingDescriptions(),
+	      pipelineConf);
 
+      pipelineConf.useMultisampling = false;
+      pipelineConf.useDepthTest = false;
+      pipelineConf.blendEnabled = false;
+      pipelineConf.cullMode = VK_CULL_MODE_NONE;
       part::create::GraphicsPipeline(
-	      manager->deviceState.device, &_pipelineFinal, VK_SAMPLE_COUNT_1_BIT,
+	      manager->deviceState.device, &_pipelineFinal,
 	      finalRenderPass->getRenderPass(),
 	      {&offscreenTransform->set, &offscreenTex->set}, {},
 	      "shaders/vulkan/final.vert.spv", "shaders/vulkan/final.frag.spv",
-	      false, false, false, manager->deviceState.features.sampleRateShading,
-	      swapchainExtent, VK_CULL_MODE_NONE, {}, {});
-
+	      swapchainExtent, {}, {},
+	      pipelineConf);
       offscreenTransformData = glmhelper::calcFinalOffset(
 	      glm::vec2(offscreenBufferExtent.width, offscreenBufferExtent.height),
 	      glm::vec2((float)swapchainExtent.width,

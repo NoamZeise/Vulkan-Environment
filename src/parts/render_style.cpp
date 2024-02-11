@@ -10,6 +10,7 @@ namespace part
 {
 namespace create
 {
+  
   VkPipelineLayout createPipelineLayout(
 	  VkDevice device,
 	  std::vector<VkPushConstantRange> &pushConsts,
@@ -21,14 +22,14 @@ namespace create
   VkShaderModule _loadShaderModule(VkDevice device, std::string file);
 
   void GraphicsPipeline(
-	  VkDevice device, Pipeline *pipeline, VkSampleCountFlagBits  msaaSamples,
+	  VkDevice device, Pipeline *pipeline,
 	  VkRenderPass renderPass, std::vector<DS::DescriptorSet*> descriptorSets,
 	  std::vector<VkPushConstantRange> pushConstantsRanges,
 	  std::string vertexShaderPath, std::string fragmentShaderPath,
-	  bool useDepthTest, bool useMultisampling, bool useBlend, bool useSampleShading,
-	  VkExtent2D extent, VkCullModeFlags cullMode,
+	  VkExtent2D extent,
 	  std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
-	  std::vector<VkVertexInputBindingDescription> vertexBindingDesc) {
+	  std::vector<VkVertexInputBindingDescription> vertexBindingDesc,
+	  PipelineConfig config) {
 
       // load shader modules
       VkPipelineLayout layout = createPipelineLayout(device, pushConstantsRanges, descriptorSets);
@@ -66,7 +67,7 @@ namespace create
 	  VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO};
       rasterizationInfo.depthClampEnable = VK_FALSE;
       rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-      rasterizationInfo.cullMode = cullMode;
+      rasterizationInfo.cullMode = config.cullMode;
       rasterizationInfo.lineWidth = 1.0f;
       rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
@@ -74,9 +75,9 @@ namespace create
       VkPipelineMultisampleStateCreateInfo multisampleInfo{
 	  VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
 
-      if (useMultisampling) {
-	  multisampleInfo.rasterizationSamples = msaaSamples;
-	  if (useSampleShading) {
+      if (config.useMultisampling) {
+	  multisampleInfo.rasterizationSamples = config.msaaSamples;
+	  if (config.useSampleShading) {
 	      multisampleInfo.minSampleShading = 1.0f;
 	      multisampleInfo.sampleShadingEnable = VK_TRUE;
 	  }
@@ -87,7 +88,7 @@ namespace create
       // config depthStencil
       VkPipelineDepthStencilStateCreateInfo depthStencilInfo{
 	  VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-      if (useDepthTest) {
+      if (config.useDepthTest) {
 	  depthStencilInfo.depthTestEnable = VK_TRUE;
 	  depthStencilInfo.depthWriteEnable = VK_TRUE;
       } else {
@@ -103,7 +104,7 @@ namespace create
       blendAttachment.colorWriteMask =
 	  VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 	  VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-      if (useBlend)
+      if (config.blendEnabled)
 	  blendAttachment.blendEnable = VK_TRUE;
       else
 	  blendAttachment.blendEnable = VK_FALSE;

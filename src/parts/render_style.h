@@ -10,17 +10,27 @@
 
 namespace part {
   namespace create {
+
+    struct PipelineConfig {
+	bool useDepthTest = true;
+	bool useMultisampling;
+	VkSampleCountFlagBits msaaSamples;
+	bool useSampleShading;
+	bool blendEnabled = true;
+	VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT;
+	VkBlendOp blendOp = VK_BLEND_OP_ADD;
+    };
+    
     void GraphicsPipeline(VkDevice device,
-			  Pipeline* pipeline, VkSampleCountFlagBits msaaSamples,
+			  Pipeline* pipeline,
 			  VkRenderPass renderPass,
 			  std::vector<DS::DescriptorSet*> descriptorSets,
 			  std::vector<VkPushConstantRange> pushConstantsRanges,
 			  std::string vertexShaderPath, std::string fragmentShaderPath,
-			  bool useDepthTest, bool useMultisampling, bool useBlend, bool useSampleShading,
 			  VkExtent2D extent,
-			  VkCullModeFlags cullMode,
 			  std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
-			  std::vector<VkVertexInputBindingDescription> vertexBindingDesc);
+			  std::vector<VkVertexInputBindingDescription> vertexBindingDesc,
+			  PipelineConfig config);
 
   }
 }

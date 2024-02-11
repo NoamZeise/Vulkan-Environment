@@ -15,17 +15,14 @@ struct fragPushConstants {
 };
 
 namespace pipeline_inputs {
-
   namespace V2D {
     std::vector<VkVertexInputBindingDescription> bindingDescriptions();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions();
   }
-
   namespace V3D {
     std::vector<VkVertexInputBindingDescription> bindingDescriptions();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions();
   }
-
   namespace VAnim3D {
     std::vector<VkVertexInputBindingDescription> bindingDescriptions();
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions();
