@@ -23,10 +23,6 @@ void GraphicsPipeline(
     std::vector<VkVertexInputAttributeDescription> vertexAttribDesc,
     std::vector<VkVertexInputBindingDescription> vertexBindingDesc) {
 
-    
-  pipeline->descriptorSets = descriptorSets;
-  pipeline->descriptorSetsActive = std::vector<bool>(descriptorSets.size(), true);
-
   // load shader modules
   auto vertexShaderModule = _loadShaderModule(device, vertexShaderPath);
   auto fragmentShaderModule = _loadShaderModule(device, fragmentShaderPath);
@@ -44,6 +40,7 @@ void GraphicsPipeline(
 	  throw std::runtime_error("Descriptor Set was null");
   }
 
+  VkPipelineLayout layout;
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
   pipelineLayoutInfo.setLayoutCount =
@@ -53,7 +50,7 @@ void GraphicsPipeline(
       static_cast<uint32_t>(pushConstantsRanges.size());
   pipelineLayoutInfo.pPushConstantRanges = pushConstantsRanges.data();
   if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr,
-                             &pipeline->layout) != VK_SUCCESS)
+                             &layout) != VK_SUCCESS)
     throw std::runtime_error("failed to create pipeline layout");
 
   // config input assemby
@@ -183,9 +180,10 @@ void GraphicsPipeline(
       vertexStageInfo, fragmentStageInfo};
 
   // create graphics pipeline
+  VkPipeline vkpipeline;
   VkGraphicsPipelineCreateInfo createInfo{
       VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO};
-  createInfo.layout = pipeline->layout;
+  createInfo.layout = layout;
   createInfo.renderPass = renderPass;
   createInfo.pViewportState = &viewportInfo;
   createInfo.pInputAssemblyState = &inputAssemblyInfo;
@@ -198,9 +196,11 @@ void GraphicsPipeline(
   createInfo.pColorBlendState = &blendInfo;
 
   if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &createInfo, nullptr,
-                                &pipeline->pipeline) != VK_SUCCESS)
+                                &vkpipeline) != VK_SUCCESS)
     throw std::runtime_error("failed to create graphics pipelines!");
 
+  *pipeline = Pipeline(layout, vkpipeline, descriptorSets);
+  
   // destory shader modules
   vkDestroyShaderModule(device, vertexShaderModule, nullptr);
   vkDestroyShaderModule(device, fragmentShaderModule, nullptr);

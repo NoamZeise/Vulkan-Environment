@@ -815,7 +815,7 @@ void RenderVk::_drawBatch() {
     case RenderState::DrawAnim3D:
     case RenderState::Draw3D:
 	pools[currentModelPool.ID]->modelLoader->drawModel(currentCommandBuffer,
-							   _pipeline3D.layout,
+							   _pipeline3D.getLayout(),
 							   _currentModel,
 							   _modelRuns,
 							   _current3DInstanceIndex,
@@ -825,7 +825,8 @@ void RenderVk::_drawBatch() {
 	break;
     case RenderState::Draw2D:
 	pools[currentModelPool.ID]->modelLoader->drawQuad(currentCommandBuffer,
-							  _pipeline3D.layout, 0, _instance2Druns,
+							  _pipeline2D.getLayout(),
+							  0, _instance2Druns,
 							  _current2DInstanceIndex, _currentColour,
 							  _currentTexOffset);
 	_current2DInstanceIndex += _instance2Druns;
