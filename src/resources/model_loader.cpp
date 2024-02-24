@@ -104,24 +104,40 @@ void ModelLoaderVk::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, Resource::Mod
     vkCmdBindVertexBuffers(cmdBuff, 0, 1, vertexBuffers, offsets);
 }
 
-void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
-			      Resource::Model model,
-			      uint32_t count, uint32_t instanceOffset, glm::vec4 colour) {
+void ModelLoaderVk::drawModel(
+	VkCommandBuffer cmdBuff,
+	VkPipelineLayout layout,
+	Resource::Model model,
+	uint32_t count,
+	uint32_t instanceOffset,
+	glm::vec4 colour,
+	Resource::Texture* overrideTex) {
     if(model.ID >= models.size()) {
 	LOG_ERROR("in draw with out of range model. id: "
-                  << model.ID << " -  model count: " << models.size());
+                  << model.ID << " -  model count: " <<
+		  models.size());
 	return;
     }
     ModelInGPU *modelInfo = models[model.ID];
     bindGroupVertexBuffer(cmdBuff, modelInfo->type);
     for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
-	size_t texID = modelInfo->meshes[i].texture.ID; 
-	if(texID != UINT32_MAX) 
-	    texID = texLoader->getViewIndex(modelInfo->meshes[i].texture);
+	size_t texID = modelInfo->meshes[i].texture.ID;
+
+	if(overrideTex != nullptr)
+	    texID = overrideTex->ID;
+	
+	if(texID != UINT32_MAX)
+	    if(overrideTex == nullptr)
+		texID = texLoader->getViewIndex(
+			modelInfo->meshes[i].texture);
+	    else
+		texID = texLoader->getViewIndex(
+			*overrideTex);
 	else
 	    texID = 0;
 	fragPushConstants fps {
-	    colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
+	    colour.a == 0.0f ?
+	    modelInfo->meshes[i].diffuseColour : colour,
 	    glm::vec4(0, 0, 1, 1), //texOffset
 	    (uint32_t)texID,
 	};

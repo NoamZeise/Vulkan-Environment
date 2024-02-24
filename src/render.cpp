@@ -703,15 +703,27 @@ void RenderVk::_begin(RenderState state) {
     p->begin(currentCommandBuffer, swapchainFrameIndex);
 }
   
-bool RenderVk::_modelStateChange(Resource::Model model, glm::vec4 colour) {
-    return _modelRuns != 0 &&
-	(model.ID != _currentModel.ID ||
-	 model.pool.ID != _currentModel.pool.ID ||
-	 colour != _currentColour);
+  bool RenderVk::_modelStateChange(
+	  Resource::Model model,
+	  glm::vec4 colour,
+	  Resource::Texture* overrideTex) {
+      bool overrideChanged = true;
+      if(overrideTex == nullptr && _currentOverrideTex == nullptr)
+	  overrideChanged = false;
+      else if(overrideTex != nullptr &&
+	      _currentOverrideTex != nullptr) {
+	  if(overrideTex->ID == _currentOverrideTex->ID)
+	      overrideChanged = false;
+      }
+      return _modelRuns != 0 &&
+	  (model.ID != _currentModel.ID ||
+	   model.pool.ID != _currentModel.pool.ID ||
+	   colour != _currentColour || overrideChanged);
 }
 
 void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
-		       glm::vec4 colour) {
+			 glm::vec4 colour,
+			 Resource::Texture *overrideTex) {
     if (_current3DInstanceIndex >= Resource::MAX_3D_BATCH) {
 	LOG("WARNING: ran out of 3D instances!\n");
 	return;
@@ -722,11 +734,12 @@ void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4
     }
     _begin(RenderState::Draw3D);
     
-    if (_modelStateChange(model, colour))
+    if (_modelStateChange(model, colour, overrideTex))
 	_drawBatch();
     _bindModelPool(model);
     _currentModel = model;
     _currentColour = colour;
+    _currentOverrideTex = overrideTex;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
@@ -746,11 +759,12 @@ void RenderVk::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 	return;
     }
     _begin(RenderState::DrawAnim3D);
-    if (_modelStateChange(model, glm::vec4(0)))
+    if (_modelStateChange(model, glm::vec4(0), nullptr))
 	_drawBatch();
     _bindModelPool(model);
     _currentModel = model;
     _currentColour = glm::vec4(0.0f);
+    _currentOverrideTex = nullptr;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
@@ -819,12 +833,14 @@ void RenderVk::_drawBatch() {
     switch(_renderState) {
     case RenderState::DrawAnim3D:
     case RenderState::Draw3D:
-	pools[currentModelPool.ID]->modelLoader->drawModel(currentCommandBuffer,
-							   _pipeline3D.getLayout(),
-							   _currentModel,
-							   _modelRuns,
-							   _current3DInstanceIndex,
-							   _currentColour);
+	pools[currentModelPool.ID]->modelLoader->drawModel(
+		currentCommandBuffer,
+		_pipeline3D.getLayout(),
+		_currentModel,
+		_modelRuns,
+		_current3DInstanceIndex,
+		_currentColour,
+		_currentOverrideTex);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;
