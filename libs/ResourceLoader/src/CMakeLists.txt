@@ -5,8 +5,8 @@ add_library(ResourceLoader
     model_loader.cpp
     assimp_loader.cpp
 )
+target_sources(ResourceLoader PRIVATE font_loader.cpp)
 if(NOT NO_FREETYPE)
-  target_sources(ResourceLoader PRIVATE font_loader.cpp)
   add_dependencies(ResourceLoader freetype)
   target_link_libraries(ResourceLoader PRIVATE freetype)
 endif()
