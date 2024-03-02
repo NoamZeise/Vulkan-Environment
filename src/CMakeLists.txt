@@ -10,10 +10,9 @@ set(Vulkan-Render-Lib "VulkanEnvironment")
 
 add_library(${Vulkan-Render-Lib} ${VK_RENDER_SOURCES})
 
-add_dependencies(${Vulkan-Render-Lib} ResourceLoader OutfacingGraphics glfw volk)
+add_dependencies(${Vulkan-Render-Lib} resource-loader graphics-api glfw volk)
 
-target_link_libraries(${Vulkan-Render-Lib} PRIVATE 
-  ResourceLoader )
+target_link_libraries(${Vulkan-Render-Lib} PRIVATE resource-loader)
 
 if(NOT NO_FREETYPE)
   add_dependencies(${Vulkan-Render-Lib} freetype)
@@ -21,7 +20,7 @@ if(NOT NO_FREETYPE)
 endif()
 
 target_link_libraries(${Vulkan-Render-Lib} PUBLIC 
-  OutfacingGraphics 
+  graphics-api
   glfw
   volk
 )

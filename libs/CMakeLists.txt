@@ -1,5 +1,5 @@
-add_subdirectory(OutfacingGraphics)
-add_subdirectory(ResourceLoader)
+# Settings for external libs
+
 add_subdirectory(volk)
 
 # glfw setup

@@ -20,6 +20,8 @@ if(VKENV_BUILD_STATIC)
 endif()
 
 add_subdirectory(libs)
+add_subdirectory(api)
+add_subdirectory(resource-loader)
 add_subdirectory(src)
 
 if(VKENV_BUILD_EXAMPLES)

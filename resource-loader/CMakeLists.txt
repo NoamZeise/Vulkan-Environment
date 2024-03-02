@@ -1,11 +1,5 @@
 # Resource Loader is the shared resource loading code shared between graphics rendering backends.
 
 cmake_minimum_required(VERSION 3.10)
-
-project(ResourceLoader)
-
+project(resource-loader)
 add_subdirectory(src)
-
-if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
-  add_subdirectory(demo)
-endif()

@@ -1,2 +1,0 @@
-add_executable(ResourceLoaderDemo demo.cpp)
-target_link_libraries(ResourceLoaderDemo ResourceLoader)
