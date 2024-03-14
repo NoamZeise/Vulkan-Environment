@@ -15,6 +15,8 @@ namespace Resource {
   const uint32_t MAX_3D_BATCH = 1000;
   const uint32_t MAX_BONES = 80;
 
+  static size_t NULL_POOL_ID = SIZE_MAX;
+
   struct Pool {
       Pool() { ID = 0; }
       Pool(size_t ID) {
@@ -27,7 +29,7 @@ namespace Resource {
 	  return !(*this == other);
       }
       
-      size_t ID = 0;
+      size_t ID = NULL_POOL_ID;
   };
 
   static size_t NULL_TEX_ID = SIZE_MAX;
@@ -44,8 +46,7 @@ namespace Resource {
 	  this->ID = ID;
 	  this->dim = dimentions;
       }
-      Texture(size_t ID, glm::vec2 dimentions,
-	      Pool pool) {
+      Texture(size_t ID, glm::vec2 dimentions, Pool pool) {
 	  this->ID = ID;
 	  this->dim = dimentions;
 	  this->pool = pool;
@@ -71,9 +72,11 @@ namespace Resource {
       m3D,
       m3D_Anim,
   };
+
+  static size_t NULL_MODEL_ID = SIZE_MAX;
   
   struct Model {
-      Model() { this->ID = 1000000;}
+      Model() {}
       Model(size_t ID) {
 	  this->ID = ID;
 	  this->type = ModelType::m3D;
@@ -105,11 +108,13 @@ namespace Resource {
       Resource::Texture overrideTexture = Resource::Texture(NULL_TEX_ID);
       // use diffuse colour if alpha == 0
       glm::vec4 colour = glm::vec4(0);
-      size_t ID;
+      size_t ID = NULL_MODEL_ID;
   };
+
+  static size_t NULL_FONT_ID = SIZE_MAX;
   
   struct Font {
-      Font() { this->ID = 10000000; }
+      Font() {}
       Font(size_t ID) {
 	  this->ID = ID;
       }
@@ -123,7 +128,7 @@ namespace Resource {
       }
       
       Pool pool;
-      size_t ID;
+      size_t ID = NULL_FONT_ID;
   };
 
   struct QuadDraw {

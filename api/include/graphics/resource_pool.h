@@ -11,7 +11,6 @@ class ResourcePool {
     virtual TextureLoader* tex() = 0;
     virtual FontLoader* font() = 0;
     Resource::Pool id() { return pool; }
-    
 protected:
     Resource::Pool pool;
 };

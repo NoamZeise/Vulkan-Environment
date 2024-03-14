@@ -17,7 +17,7 @@ void ResourcePoolVk::setUseGPUResources(bool value) {
     this->UseGPUResources = value;
 }
 
-void ResourcePoolVk::loadPoolToGPU() {
+void ResourcePoolVk::loadGpu() {
     texLoader->loadGPU();
     fontLoader->loadGPU();
     modelLoader->loadGPU();

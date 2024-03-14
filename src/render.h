@@ -23,7 +23,7 @@
 #include <atomic>
 #include <vector>
 
-struct ResourcePoolVk;
+class PoolManagerVk;
 
 namespace vkenv {
 
@@ -92,7 +92,8 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
       bool _validPool(Resource::Pool pool);
       bool _poolInUse(Resource::Pool pool);
       void _throwIfPoolInvaid(Resource::Pool pool);
-
+      void _loadActiveTextures();
+      
       
       bool _framebufferResized = false;
       bool _frameResourcesCreated = false;
@@ -158,9 +159,7 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
       std::vector<DescSet*> descriptorSets;
 
       Resource::Pool defaultPool;
-      
-      std::vector<ResourcePoolVk*> pools;
-      std::vector<int> freePools;
+      PoolManagerVk* pools;
 
       bool _begunDraw = false;
       RenderState _renderState;

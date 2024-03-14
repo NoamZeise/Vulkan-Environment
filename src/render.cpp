@@ -11,6 +11,9 @@
 #include "vkhelper.h"
 #include "logger.h"
 
+#include <resource_loader/pool_manager.h>
+#include <graphics/glm_helper.h>
+
 #include <GLFW/glfw3.h>
 #include <cstring>
 #include <iostream>
@@ -19,10 +22,11 @@
 #include <string>
 #include <vector>
 
-#include <graphics/glm_helper.h>
+/// TODO Notes:
+// * graphics pipelines assume each descriptor set they contain has the same
+// number of sets (for frames).
 
-///TODO Notes:
-// * graphics pipelines assume each descriptor set they contain has the same number of sets (for frames).
+class PoolManagerVk : public PoolManager<ResourcePoolVk> {};
 
 namespace vkenv {
 
@@ -51,7 +55,7 @@ VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
 	    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-  RenderVk::RenderVk(GLFWwindow *window, RenderConfig renderConf) : Render(window, renderConf) {
+RenderVk::RenderVk(GLFWwindow *window, RenderConfig renderConf) : Render(window, renderConf) {
     checkVolk();
     this->renderConf = renderConf;
     this->prevRenderConf = renderConf;
@@ -64,16 +68,15 @@ VkFormat getDepthBufferFormat(VkPhysicalDevice physicalDevice) {
     for(int i = 0; i < frameCount; i++)
 	frames[i] = new Frame(manager->deviceState.device,
 			      manager->deviceState.queue.graphicsPresentFamilyIndex);
+    pools = new PoolManagerVk;
     defaultPool = CreateResourcePool()->id();
 }
   
 RenderVk::~RenderVk() {
     vkDeviceWaitIdle(manager->deviceState.device);
 
-    for(int i = 0; i < pools.size(); i++)
-	delete pools[i];
-    pools.clear();
     _destroyFrameResources();
+    delete pools;
     if(offscreenRenderPass != nullptr || finalRenderPass != nullptr) {
 	delete offscreenRenderPass;
 	delete finalRenderPass;
@@ -96,9 +99,59 @@ bool swapchainRecreationRequired(VkResult result) {
 	result == VK_ERROR_OUT_OF_DATE_KHR;
 }
 
+  void RenderVk::_loadActiveTextures() {
+      // Load textures across all active resource pools
+      // into the textureViews descriptor set data
+      if(pools->PoolCount() < 1)
+	  throw std::runtime_error("Must have at least 1 pool.");
+      ResourcePoolVk *pool = pools->get(0);
+      VkImageView validView;
+      bool foundValidView = false;
+      bool checkedAllPools = false;
+      //TODO: add dummy tex to ID 0 and use as validView
+      for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
+	  if(pool == nullptr)
+	      goto next_pool;
+	  if(!pool->UseGPUResources) {
+	      pool->usingGPUResources = false;
+	      goto next_pool;
+	  }
+	  pool->usingGPUResources = true;
+	  if(texI < pool->texLoader->getImageCount()) {
+	      textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
+	      if (!foundValidView) {
+		  foundValidView = true;
+		  validView = textureViews[i];
+	      }              
+	  } else {
+	      goto next_pool;
+	  }
+	  continue;
+      next_pool:
+	  if(pools->PoolCount() > pI + 1) {
+	      pool = pools->get(++pI);
+	      texI = 0;
+	      i--;
+	  } else {
+	      checkedAllPools = true;
+	      if(foundValidView)
+		  textureViews[i] = validView;
+	      else //TODO: change so we dont require a texture
+		  throw std::runtime_error("No textures were loaded. "
+					   "At least 1 Texture must be loaded");
+	  }
+      }
+      if(!checkedAllPools) {
+	  LOG_ERROR("Ran out of texture slots in shader! current limit: "
+		    << Resource::MAX_TEXTURES_SUPPORTED);
+      }
+      textureViews[0] = validView;
+  }
+
+  
   void RenderVk::_initFrameResources() {
       LOG("Creating Swapchain");
-
+      
       if(_frameResourcesCreated)
 	  _destroyFrameResources();
 	    
@@ -140,30 +193,33 @@ bool swapchainRecreationRequired(VkResult result) {
 	  }
 	  std::vector<AttachmentDesc> offscreenAttachments;
 	  if(renderConf.multisampling) {
-	      offscreenAttachments.push_back(AttachmentDesc(0, AttachmentType::Colour,
-							    AttachmentUse::TransientAttachment,
-							    sampleCount, swapchainFormat));
-	      offscreenAttachments.push_back(AttachmentDesc(2, AttachmentType::Resolve,
-							    AttachmentUse::ShaderRead,
-							    VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
+	      offscreenAttachments.push_back(
+		      AttachmentDesc(0, AttachmentType::Colour,
+				     AttachmentUse::TransientAttachment,
+				     sampleCount, swapchainFormat));
+	      offscreenAttachments.push_back(
+		      AttachmentDesc(2, AttachmentType::Resolve,
+				     AttachmentUse::ShaderRead,
+				     VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
 	  }
 	  else
-	      offscreenAttachments.push_back(AttachmentDesc(0, AttachmentType::Colour,
-							    AttachmentUse::ShaderRead,
-							    VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
-	  offscreenAttachments.push_back(AttachmentDesc(1, AttachmentType::Depth,
-							AttachmentUse::Attachment,
-							sampleCount, offscreenDepthFormat));
-
+	      offscreenAttachments.push_back(
+		      AttachmentDesc(0, AttachmentType::Colour,
+				     AttachmentUse::ShaderRead,
+				     VK_SAMPLE_COUNT_1_BIT, swapchainFormat));
+	  offscreenAttachments.push_back(
+		  AttachmentDesc(1, AttachmentType::Depth,
+				 AttachmentUse::Attachment,
+				 sampleCount, offscreenDepthFormat));
+	  
 	  LOG("making new renderpasses");
 	  offscreenRenderPass = new RenderPass(manager->deviceState.device, offscreenAttachments,
 					       renderConf.clear_colour);
 	  finalRenderPass =
 	      new RenderPass(manager->deviceState.device,
-			     {AttachmentDesc(0, AttachmentType::Colour,
-					     AttachmentUse::PresentSrc,
-
-					     VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
+			     { AttachmentDesc(0, AttachmentType::Colour,
+					      AttachmentUse::PresentSrc,
+					      VK_SAMPLE_COUNT_1_BIT, swapchainFormat)},
 			     renderConf.scaled_border_colour);
       }
       
@@ -178,34 +234,33 @@ bool swapchainRecreationRequired(VkResult result) {
       //TODO: less unnessecary recreation (ie offscreen extent not changing?)
       VkDeviceSize attachmentMemorySize = 0;
       uint32_t attachmentMemoryFlags = 0;
-      offscreenRenderPass->createFramebufferImages(swapchainImages, offscreenBufferExtent,
-						   &attachmentMemorySize,
-						   &attachmentMemoryFlags);
+      offscreenRenderPass->createFramebufferImages(
+	      swapchainImages, offscreenBufferExtent,
+	      &attachmentMemorySize, &attachmentMemoryFlags);
 
-      finalRenderPass->createFramebufferImages(swapchainImages, swapchainExtent,
-					       &attachmentMemorySize,
-					       &attachmentMemoryFlags);
+      finalRenderPass->createFramebufferImages(
+	      swapchainImages, swapchainExtent,
+	      &attachmentMemorySize, &attachmentMemoryFlags);
     
       vkFreeMemory(manager->deviceState.device, framebufferMemory, VK_NULL_HANDLE);
       checkResultAndThrow(
-	      vkhelper::allocateMemory(manager->deviceState.device,
-				       manager->deviceState.physicalDevice,
-				       attachmentMemorySize,
-				       &framebufferMemory,
-				       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-				       attachmentMemoryFlags),
+	      vkhelper::allocateMemory(
+		      manager->deviceState.device,
+		      manager->deviceState.physicalDevice,
+		      attachmentMemorySize,
+		      &framebufferMemory,
+		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		      attachmentMemoryFlags),
 	      "Render Error: Failed to Allocate Memory for Framebuffer Images");
 
       offscreenRenderPass->createFramebuffers(framebufferMemory);
       finalRenderPass->createFramebuffers(framebufferMemory);
 
       LOG("Swapchain Image Count: " << swapchainImages->size());
-      
-      
+            
       LOG("Creating Descriptor Sets");
       
       /// set shader  descripor sets
-
 
       //TODO: more recreation here, use max-frame-in-flight instead of swapchain count
       
@@ -227,15 +282,16 @@ bool swapchainRecreationRequired(VkResult result) {
       VP2D = new DescSet(VP2D_Set, swapchainFrameCount, manager->deviceState.device);
 
       descriptor::Set Time_Set("Time", descriptor::ShaderStage::Vertex);
-      Time_Set.AddDescriptor("Time Struct", descriptor::Type::UniformBuffer,
-			     sizeof(shaderStructs::timeUbo), 1);
+      Time_Set.AddDescriptor(
+	      "Time Struct", descriptor::Type::UniformBuffer, sizeof(shaderStructs::timeUbo), 1);
       
 
       descriptor::Set PerFrame3D_Set("Per Frame 3D", descriptor::ShaderStage::Vertex);
-      PerFrame3D_Set.AddSingleArrayStructDescriptor("3D Instance Array",
-						    descriptor::Type::StorageBuffer,
-						    sizeof(shaderStructs::PerFrame3D),
-						    Resource::MAX_3D_BATCH);
+      PerFrame3D_Set.AddSingleArrayStructDescriptor(
+	      "3D Instance Array",
+	      descriptor::Type::StorageBuffer,
+	      sizeof(shaderStructs::PerFrame3D),
+	      Resource::MAX_3D_BATCH);
       perFrame3D = new DescSet(PerFrame3D_Set, swapchainFrameCount, manager->deviceState.device);
       
 
@@ -245,15 +301,16 @@ bool swapchainRecreationRequired(VkResult result) {
       bones = new DescSet(bones_Set, swapchainFrameCount, manager->deviceState.device);
 
       descriptor::Set vert2D_Set("Per Frame 2D Vert", descriptor::ShaderStage::Vertex);
-      vert2D_Set.AddSingleArrayStructDescriptor("vert struct",
-						descriptor::Type::StorageBuffer,
-						sizeof(glm::mat4), Resource::MAX_2D_BATCH);
+      vert2D_Set.AddSingleArrayStructDescriptor(
+	      "vert struct", descriptor::Type::StorageBuffer,
+	      sizeof(glm::mat4), Resource::MAX_2D_BATCH);
       perFrame2DVert = new DescSet(vert2D_Set, swapchainFrameCount, manager->deviceState.device);
 
       descriptor::Set offscreenView_Set("Offscreen Transform", descriptor::ShaderStage::Vertex);
       offscreenView_Set.AddDescriptor("data", descriptor::Type::UniformBuffer,
 				      sizeof(glm::mat4), 1);
-      offscreenTransform = new DescSet(offscreenView_Set, swapchainFrameCount, manager->deviceState.device);
+      offscreenTransform = new DescSet(
+	      offscreenView_Set, swapchainFrameCount, manager->deviceState.device);
 
       // fragment descriptor sets
 
@@ -263,7 +320,10 @@ bool swapchainRecreationRequired(VkResult result) {
       lighting = new DescSet(lighting_Set, swapchainFrameCount, manager->deviceState.device);
 
       float minMipmapLevel = 100000.0f;
-      for(auto& p: pools) {
+      for(int i = 0; i < pools->PoolCount(); i++) {
+	  ResourcePoolVk* p = pools->get(i);
+	  if(p == nullptr)
+	      continue;
 	  if(p->usingGPUResources) {
 	      float n = p->texLoader->getMinMipmapLevel();
 	      if(n < minMipmapLevel)
@@ -291,55 +351,9 @@ bool swapchainRecreationRequired(VkResult result) {
 	  textureSamplerCreated = true;
       }
 
-      // Load textures across all active resource pools
-      // into the textureViews descriptor set data
-      if(pools.size() < 1)
-	  throw std::runtime_error("At least 1 pool must exist");
-      ResourcePoolVk *pool = pools[0];
-      VkImageView validView;
-      bool foundValidView = false;
-      bool checkedAllPools = false;
-      //TODO: add dummy tex to ID 0 and use as validView
-      for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
-	  if(pool == nullptr) 
-	      goto next_pool;
-	  if(!pool->UseGPUResources) {
-	      pool->usingGPUResources = false;
-	      goto next_pool;
-	  }
-	  pool->usingGPUResources = true;
-	  if(texI < pool->texLoader->getImageCount()) {
-	      textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
-	      if (!foundValidView) {
-		  foundValidView = true;
-		  validView = textureViews[i];
-	      }              
-	  } else {
-	      goto next_pool;
-	  }
-	  continue;
-      next_pool:
-	  if(pools.size() > pI + 1) {
-	      pool = pools[++pI];
-	      texI = 0;
-	      i--;
-	  } else {
-	      checkedAllPools = true;
-	      if(foundValidView)
-		  textureViews[i] = validView;
-	      else //TODO: change so we dont require a texture
-		  throw std::runtime_error("No textures were loaded. "
-					   "At least 1 Texture must be loaded");
-	  }
-      }
-      if(!checkedAllPools) {
-	  LOG_ERROR("Ran out of texture slots in shader! current limit: "
-		    << Resource::MAX_TEXTURES_SUPPORTED);
-      }
+      // Add textures from resource pools into texture indexes
+      _loadActiveTextures();
       
-      //temp: until dummy tex added
-      textureViews[0] = validView;
-
       descriptor::Set texture_Set("textures", descriptor::ShaderStage::Fragment);
       texture_Set.AddSamplerDescriptor("sampler", 1, &textureSampler);
       texture_Set.AddImageViewDescriptor("views", descriptor::Type::SampledImage,
@@ -478,60 +492,48 @@ bool swapchainRecreationRequired(VkResult result) {
       _pipelineAnim3D.destroy(manager->deviceState.device);
       _pipeline2D.destroy(manager->deviceState.device);
       _pipelineFinal.destroy(manager->deviceState.device);
-      LOG("    setting resource pools");
-      for(int i = 0; i < pools.size(); i++)
-	  if(pools[i] != nullptr)
-	      pools[i]->usingGPUResources = false;
+      LOG("    closing pools");
+      for(int i = 0; i < pools->PoolCount(); i++)
+	  if(pools->get(i) != nullptr)
+	      pools->get(i)->usingGPUResources = false;
       _frameResourcesCreated = false;
   }
 
 ResourcePool* RenderVk::CreateResourcePool() {
-    int index = pools.size();
-    if(freePools.empty()) {
-	pools.push_back(nullptr);
-    } else {
-	index = freePools.back();
-	freePools.pop_back();
-    }
-    pools[index] = new ResourcePoolVk(index,
-				    manager->deviceState,
-				    manager->generalCommandPool,
-				    manager->generalCommandBuffer,
-				    renderConf);
-    return pools[index];
+    int i = pools->NextPoolIndex();
+    ResourcePoolVk* p = new ResourcePoolVk(
+	    i, manager->deviceState, manager->generalCommandPool, manager->generalCommandBuffer,
+	    renderConf);    
+    return pools->AddPool(p, i);
 }
 
 void RenderVk::DestroyResourcePool(Resource::Pool pool) {
+    if(!_validPool(pool))
+	return;
     bool reloadResources = false;
-    for(int i = 0; i < pools.size(); i++) {
-	if(pools[i]->id().ID == pool.ID) {
-	    if(pools[i]->usingGPUResources) {
-		reloadResources = true;
-		vkDeviceWaitIdle(manager->deviceState.device);
-		_destroyFrameResources();
-	    }
-	    delete pools[i];
-	    pools[i] = nullptr;
-	    freePools.push_back(i);
-	    if(reloadResources)
-		_initFrameResources();
-	}
+    if(pools->get(pool.ID)->usingGPUResources) {
+	reloadResources = true;
+	vkDeviceWaitIdle(manager->deviceState.device);
+	_destroyFrameResources();
     }
+    pools->DeletePool(pool);
+    if(reloadResources)
+	_initFrameResources();
 }
 
   void RenderVk::setResourcePoolInUse(Resource::Pool pool, bool usePool) {
       if(!_validPool(pool))
 	  return;
-      pools[pool.ID]->setUseGPUResources(usePool);
+      pools->get(pool)->setUseGPUResources(usePool);
   }
 
   ResourcePool* RenderVk::pool(Resource::Pool pool) {
       _throwIfPoolInvaid(pool);
-      return pools[pool.ID];
+      return pools->get(pool);
   }
 
   bool RenderVk::_validPool(Resource::Pool pool) {
-      if(pool.ID > pools.size() || pools[pool.ID] == nullptr) {
+      if(!pools->ValidPool(pool)) {
 	  LOG_ERROR("Passed Pool does not exist."
 		    " It has either been destroyed or was never created.");
 	  return false;
@@ -540,7 +542,7 @@ void RenderVk::DestroyResourcePool(Resource::Pool pool) {
   }
 
 bool RenderVk::_poolInUse(Resource::Pool pool) {
-    return _validPool(pool) && pools[pool.ID]->usingGPUResources;
+    return _validPool(pool) && pools->get(pool)->usingGPUResources;
 }
 
 void RenderVk::_throwIfPoolInvaid(Resource::Pool pool) {
@@ -552,13 +554,13 @@ void RenderVk::_throwIfPoolInvaid(Resource::Pool pool) {
 void RenderVk::LoadResourcesToGPU(Resource::Pool pool) {
     _throwIfPoolInvaid(pool);
     bool remakeFrameRes = false;
-    if(pools[pool.ID]->usingGPUResources) {
+    if(pools->get(pool)->usingGPUResources) {
       LOG("Loading resources for pool that is currently in use, "
           "so recreating frame resources.");
       vkDeviceWaitIdle(manager->deviceState.device);
       remakeFrameRes = true;
     }
-    pools[pool.ID]->loadPoolToGPU(); 
+    pools->get(pool)->loadGpu(); 
     if(remakeFrameRes) //remake if pool currently in use was reloaded
 	UseLoadedResources();
 }
@@ -568,12 +570,12 @@ void RenderVk::UseLoadedResources() {
     if(!_frameResourcesCreated) {
 	_initFrameResources();
 	return;
+    } else {
+	_loadActiveTextures();    
+	textures->bindings[1].storeImageViews(manager->deviceState.device);
     }
-
     //TODO : consider mimap levels
-    //       make init_resource and this use the same code
     
-
     // diff pools ->
     
     // check mipmaps?
@@ -585,50 +587,6 @@ void RenderVk::UseLoadedResources() {
     // diff tex views -> diff texture desc set
 
     //try without caring about mipmaps
-    
-
-    if(pools.size() < 1)
-	throw std::runtime_error("At least 1 pool must exist");
-    ResourcePoolVk *pool = pools[0];
-    VkImageView validView;
-    bool foundValidView = false;
-    //TODO: add dummy tex to ID 0 and use as validView
-    for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
-	if(pool == nullptr) 
-	    goto next_pool;
-	if(!pool->UseGPUResources) {
-	    pool->usingGPUResources = false;
-	    goto next_pool;
-	}
-	pool->usingGPUResources = true;
-	if(texI < pool->texLoader->getImageCount()) {
-	    textureViews[i] = pool->texLoader->getImageViewSetIndex(texI++, i);
-	    if (!foundValidView) {
-		foundValidView = true;
-		validView = textureViews[i];
-	    }              
-	} else {
-	    goto next_pool;
-	}
-	continue;
-    next_pool:
-	if(pools.size() > pI + 1) {
-	    pool = pools[++pI];
-	    texI = 0;
-	    i--;
-	} else {
-	    if(foundValidView)
-		textureViews[i] = validView;
-	    else //TODO: change so we dont require a texture
-		throw std::runtime_error("No textures were loaded. "
-					 "At least 1 Texture must be loaded");
-	}
-    }
-    //temp: until dummy tex added
-    textureViews[0] = validView;
-    LOG("updating texture views");
-    textures->bindings[1].storeImageViews(manager->deviceState.device);
-    LOG("updated texture views");
 }
 
 void RenderVk::_resize() {
@@ -657,10 +615,10 @@ void RenderVk::_startDraw() {
 			"Render Error: Failed to start command buffer.");
     offscreenRenderPass->beginRenderPass(currentCommandBuffer, swapchainFrameIndex);
     currentBonesDynamicOffset = 0;
+
+    pools->get(0)->modelLoader->bindBuffers(currentCommandBuffer);
+    currentModelPool = pools->get(0)->id();
     
-    pools[0]->modelLoader->bindBuffers(currentCommandBuffer);
-    currentModelPool = pools[0]->id();
-	
     _begunDraw = true;
 }
 
@@ -781,7 +739,8 @@ void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::v
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].colour = colour;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texOffset = texOffset;
    perFrame2DFragData[_current2DInstanceIndex + _instance2Druns].texID =
-       pools[texture.pool.ID]->texLoader->getViewIndex(texture);
+       pools->get(texture.pool)->texLoader->getViewIndex(texture);
+   
   _instance2Druns++;
 
   if (_current2DInstanceIndex + _instance2Druns == Resource::MAX_2D_BATCH)
@@ -789,21 +748,21 @@ void RenderVk::DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::v
 }
 
 void RenderVk::DrawString(Resource::Font font, std::string text, glm::vec2 position, float size, float depth, glm::vec4 colour, float rotate) {
-    auto draws = pools[font.pool.ID]->fontLoader->DrawString(font, text, position,
-							     size, depth, colour, rotate);
+    auto draws = pools->get(font.pool)->fontLoader->DrawString(
+	    font, text, position, size, depth, colour, rotate);
     for (const auto &draw : draws) {
 	DrawQuad(draw.tex, draw.model, draw.colour, draw.texOffset);
     }
 }
 
   void RenderVk::_bindModelPool(Resource::Model model) {
-      if(currentModelPool.ID != model.pool.ID) {
+      if(currentModelPool.ID == Resource::NULL_POOL_ID || currentModelPool.ID != model.pool.ID) {
 	  if(_modelRuns > 0)
 	      _drawBatch();
 	  if(!_poolInUse(model.pool))
 	      throw std::runtime_error(
 		      "Tried to bind model pool that is not in use");
-	  pools[model.pool.ID]->modelLoader->bindBuffers(currentCommandBuffer);
+	  pools->get(model.pool)->modelLoader->bindBuffers(currentCommandBuffer);
 	  currentModelPool = model.pool;
       }
   }
@@ -821,11 +780,12 @@ void RenderVk::_drawBatch() {
 	}
 	if(_modelRuns == 0)
 	    return;
-	pools[currentModelPool.ID]->modelLoader->drawModel(currentCommandBuffer,
-							   _pipeline3D.getLayout(),
-							   _currentModel,
-							   _modelRuns,
-							   _current3DInstanceIndex);
+	pools->get(currentModelPool)->modelLoader->drawModel(
+		currentCommandBuffer,
+		_pipeline3D.getLayout(),
+		_currentModel,
+		_modelRuns,
+		_current3DInstanceIndex);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;
@@ -839,12 +799,17 @@ void RenderVk::_drawBatch() {
 	}
 	if(_instance2Druns <= 0)
 	    return;
-	pools[currentModelPool.ID]->modelLoader->drawQuad(currentCommandBuffer,
-							  _pipeline2D.getLayout(),
-							  0, _instance2Druns,
-							  _current2DInstanceIndex,
-							  _currentColour,
-							  _currentTexOffset);
+	if(currentModelPool.ID == Resource::NULL_POOL_ID) {
+	    pools->get(0)->modelLoader->bindBuffers(currentCommandBuffer);
+	    currentModelPool = pools->get(0)->id();
+	}
+	pools->get(currentModelPool)->modelLoader->drawQuad(
+		currentCommandBuffer,
+		_pipeline2D.getLayout(),
+		0, _instance2Druns,
+		_current2DInstanceIndex,
+		_currentColour,
+		_currentTexOffset);
 	_current2DInstanceIndex += _instance2Druns;
 	_instance2Druns = 0;
 	break;

@@ -12,7 +12,7 @@ class ResourcePoolVk : public ResourcePool {
 		 VkCommandBuffer cmdbuff, RenderConfig config);
     ~ResourcePoolVk();
 
-    void loadPoolToGPU();
+    void loadGpu();
     void unloadStaged();
     void unloadGPU();
 
