@@ -20,13 +20,22 @@ namespace Resource {
       Pool(size_t ID) {
 	  this->ID = ID;
       }
+      bool operator==(Pool other) {
+	  return ID == other.ID;
+      }
+      
       size_t ID = 0;
   };
 
+  static size_t NULL_TEX_ID = SIZE_MAX;
+  
   struct Texture {
       Texture() {
 	  ID = 0;
 	  dim = glm::vec2(1, 1);
+      }
+      Texture(size_t ID) {
+	  this->ID = ID;
       }
       Texture(size_t ID, glm::vec2 dimentions) {
 	  this->ID = ID;
@@ -38,6 +47,17 @@ namespace Resource {
 	  this->dim = dimentions;
 	  this->pool = pool;
       }
+
+      bool operator==(Texture other) {
+	  return
+	      pool == other.pool &&
+	      ID == other.ID &&
+	      dim == other.dim;
+      }
+      bool operator!=(Texture other) {
+	  return !(*this == other);
+      }
+      
       Pool pool;
       size_t ID = 0;
       glm::vec2 dim = glm::vec2(0, 0);
@@ -60,8 +80,28 @@ namespace Resource {
 	  this->type = type;
 	  this->pool = pool;
       }
+
+      bool operator==(Model other) {
+	  return
+	      ID == other.ID &&
+	      type == other.type &&
+	      pool == other.pool &&
+	      overrideTexture == other.overrideTexture &&
+	      colour.r == other.colour.r &&
+	      colour.g == other.colour.g &&
+	      colour.b == other.colour.b &&
+	      colour.a == other.colour.a;
+      }
+      bool operator!=(Model other) {
+	  return !(*this == other);
+      }
+      
+      
       Pool pool;
       ModelType type;
+      Resource::Texture overrideTexture = Resource::Texture(NULL_TEX_ID);
+      // use diffuse colour if alpha == 0
+      glm::vec4 colour = glm::vec4(0);
       size_t ID;
   };
   
@@ -74,6 +114,11 @@ namespace Resource {
 	  this->ID = ID;
 	  this->pool = pool;
       }
+      bool operator==(Font other) {
+	  return pool == other.pool &&
+	      ID == other.ID;
+      }
+      
       Pool pool;
       size_t ID;
   };
@@ -90,6 +135,12 @@ namespace Resource {
 	  this->model = model;
 	  this->colour = colour;
 	  this->texOffset = glm::vec4(0, 0, 1, 1);
+      }
+      bool operator==(QuadDraw other) {
+	  return tex == other.tex &&
+	      model == other.model &&
+	      colour == other.colour &&
+	      texOffset == other.texOffset;
       }
       Texture tex;
       glm::mat4 model;

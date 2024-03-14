@@ -1,6 +1,5 @@
 #include "model_loader.h"
 
-#include <stdint.h>
 #include <stdexcept>
 #include <cmath>
 #include <cstring>
@@ -106,7 +105,7 @@ void ModelLoaderVk::bindGroupVertexBuffer(VkCommandBuffer cmdBuff, Resource::Mod
 
 void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
 			      Resource::Model model,
-			      uint32_t count, uint32_t instanceOffset, glm::vec4 colour) {
+			      uint32_t count, uint32_t instanceOffset) {
     if(model.ID >= models.size()) {
 	LOG_ERROR("in draw with out of range model. id: "
                   << model.ID << " -  model count: " << models.size());
@@ -116,12 +115,12 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
     bindGroupVertexBuffer(cmdBuff, modelInfo->type);
     for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
 	size_t texID = modelInfo->meshes[i].texture.ID; 
-	if(texID != UINT32_MAX) 
+	if(texID != Resource::NULL_TEX_ID)
 	    texID = texLoader->getViewIndex(modelInfo->meshes[i].texture);
 	else
 	    texID = 0;
 	fragPushConstants fps {
-	    colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : colour,
+	    model.colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : model.colour,
 	    glm::vec4(0, 0, 1, 1), //texOffset
 	    (uint32_t)texID,
 	};

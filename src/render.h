@@ -49,8 +49,7 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
       void UseLoadedResources() override;
 
       // warning: switching between models that are in different pools often is slow
-      void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
-		     glm::vec4 modelColour) override;
+      void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix) override;
       void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
 			 Resource::ModelAnimation *animation) override;
       void DrawQuad(Resource::Texture texture, glm::mat4 modelMatrix, glm::vec4 colour,
@@ -89,7 +88,6 @@ const size_t MAX_ANIMATIONS_PER_FRAME = 10;
       void _store2DsetData();
       void _resize();
       void _drawBatch();
-      bool _modelStateChange(Resource::Model model, glm::vec4 colour);
       void _bindModelPool(Resource::Model model);
       bool _validPool(Resource::Pool pool);
       bool _poolInUse(Resource::Pool pool);

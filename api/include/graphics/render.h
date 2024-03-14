@@ -51,10 +51,21 @@ class Render {
 
     /// --- Resource Drawing ---
     
-    virtual void DrawModel(Resource::Model model, glm::mat4 modelMatrix,
-			   glm::mat4 normalMatrix, glm::vec4 colour) {};
-    void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix) {
-	DrawModel(model, modelMatrix, normalMatrix, glm::vec4(0.0f));
+    virtual void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix) {}
+    void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
+		   glm::vec4 overrideColour, Resource::Texture overrideTex) {
+	model.colour = overrideColour;
+	model.overrideTexture = overrideTex;
+	DrawModel(model, modelMatrix, normalMatrix);
+    }
+    void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
+		   Resource::Texture overrideTex) {
+	DrawModel(model, modelMatrix, normalMatrix, glm::vec4(0), overrideTex);
+    }
+    void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
+		   glm::vec4 overrideColour) {
+	DrawModel(model, modelMatrix, normalMatrix, overrideColour,
+		  Resource::Texture(Resource::NULL_TEX_ID));
     }
     virtual void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 			       glm::mat4 normalMatrix,

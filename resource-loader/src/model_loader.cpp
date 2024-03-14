@@ -56,7 +56,7 @@ Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
 	if(mesh->texToLoad != "")
 	    mesh->texture = texLoader->load(textureFolder + mesh->texToLoad);
 	else
-	    mesh->texture.ID = UINT32_MAX;
+	    mesh->texture.ID = Resource::NULL_TEX_ID;
     }
     
     for(ModelInfo::Animation &anim: model.animations) {

@@ -703,17 +703,10 @@ void RenderVk::_begin(RenderState state) {
     p->begin(currentCommandBuffer, swapchainFrameIndex);
 }
   
-bool RenderVk::_modelStateChange(Resource::Model model, glm::vec4 colour) {
-    return _modelRuns != 0 &&
-	(model.ID != _currentModel.ID ||
-	 model.pool.ID != _currentModel.pool.ID ||
-	 colour != _currentColour);
-}
 
-void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat,
-		       glm::vec4 colour) {
+  void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMat) {
     if (_current3DInstanceIndex >= Resource::MAX_3D_BATCH) {
-	LOG("WARNING: ran out of 3D instances!\n");
+	LOG("WARNING: ran out of 3D instances!");
 	return;
     }
     if(!_poolInUse(model.pool)) {
@@ -722,11 +715,10 @@ void RenderVk::DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4
     }
     _begin(RenderState::Draw3D);
     
-    if (_modelStateChange(model, colour))
+    if (model != _currentModel)
 	_drawBatch();
     _bindModelPool(model);
     _currentModel = model;
-    _currentColour = colour;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].normalMat = normalMat;
     _modelRuns++;
@@ -746,7 +738,7 @@ void RenderVk::DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 	return;
     }
     _begin(RenderState::DrawAnim3D);
-    if (_modelStateChange(model, glm::vec4(0)))
+    if (model != _currentModel)
 	_drawBatch();
     _bindModelPool(model);
     _currentModel = model;
@@ -823,8 +815,7 @@ void RenderVk::_drawBatch() {
 							   _pipeline3D.getLayout(),
 							   _currentModel,
 							   _modelRuns,
-							   _current3DInstanceIndex,
-							   _currentColour);
+							   _current3DInstanceIndex);
 	_current3DInstanceIndex += _modelRuns;
 	_modelRuns = 0;
 	break;
