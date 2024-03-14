@@ -109,6 +109,7 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
     if(model.ID >= models.size()) {
 	LOG_ERROR("in draw with out of range model. id: "
                   << model.ID << " -  model count: " << models.size());
+	LOG_ERROR("requested: " << count << " draws");
 	return;
     }
     ModelInGPU *modelInfo = models[model.ID];

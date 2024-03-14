@@ -679,8 +679,7 @@ void RenderVk::_begin(RenderState state) {
 	_startDraw();
     else if(_renderState == state)
 	return;
-    if (_modelRuns > 0 || _instance2Druns > 0)
-	_drawBatch();
+    _drawBatch();
     _renderState = state;
     if(_current3DInstanceIndex == 0 && state != RenderState::Draw2D)
 	_store3DsetData();
@@ -811,6 +810,14 @@ void RenderVk::_drawBatch() {
     switch(_renderState) {
     case RenderState::DrawAnim3D:
     case RenderState::Draw3D:
+	if(_current3DInstanceIndex > Resource::MAX_3D_BATCH) {
+	    _modelRuns = Resource::MAX_3D_BATCH - _current3DInstanceIndex;
+	    LOG("WARNING: Ran Out of 3D Instance Models");
+	}
+	if(_modelRuns <= 0) {
+	    _modelRuns = 0;
+	    return;
+	}
 	pools[currentModelPool.ID]->modelLoader->drawModel(currentCommandBuffer,
 							   _pipeline3D.getLayout(),
 							   _currentModel,
@@ -820,6 +827,14 @@ void RenderVk::_drawBatch() {
 	_modelRuns = 0;
 	break;
     case RenderState::Draw2D:
+	if(_current2DInstanceIndex > Resource::MAX_2D_BATCH) {
+	    _modelRuns = Resource::MAX_2D_BATCH - _current2DInstanceIndex;
+	    LOG("WARNING: Ran Out of 2D Instance Models");
+	}
+	if(_instance2Druns <= 0) {
+	    _instance2Druns = 0;
+	    return;
+	}
 	pools[currentModelPool.ID]->modelLoader->drawQuad(currentCommandBuffer,
 							  _pipeline2D.getLayout(),
 							  0, _instance2Druns,
@@ -860,37 +875,31 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
     throw std::runtime_error("Tried to end draw before starting it");
 
   _begunDraw = false;
-
-  switch(_renderState)
-  {
-    case RenderState::Draw3D:
-    case RenderState::DrawAnim3D:
-      if (_modelRuns != 0 && _current3DInstanceIndex < Resource::MAX_3D_BATCH)
-        _drawBatch();
-      break;
-    case RenderState::Draw2D:
-      if (_instance2Druns != 0 && _current2DInstanceIndex < Resource::MAX_2D_BATCH)
-        _drawBatch();
-      break;
-  }
+  _drawBatch();
 
   for (size_t i = 0; i < _current3DInstanceIndex; i++)
-      perFrame3D->bindings[0].storeSetData(swapchainFrameIndex, &perFrame3DData[i], 0, i, 0);
+      perFrame3D->bindings[0].storeSetData(
+	      swapchainFrameIndex, &perFrame3DData[i], 0, i, 0);
+  
   _current3DInstanceIndex = 0;
 
   for (size_t i = 0; i < _current2DInstanceIndex; i++) {
-      perFrame2DVert->bindings[0].storeSetData(swapchainFrameIndex, &perFrame2DVertData[i], 0, i, 0);
-      perFrame2DFrag->bindings[0].storeSetData(swapchainFrameIndex, &perFrame2DFragData[i], 0, i, 0);	  
+      perFrame2DVert->bindings[0].storeSetData(
+	      swapchainFrameIndex, &perFrame2DVertData[i], 0, i, 0);
+      perFrame2DFrag->bindings[0].storeSetData(
+	      swapchainFrameIndex, &perFrame2DFragData[i], 0, i, 0);	  
   }
+  
   _current2DInstanceIndex = 0;
-
-  //FINAL RENDER  PASS
 
   vkCmdEndRenderPass(currentCommandBuffer);
 
+  // DO FINAL RENDER PASS
+
   finalRenderPass->beginRenderPass(currentCommandBuffer, swapchainFrameIndex);
   
-  offscreenTransform->bindings[0].storeSetData(swapchainFrameIndex, &offscreenTransformData, 0, 0, 0);
+  offscreenTransform->bindings[0].storeSetData(
+	  swapchainFrameIndex, &offscreenTransformData, 0, 0, 0);
   _pipelineFinal.begin(currentCommandBuffer, swapchainFrameIndex);
   vkCmdDraw(currentCommandBuffer, 3, 1, 0, 0);
 
@@ -898,8 +907,8 @@ void RenderVk::EndDraw(std::atomic<bool> &submit) {
   
   VkResult result = vkEndCommandBuffer(currentCommandBuffer);
   if(result == VK_SUCCESS) {
-            VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	    auto info = submitDrawInfo(frames[frameIndex], &stageFlags);
+      VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+      auto info = submitDrawInfo(frames[frameIndex], &stageFlags);
       VkResult result = vkhelper::submitQueue(
 	      manager->deviceState.queue.graphicsPresentQueue,
 	      &info, &graphicsPresentMutex, frames[frameIndex]->frameFinished);
