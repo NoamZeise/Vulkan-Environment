@@ -109,15 +109,23 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
     if(model.ID >= models.size()) {
 	LOG_ERROR("in draw with out of range model. id: "
                   << model.ID << " -  model count: " << models.size());
-	LOG_ERROR("requested: " << count << " draws");
 	return;
     }
+    if(count == 0)
+	return;
+
     ModelInGPU *modelInfo = models[model.ID];
+
     bindGroupVertexBuffer(cmdBuff, modelInfo->type);
-    for(size_t i = 0; i < modelInfo->meshes.size(); i++) {
-	size_t texID = modelInfo->meshes[i].texture.ID; 
+    
+    for(size_t i = 0; i < modelInfo->meshes.size(); i++) {	
+
+	Resource::Texture meshTex = model.overrideTexture.ID == Resource::NULL_TEX_ID ?
+	    modelInfo->meshes[i].texture : model.overrideTexture;
+	
+	size_t texID = meshTex.ID;
 	if(texID != Resource::NULL_TEX_ID)
-	    texID = texLoader->getViewIndex(modelInfo->meshes[i].texture);
+	    texID = texLoader->getViewIndex(meshTex);
 	else
 	    texID = 0;
 	fragPushConstants fps {

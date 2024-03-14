@@ -23,6 +23,9 @@ namespace Resource {
       bool operator==(Pool other) {
 	  return ID == other.ID;
       }
+      bool operator!=(Pool other) {
+	  return !(*this == other);
+      }
       
       size_t ID = 0;
   };
@@ -59,7 +62,7 @@ namespace Resource {
       }
       
       Pool pool;
-      size_t ID = 0;
+      size_t ID = NULL_TEX_ID;
       glm::vec2 dim = glm::vec2(0, 0);
   };
 

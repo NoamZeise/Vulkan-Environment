@@ -712,10 +712,12 @@ void RenderVk::_begin(RenderState state) {
 	LOG_ERROR("Tried Drawing with model in pool that is not in use");
 	return;
     }
+    
     _begin(RenderState::Draw3D);
     
     if (model != _currentModel)
 	_drawBatch();
+    
     _bindModelPool(model);
     _currentModel = model;
     perFrame3DData[_current3DInstanceIndex + _modelRuns].model = modelMatrix;
@@ -810,14 +812,15 @@ void RenderVk::_drawBatch() {
     switch(_renderState) {
     case RenderState::DrawAnim3D:
     case RenderState::Draw3D:
-	if(_current3DInstanceIndex > Resource::MAX_3D_BATCH) {
-	    _modelRuns = Resource::MAX_3D_BATCH - _current3DInstanceIndex;
+	if(_current3DInstanceIndex + _modelRuns > Resource::MAX_3D_BATCH) {
+	    if(_current3DInstanceIndex < Resource::MAX_3D_BATCH)
+		_modelRuns = (Resource::MAX_3D_BATCH - _current3DInstanceIndex);
+	    else
+		_modelRuns = 0;
 	    LOG("WARNING: Ran Out of 3D Instance Models");
 	}
-	if(_modelRuns <= 0) {
-	    _modelRuns = 0;
+	if(_modelRuns == 0)
 	    return;
-	}
 	pools[currentModelPool.ID]->modelLoader->drawModel(currentCommandBuffer,
 							   _pipeline3D.getLayout(),
 							   _currentModel,
@@ -827,18 +830,20 @@ void RenderVk::_drawBatch() {
 	_modelRuns = 0;
 	break;
     case RenderState::Draw2D:
-	if(_current2DInstanceIndex > Resource::MAX_2D_BATCH) {
-	    _modelRuns = Resource::MAX_2D_BATCH - _current2DInstanceIndex;
+	if(_current2DInstanceIndex + _instance2Druns > Resource::MAX_2D_BATCH) {
+	    if(_current2DInstanceIndex < Resource::MAX_2D_BATCH)
+		_instance2Druns = Resource::MAX_2D_BATCH - _current2DInstanceIndex;
+	    else
+		_instance2Druns = 0;
 	    LOG("WARNING: Ran Out of 2D Instance Models");
 	}
-	if(_instance2Druns <= 0) {
-	    _instance2Druns = 0;
+	if(_instance2Druns <= 0)
 	    return;
-	}
 	pools[currentModelPool.ID]->modelLoader->drawQuad(currentCommandBuffer,
 							  _pipeline2D.getLayout(),
 							  0, _instance2Druns,
-							  _current2DInstanceIndex, _currentColour,
+							  _current2DInstanceIndex,
+							  _currentColour,
 							  _currentTexOffset);
 	_current2DInstanceIndex += _instance2Druns;
 	_instance2Druns = 0;
