@@ -18,7 +18,7 @@ namespace Resource {
   static size_t NULL_POOL_ID = SIZE_MAX;
 
   struct Pool {
-      Pool() { ID = 0; }
+      Pool() { }
       Pool(size_t ID) {
 	  this->ID = ID;
       }
@@ -32,7 +32,7 @@ namespace Resource {
       size_t ID = NULL_POOL_ID;
   };
 
-  static size_t NULL_TEX_ID = SIZE_MAX;
+  static size_t NULL_ID = SIZE_MAX;
   
   struct Texture {
       Texture() {
@@ -63,7 +63,7 @@ namespace Resource {
       }
       
       Pool pool;
-      size_t ID = NULL_TEX_ID;
+      size_t ID = NULL_ID;
       glm::vec2 dim = glm::vec2(0, 0);
   };
 
@@ -105,7 +105,7 @@ namespace Resource {
       
       Pool pool;
       ModelType type;
-      Resource::Texture overrideTexture = Resource::Texture(NULL_TEX_ID);
+      Resource::Texture overrideTexture = Resource::Texture(NULL_ID);
       // use diffuse colour if alpha == 0
       glm::vec4 colour = glm::vec4(0);
       size_t ID = NULL_MODEL_ID;

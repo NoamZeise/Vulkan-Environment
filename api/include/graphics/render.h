@@ -65,7 +65,7 @@ class Render {
     void DrawModel(Resource::Model model, glm::mat4 modelMatrix, glm::mat4 normalMatrix,
 		   glm::vec4 overrideColour) {
 	DrawModel(model, modelMatrix, normalMatrix, overrideColour,
-		  Resource::Texture(Resource::NULL_TEX_ID));
+		  Resource::Texture(Resource::NULL_ID));
     }
     virtual void DrawAnimModel(Resource::Model model, glm::mat4 modelMatrix,
 			       glm::mat4 normalMatrix,

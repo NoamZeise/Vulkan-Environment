@@ -172,8 +172,10 @@ VkImageView TexLoaderVk::getImageViewSetIndex(uint32_t texID, uint32_t imageView
 unsigned int TexLoaderVk::getViewIndex(Resource::Texture tex) {
     if(tex.pool != this->pool) {
 	LOG_ERROR("tex loader - getViewIndex: Texture does not belong to this resource pool");
-	return 0;
+	return Resource::NULL_ID;
     }
+    if(tex.ID == Resource::NULL_ID)
+	return tex.ID;
     if (tex.ID < textures.size())
 	return textures[tex.ID]->imageViewIndex;
       

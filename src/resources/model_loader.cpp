@@ -120,18 +120,16 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
     
     for(size_t i = 0; i < modelInfo->meshes.size(); i++) {	
 
-	Resource::Texture meshTex = model.overrideTexture.ID == Resource::NULL_TEX_ID ?
+	Resource::Texture meshTex = model.overrideTexture.ID == Resource::NULL_ID ?
 	    modelInfo->meshes[i].texture : model.overrideTexture;
 	
-	size_t texID = meshTex.ID;
-	if(texID != Resource::NULL_TEX_ID)
-	    texID = texLoader->getViewIndex(meshTex);
-	else
-	    texID = 0;
+	int texID = texLoader->getViewIndex(meshTex);
+	if(texID == Resource::NULL_ID)
+	    texID = -1;
 	fragPushConstants fps {
 	    model.colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : model.colour,
-	    glm::vec4(0, 0, 1, 1), //texOffset
-	    (uint32_t)texID,
+	    glm::vec4(0, 0, 1, 1),
+	    texID,
 	};
 	vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			   0, sizeof(fragPushConstants), &fps);

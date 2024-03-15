@@ -108,8 +108,7 @@ bool swapchainRecreationRequired(VkResult result) {
       VkImageView validView;
       bool foundValidView = false;
       bool checkedAllPools = false;
-      //TODO: add dummy tex to ID 0 and use as validView
-      for(int i = 1, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
+      for(int i = 0, pI = 0, texI = 0; i < Resource::MAX_TEXTURES_SUPPORTED; i++) {
 	  if(pool == nullptr)
 	      goto next_pool;
 	  if(!pool->UseGPUResources) {
@@ -145,7 +144,6 @@ bool swapchainRecreationRequired(VkResult result) {
 	  LOG_ERROR("Ran out of texture slots in shader! current limit: "
 		    << Resource::MAX_TEXTURES_SUPPORTED);
       }
-      textureViews[0] = validView;
   }
 
   
@@ -614,11 +612,9 @@ void RenderVk::_startDraw() {
     checkResultAndThrow(frames[frameIndex]->startFrame(&currentCommandBuffer),
 			"Render Error: Failed to start command buffer.");
     offscreenRenderPass->beginRenderPass(currentCommandBuffer, swapchainFrameIndex);
-    currentBonesDynamicOffset = 0;
-
-    pools->get(0)->modelLoader->bindBuffers(currentCommandBuffer);
-    currentModelPool = pools->get(0)->id();
     
+    currentBonesDynamicOffset = 0;
+    currentModelPool = Resource::Pool();
     _begunDraw = true;
 }
 
