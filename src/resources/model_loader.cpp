@@ -58,8 +58,8 @@ struct ModelInGPU : public GPUModel {
 	
 ModelLoaderVk::ModelLoaderVk(DeviceState base, VkCommandPool cmdpool,
 			     VkCommandBuffer generalCmdBuff,
-			     Resource::Pool pool, InternalTexLoader* texLoader)
-    : InternalModelLoader(pool, texLoader){
+			     Resource::Pool pool, BasePoolManager* pools)
+    : InternalModelLoader(pool, pools){
       this->base = base;
       this->cmdpool = cmdpool;
       this->cmdbuff = generalCmdBuff;
@@ -119,17 +119,10 @@ void ModelLoaderVk::drawModel(VkCommandBuffer cmdBuff, VkPipelineLayout layout,
     bindGroupVertexBuffer(cmdBuff, modelInfo->type);
     
     for(size_t i = 0; i < modelInfo->meshes.size(); i++) {	
-
-	Resource::Texture meshTex = model.overrideTexture.ID == Resource::NULL_ID ?
-	    modelInfo->meshes[i].texture : model.overrideTexture;
-	
-	int texID = texLoader->getViewIndex(meshTex);
-	if(texID == Resource::NULL_ID)
-	    texID = -1;
 	fragPushConstants fps {
 	    model.colour.a == 0.0f ? modelInfo->meshes[i].diffuseColour : model.colour,
 	    glm::vec4(0, 0, 1, 1),
-	    texID,
+	    modelGetTexID(model, modelInfo->meshes[i].texture, pools),
 	};
 	vkCmdPushConstants(cmdBuff, layout, VK_SHADER_STAGE_FRAGMENT_BIT,
 			   0, sizeof(fragPushConstants), &fps);

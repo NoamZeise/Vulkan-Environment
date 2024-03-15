@@ -26,8 +26,6 @@
 // * graphics pipelines assume each descriptor set they contain has the same
 // number of sets (for frames).
 
-class PoolManagerVk : public PoolManager<ResourcePoolVk> {};
-
 namespace vkenv {
 
 bool RenderVk::LoadVulkan() {
@@ -500,7 +498,8 @@ bool swapchainRecreationRequired(VkResult result) {
 ResourcePool* RenderVk::CreateResourcePool() {
     int i = pools->NextPoolIndex();
     ResourcePoolVk* p = new ResourcePoolVk(
-	    i, manager->deviceState, manager->generalCommandPool, manager->generalCommandBuffer,
+	    i, pools,
+	    manager->deviceState, manager->generalCommandPool, manager->generalCommandBuffer,
 	    renderConf);    
     return pools->AddPool(p, i);
 }

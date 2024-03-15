@@ -2,9 +2,9 @@
 #include <graphics/logger.h>
 #include "assimp_loader.h"
 
-InternalModelLoader::InternalModelLoader(Resource::Pool pool, InternalTexLoader* texLoader) {
-    this->texLoader = texLoader;
+InternalModelLoader::InternalModelLoader(Resource::Pool pool, BasePoolManager* pools) {
     this->pool = pool;
+    this->pools = pools;
     loader = new AssimpLoader();
 }
 
@@ -54,7 +54,7 @@ Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
     }
     for(Mesh<T_Vert> *mesh: loaded->meshes) {
 	if(mesh->texToLoad != "")
-	    mesh->texture = texLoader->load(textureFolder + mesh->texToLoad);
+	    mesh->texture = pools->tex(pool)->load(textureFolder + mesh->texToLoad);
 	else
 	    mesh->texture.ID = Resource::NULL_ID;
     }
@@ -77,4 +77,11 @@ Resource::Model InternalModelLoader::loadData(ModelInfo::Model& model,
 void InternalModelLoader::loadQuad() {
     ModelInfo::Model q = makeQuadModel();
     quad = load(Resource::ModelType::m2D, q, "", nullptr);
+}
+
+int modelGetTexID(Resource::Model model, Resource::Texture texture, BasePoolManager* pools) {
+    Resource::Texture meshTex = model.overrideTexture.ID == Resource::NULL_ID ?
+	texture : model.overrideTexture;    
+    return meshTex.ID != Resource::NULL_ID ?
+	pools->tex(meshTex)->getViewIndex(meshTex) : -1;
 }

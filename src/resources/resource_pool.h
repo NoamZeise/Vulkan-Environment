@@ -4,11 +4,12 @@
 #include "texture_loader.h"
 #include "model_loader.h"
 #include <resource_loader/font_loader.h>
+#include <resource_loader/pool_manager.h>
 #include <graphics/resource_pool.h>
 
 class ResourcePoolVk : public ResourcePool {
  public:
-    ResourcePoolVk(uint32_t poolID, DeviceState base, VkCommandPool cmdpool,
+    ResourcePoolVk(uint32_t poolID, BasePoolManager* pools, DeviceState base, VkCommandPool cmdpool,
 		 VkCommandBuffer cmdbuff, RenderConfig config);
     ~ResourcePoolVk();
 
@@ -33,5 +34,6 @@ class ResourcePoolVk : public ResourcePool {
     bool usingGPUResources = false;
 };
 
+MAKE_POOL_MANAGER(PoolManagerVk, ResourcePoolVk)
 
 #endif

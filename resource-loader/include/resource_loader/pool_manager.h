@@ -5,10 +5,25 @@
 #include <graphics/resources.h>
 #include <stdexcept>
 
+#include "texture_loader.h"
+
+class BasePoolManager {
+public:
+    InternalTexLoader* tex(Resource::Texture tex) {
+	return this->tex(tex.pool);
+    }
+
+    InternalTexLoader* tex(Resource::Pool pool) {
+	return tex(pool.ID);
+    }
+    
+    virtual InternalTexLoader* tex(int id) = 0;
+};
+
 template<class Pool>
-class PoolManager {
+class InternalPoolManager : public BasePoolManager {
  public:
-    ~PoolManager();
+    ~InternalPoolManager();
     bool ValidPool(Resource::Pool pool);
     bool ValidPool(int id);
     Pool* get(Resource::Pool pool);
@@ -18,15 +33,30 @@ class PoolManager {
     Pool* AddPool(Pool* pool, int index);
     void DeletePool(Resource::Pool pool);
     
- private:
+ protected:
     std::vector<Pool*> pools;
     std::vector<int> freePools;
 };
 
+
+// assume <graphics/logger.h> imported
+// and pools has a member called texLoader
+#define MAKE_POOL_MANAGER(name, resource_pool_type) \
+    class name : public InternalPoolManager<resource_pool_type> {	\
+	InternalTexLoader* tex(int id) override {			\
+	    if(!ValidPool(id)) {					\
+		LOG_ERROR("PoolManager: tex given invalid pool id: "	\
+			  << id);					\
+		return nullptr;						\
+	    }								\
+	    return pools[id]->texLoader;				\
+	}								\
+    };
+
 /// PoolManager Implementation
 
 template <class Pool>
-PoolManager<Pool>::~PoolManager() {
+InternalPoolManager<Pool>::~InternalPoolManager() {
     for(int i = 0; i < pools.size(); i++)
 	if(pools[i] != nullptr)
 	    delete pools[i];
@@ -35,25 +65,25 @@ PoolManager<Pool>::~PoolManager() {
 
 
 template <class Pool>
-bool PoolManager<Pool>::ValidPool(Resource::Pool pool) {
+bool InternalPoolManager<Pool>::ValidPool(Resource::Pool pool) {
     return ValidPool(pool.ID);
 }
 
 
 template <class Pool>
-bool PoolManager<Pool>::ValidPool(int id) {
+bool InternalPoolManager<Pool>::ValidPool(int id) {
     return !(id > pools.size() || pools[id] == nullptr);
 }
 
 
 template <class Pool>
-Pool* PoolManager<Pool>::get(Resource::Pool pool) {
+Pool* InternalPoolManager<Pool>::get(Resource::Pool pool) {
     return get(pool.ID);
 }
 
 
 template <class Pool>
-Pool* PoolManager<Pool>::get(int id) {
+Pool* InternalPoolManager<Pool>::get(int id) {
     if(!ValidPool(id))
 	return nullptr;
     return pools[id];
@@ -61,13 +91,13 @@ Pool* PoolManager<Pool>::get(int id) {
 
 
 template <class Pool>
-int PoolManager<Pool>::PoolCount() {
+int InternalPoolManager<Pool>::PoolCount() {
     return pools.size();
 }
 
 
 template <class Pool>
-int PoolManager<Pool>::NextPoolIndex() {
+int InternalPoolManager<Pool>::NextPoolIndex() {
     int index = pools.size();
     if(freePools.empty())
 	pools.push_back(nullptr);
@@ -80,7 +110,7 @@ int PoolManager<Pool>::NextPoolIndex() {
 
 
 template <class Pool>
-Pool* PoolManager<Pool>::AddPool(Pool* pool, int index) {
+Pool* InternalPoolManager<Pool>::AddPool(Pool* pool, int index) {
     if(ValidPool(index)) {
 	throw std::runtime_error("PoolManager: Tried to add pool to index "
 				 "that already contains a valid pool!");
@@ -91,7 +121,7 @@ Pool* PoolManager<Pool>::AddPool(Pool* pool, int index) {
 
 
 template <class Pool>
-void PoolManager<Pool>::DeletePool(Resource::Pool pool) {
+void InternalPoolManager<Pool>::DeletePool(Resource::Pool pool) {
     if(!ValidPool(pool))
 	return;
     delete pools[pool.ID];

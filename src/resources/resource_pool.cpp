@@ -1,9 +1,9 @@
 #include "resource_pool.h"
 
-ResourcePoolVk::ResourcePoolVk(uint32_t poolID, DeviceState base, VkCommandPool cmdpool, VkCommandBuffer cmdbuff, RenderConfig config) {
+ResourcePoolVk::ResourcePoolVk(uint32_t poolID, BasePoolManager* pools, DeviceState base, VkCommandPool cmdpool, VkCommandBuffer cmdbuff, RenderConfig config) {
     this->pool = Resource::Pool(poolID);
     texLoader = new TexLoaderVk(base, cmdpool, pool, config);
-    modelLoader = new ModelLoaderVk(base, cmdpool, cmdbuff, pool, texLoader);
+    modelLoader = new ModelLoaderVk(base, cmdpool, cmdbuff, pool, pools);
     fontLoader = new InternalFontLoader(pool, texLoader);
 }
 

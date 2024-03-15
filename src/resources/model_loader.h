@@ -12,7 +12,7 @@ struct ModelInGPU;
 class ModelLoaderVk : public InternalModelLoader {
 public:
     ModelLoaderVk(DeviceState base, VkCommandPool cmdpool, VkCommandBuffer generalCmdBuff,
-		  Resource::Pool pool, InternalTexLoader *texLoader);
+		  Resource::Pool pool, BasePoolManager *pools);
     ~ModelLoaderVk();
     void loadGPU() override;
     void clearGPU() override;

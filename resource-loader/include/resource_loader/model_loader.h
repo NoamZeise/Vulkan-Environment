@@ -1,12 +1,12 @@
 #ifndef GL_MODEL_LOADER_H
 #define GL_MODEL_LOADER_H
 
-#include "texture_loader.h"
 #include <resource_loader/vertex_model.h>
 #include <graphics/model_loader.h>
 #include <graphics/logger.h>
-
 #include <map>
+
+#include "pool_manager.h"
 
 class AssimpLoader;
 
@@ -57,7 +57,7 @@ struct GPUModel {
 
 class InternalModelLoader : public ModelLoader {
 public:
-    InternalModelLoader(Resource::Pool pool, InternalTexLoader* texLoader);
+    InternalModelLoader(Resource::Pool pool, BasePoolManager* pools);
     ~InternalModelLoader();
     Resource::Model load(
 	    Resource::ModelType type,
@@ -71,13 +71,14 @@ public:
     
 protected:
     Resource::Pool pool;
-    InternalTexLoader *texLoader;
+    BasePoolManager *pools;
     unsigned int currentIndex = 0;
     ModelGroup<Vertex2D> stage2D;
     ModelGroup<Vertex3D> stage3D;
     ModelGroup<VertexAnim3D> stageAnim3D;
     Resource::Model quad;
     AssimpLoader* loader;
+
     template <class T_Vert>
     Resource::Model loadData(ModelInfo::Model& model,
 			     ModelGroup<T_Vert>& modelGroup,
@@ -86,6 +87,6 @@ protected:
     void loadQuad();
 };
 
-
+int modelGetTexID(Resource::Model model, Resource::Texture texture, BasePoolManager *pools);
 
 #endif
